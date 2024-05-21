@@ -3,7 +3,8 @@ import { io } from "socket.io-client";
 
 export const position = reactive({
   x: 0,
-  y: 0
+  y: 0,
+  angle: 0,
 });
 
 const URL = "http://localhost:5000";
@@ -19,6 +20,7 @@ socket.on("disconnect", () => {
 });
 
 socket.on("position", (event) => {
-    position.x = event.x;
-    position.y = event.y;
+    position.y = event.y.toFixed(2);
+    position.x = event.x.toFixed(2);
+    position.angle = event.angle.toFixed(2);
 });

@@ -2,11 +2,6 @@
 import {position} from '@/socket'
 import {socket} from '@/socket'
 
-
-const msg = "POR FAVOR FUNCIONA VEI"
-console.log(msg);
-socket.emit('message', msg)
-
 export default {
   data() {
     return {
@@ -24,19 +19,27 @@ export default {
 </script>
 
 <template>
-    <div class="field">
-        <div class="robot" :style="{top: position.y+'px', left: position.x+'px' }">
+    <div class="conteudo">
+        <div class="field">
+            <div class="robot" :style="{top: position.y+'px', left: position.x+'px', transform: 'rotate('+position.angle+'rad)'}">
+            </div>
         </div>
+    
+        <div class="texto">
+            Coordinates: ({{position.x}}, {{position.y}}, {{ position.angle }})
+        </div>
+    
+        <button @click="sendMessage">Send Message</button>
     </div>
-
-    <div class="texto">
-        Coordinates: ({{position.x}}, {{position.y}})
-    </div>
-
-    <button @click="sendMessage">Send Message</button>
 </template>
 
 <style>
+    .conteudo {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
     .field {
         width: 500px;
         height: 500px;
