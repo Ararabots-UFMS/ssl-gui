@@ -1,21 +1,22 @@
-<script>
-import {position} from '@/socket'
-import {socket} from '@/socket'
+<script lang="ts">
+    import {position} from '@/socket'
+    import {socket} from '@/socket'
 
-export default {
-  data() {
-    return {
-        position: position,
-        msg: "POR FAVOR FUNCIONA VEI"
+    export default {
+        name: 'Arena',
+        data() {
+            return {
+                position: position,
+                msg: "POR FAVOR FUNCIONA VEI"
+            }
+        },
+        methods: {
+            sendMessage() {
+                console.log(this.msg);
+                socket.emit('message', this.msg);
+            }
+        },
     }
-  },
-  methods: {
-    sendMessage() {
-        console.log(msg);
-        socket.emit('message', msg);
-    }
-  },
-}
 </script>
 
 <template>

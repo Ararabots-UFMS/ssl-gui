@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import HelloWorld from './components/HelloWorld.vue'
 import TheWelcome from './components/TheWelcome.vue'
-import field from './components/field.vue'
+import Arena from './components/Arena.vue'
 </script>
 
 <template>
   
   <header>
     <div class="wrapper">
-      <field/>
+      <arena/>
+      <the-welcome/>
     </div>
   </header>
 

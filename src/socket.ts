@@ -9,7 +9,7 @@ export const position = reactive({
 
 const URL = "http://localhost:5000";
 
-export const socket = io(URL,{cors: {origin: "*"}});
+export const socket = io(URL,{cors: {origin: "*"}} as any);
 
 socket.on("connect", () => {
     console.log("Connected to the server");
