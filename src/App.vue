@@ -1,15 +1,22 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
-import Arena from './components/Arena.vue'
+  import FieldCanvas from "@/components/FieldCanvas.vue";
+  import {inject, ref} from "vue";
+  import {defaultField} from "@/field";
+  import type {Field} from "@/field";
+  import Arena from './components/Arena.vue'
+
+
+  const visionApi = inject<VisionApi>('vision-api')
+  const field = ref(defaultField)
+  visionApi?.RegisterConsumer((f: Field) => field.value = f)
 </script>
 
 <template>
+  <FieldCanvas :field="field"/>
   
   <header>
     <div class="wrapper">
-      <arena/>
-      <the-welcome/>
+      <!-- <arena/> -->
     </div>
   </header>
 
