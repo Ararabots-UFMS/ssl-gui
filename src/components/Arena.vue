@@ -22,7 +22,9 @@
 <template>
     <div class="conteudo">
         <div class="field">
-            <div class="robot" :style="{top: position.y+'px', left: position.x+'px', transform: 'rotate('+position.angle+'rad)'}">
+            <div class="robot" :style="{top: '10px', left: position.x+'px', transform: 'rotate(2rad)'}">
+                <div class="dot">
+                </div>
             </div>
         </div>
     
@@ -35,15 +37,19 @@
 </template>
 
 <style>
+    .yrobot {
+        background-color: white
+    }
+
     .conteudo {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        position: fixed;
+        width: 400px; /* Largura fixa */
+        height: 600px; /* Altura fixa */
     }
 
     .field {
-        width: 500px;
-        height: 500px;
+        width: 100px;
+        height: 100px;
         background-color: black;
         position: relative;
         margin-top: 15px;
@@ -51,9 +57,20 @@
 
     .robot {
         position: absolute;
-        width: 25px;
-        height: 25px;
+        width: 26px;
+        height: 26px;
         background-color: yellow;
+        border-radius: 50%;
+    }
+
+    .dot{
+        position: absolute;
+        width: 6px; /* largura do ponto */
+        height: 6px; /* altura do ponto */
+        background-color: black; /* cor do ponto */
+        border-radius: 50%; /* torna o ponto circular */
+        left: 0px; /* posição horizontal do ponto dentro da div container */
+        top: 10px; /* posição vertical do ponto dentro da div container */
     }
 
     .texto {
