@@ -1,31 +1,38 @@
+@import("https://img.icons8.com/ios/50/foul.png"); 
+@import("https://img.icons8.com/ios/50/wifi--v1.png"); 
+@import("https://img.icons8.com/ios/50/visible--v1.png"); 
+
 <template>
     <div class="container">
         <div class="buttons-container">
             <div class="buttons" onclick="showTab('juiz')">
-                <div class="line-color"></div> <!-- Linha colorida --> 
+                <div class="line-color"></div>  
                 <span class="button-text">Juiz</span></div>
             <div class="buttons" onclick="showTab('visao')">
-                <div class="line-color"></div> <!-- Linha colorida -->
+                <div class="line-color"></div> 
                 <span class="button-text">Visão</span></div>
             <div class="buttons" onclick="showTab('comunicacao')">
-                <div class="line-color"></div> <!-- Linha colorida -->
+                <div class="line-color"></div> 
                 <span class="button-text">Comunicação</span></div>
         </div>
         <div class="terminal">
-            <div class="tabs">
-                <div class="tab active" @click="showTab('juiz')">Juiz</div>
-                <div class="tab" @click="showTab('visao')">Visão</div>
-                <div class="tab" @click="showTab('comunicacao')">Comunicação</div>
-            </div>
-            <div class="messages" id="juiz">
+                <div class="tabs">
+                    <div class="juizTab" @click="showTab('juiz')" :class="{ 'tab-selected':
+                        selectedTab === 'juiz' }">Juiz</div>
+                    <div class="visaoTab" @click="showTab('visao')" :class="{ 'tab-selected':
+                        selectedTab === 'visao'}">Visão</div>
+                    <div class="comunicacaoTab" @click="showTab('comunicacao')" :class="{ 'tab-selected':
+                        selectedTab === 'comunicacao'}">Comunicação</div>
+                </div>
+            <div class="messages" id="juiz" v-show="selectedTab === 'juiz'">
                 <div class="line">Welcome to the Juiz tab!</div>
                 <div class="button" @click="updateMessage('juiz')">Update message</div>
             </div>
-            <div class="messages" id="visao">
+            <div class="messages" id="visao" v-show="selectedTab === 'visao'">
                 <div class="line">Welcome to the Visão tab!</div>
                 <div class="button" @click="updateMessage('visao')">Update message</div>
             </div>
-            <div class="messages" id="comunicacao">
+            <div class="messages" id="comunicacao" v-show="selectedTab === 'comunicacao'">
                 <div class="line">Welcome to the Comunicação tab!</div>
                 <div class="button" @click="updateMessage('comunicacao')">Update message</div>
             </div>
@@ -37,24 +44,12 @@
     export default {
         data() {
         return {
-            juiz: 0,
-            visao: 0,
-            comunicacao: 0
+            selectedTab: 'juiz', // Default tab
         };
         },
         methods: {
             showTab (tabName) {
-                // Ocultar todas as abas
-                const contents = document.querySelectorAll('.messages');
-                contents.forEach(content => content.style.display = 'none');
-
-                // Desativar todas as abas
-                const tabs = document.querySelectorAll('.tab');
-                tabs.forEach(tab => tab.classList.remove('active'));
-
-                // Mostrar a aba selecionada
-                document.getElementById(tabName).style.display = 'flex';
-                document.querySelector(`.tab[onclick="showTab('${tabName}')"]`).classList.add('active');
+                this.selectedTab = tabName;
             },
             printText (tabName) {
                 const terminal = document.getElementById(tabName);
@@ -99,21 +94,28 @@
         display: flex;
         justify-content: space-between;
         margin: 0; /* Remove qualquer margem */
-        padding: 0px; /* Ajuste do espaçamento interno */
-        background-color: #383f6b; /* Mesma cor do terminal para continuidade visual */
+        background-color: white; /* Mesma cor do terminal para continuidade visual */
         border-top-left-radius: 10px;
         border-top-right-radius: 10px;
+        color: black;
+        height: 30px
+    }
+    .tabs > div {
+        flex: 1;
+        text-align: center;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .tab-selected {
+        background-color: #252838;
+        color: white;
     }
     .tab {
         cursor: pointer;
         padding: 5px 34px;
-        background-color: #d2d1cb;
+        background-color: white;
         color: #252838;
         margin-right: 0px;
-    }
-    .tab.active {
-        background-color: #383f6b;
-        color: #d2d1cb;
     }
     .tab:first-child {
         border-top-left-radius: 10px; /* Apenas o primeiro botão terá a borda arredondada no canto superior esquerdo */
@@ -129,6 +131,7 @@
         padding: 10px; /* Adiciona padding para o conteúdo */
     }
     .line {
+        color: #d2d1cb;
         margin: 0;
         white-space: pre-wrap; /* Mantém espaços e quebras de linha */
     }
@@ -156,6 +159,7 @@
         background-color: #383f6b;
         color: #d2d1cb;
         border-radius: 10px;
+        position: relative;
     }
     .buttons:not(:last-child) {
         margin-right: 108px;
