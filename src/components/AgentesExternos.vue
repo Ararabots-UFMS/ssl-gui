@@ -1,4 +1,30 @@
+<script>
+    export default {
+        data() {
+        return {
+            selectedTab: 'juiz', // Default tab
+        };
+        },
+        methods: {
+            showTab (tabName) {
+                this.selectedTab = tabName;
+            },
+            printText (tabName) {
+                const terminal = document.getElementById(tabName);
+                // Remove a classe especial da última mensagem anterior
+                const lastLine = terminal.querySelector('.last-line');
+                if (lastLine) {
+                    lastLine.classList.remove('last-line');
+                }
 
+                const newLine = document.createElement('div');
+                newLine.className = 'line last-line';
+                newLine.textContent = `Button clicked times`;
+                terminal.prepend(newLine); // Adiciona a nova linha no início do conteúdo
+            }
+        },
+    };
+</script>
 
 <template>
     <div class="buttons-container">
@@ -47,34 +73,6 @@
         </div>
     </div>
 </template>
-
-<script>
-    export default {
-        data() {
-        return {
-            selectedTab: 'juiz', // Default tab
-        };
-        },
-        methods: {
-            showTab (tabName) {
-                this.selectedTab = tabName;
-            },
-            printText (tabName) {
-                const terminal = document.getElementById(tabName);
-                // Remove a classe especial da última mensagem anterior
-                const lastLine = terminal.querySelector('.last-line');
-                if (lastLine) {
-                    lastLine.classList.remove('last-line');
-                }
-
-                const newLine = document.createElement('div');
-                newLine.className = 'line last-line';
-                newLine.textContent = `Button clicked times`;
-                terminal.prepend(newLine); // Adiciona a nova linha no início do conteúdo
-            }
-        },
-    };
-</script>
 
 <style scoped>
     .buttons-container {           

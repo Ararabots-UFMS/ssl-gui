@@ -1,15 +1,3 @@
-<template>
-  <div class="full-screen">
-    <div class="left-side">
-
-    </div>
-    <div class="right-side">
-      <arena></arena>
-      <AgentesExternos></AgentesExternos>
-    </div>
-  </div>
-</template>
-
 <script>
   import Arena from './components/Arena.vue';
   import AgentesExternos from './components/AgentesExternos.vue';
@@ -30,6 +18,19 @@
     },
   };
 </script>
+
+<template>
+  <div class="full-screen">
+    <div class="left-side">
+
+    </div>
+    <div class="right-side">
+      <arena></arena>
+      <AgentesExternos></AgentesExternos>
+    </div>
+  </div>
+</template>
+
 
 <style scoped>
 .full-screen {
