@@ -35,15 +35,15 @@
             </div>
         <div class="messages" id="juiz" v-show="selectedTab === 'juiz'">
             <div class="line">Welcome to the Juiz tab!</div>
-            <div class="tab-button" @click="updateMessage('juiz')">Update message</div>
+            <div class="tab-button" @click="printText('juiz')">Update message</div>
         </div>
         <div class="messages" id="visao" v-show="selectedTab === 'visao'">
             <div class="line">Welcome to the Visão tab!</div>
-            <div class="tab-button" @click="updateMessage('visao')">Update message</div>
+            <div class="tab-button" @click="printText('visao')">Update message</div>
         </div>
         <div class="messages" id="comunicacao" v-show="selectedTab === 'comunicacao'">
             <div class="line">Welcome to the Comunicação tab!</div>
-            <div class="tab-button" @click="updateMessage('comunicacao')">Update message</div>
+            <div class="tab-button" @click="printText('comunicacao')">Update message</div>
         </div>
     </div>
 </template>
@@ -69,12 +69,8 @@
 
                 const newLine = document.createElement('div');
                 newLine.className = 'line last-line';
-                newLine.textContent = `Button clicked ${clickCounts[tabName]} times`;
+                newLine.textContent = `Button clicked times`;
                 terminal.prepend(newLine); // Adiciona a nova linha no início do conteúdo
-            },
-            updateMessage (tabName) {
-                clickCounts[tabName]++;
-                printText(tabName);
             }
         },
     };
@@ -107,7 +103,6 @@
     }
     .icons {
         height: 80%;
-        padding: 
     }
     .button-text {
         width:100%;
@@ -173,8 +168,8 @@
         white-space: pre-wrap; /* Mantém espaços e quebras de linha */
     }
     .last-line {
-        background-color: #d2d1cb; /* Fundo claro para a última mensagem */
-        color: #252838;
+        background-color: white; /* Fundo claro para a última mensagem */
+        color: black;
         border-bottom-left-radius: 5px; /* Adiciona borda arredondada no canto inferior esquerdo */
         border-bottom-right-radius: 5px; /* Adiciona borda arredondada no canto inferior direito */
     }
