@@ -42,6 +42,7 @@
                 <div class="dot">
             </div>
         </div>
+        <div class="ball" :style="{top: '100px', left: '100px', transform: 'rotate(2rad)'}"></div>
     
         <!-- <div class="texto">
             Coordinates: ({{position.x}}, {{position.y}}, {{ position.angle }})
@@ -87,20 +88,28 @@
 
     .robot {
         position: absolute;
-        width: 26px;
-        height: 26px;
+        width: 2.6%;
+        height: 4%;
         background-color: yellow;
         border-radius: 50%;
     }
 
     .dot{
         position: absolute;
-        width: 6px; /* largura do ponto */
-        height: 6px; /* altura do ponto */
+        width: 40%; /* largura do ponto */
+        height: 45%; /* altura do ponto */
         background-color: black; /* cor do ponto */
         border-radius: 50%; /* torna o ponto circular */
         left: 0px; /* posição horizontal do ponto dentro da div container */
-        top: 10px; /* posição vertical do ponto dentro da div container */
+        top: 5px; /* posição vertical do ponto dentro da div container */
+    }
+
+    .ball {
+        position: absolute;
+        width: 1.8%;
+        height: 2.8%;
+        background-color: orange;
+        border-radius: 50%;
     }
 
     .texto {
