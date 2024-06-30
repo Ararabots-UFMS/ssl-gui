@@ -1,8 +1,8 @@
 <template>
   <div class="full-screen" :style="{ backgroundColor: '#252838' }">
-    <arena></arena>
-    <AgentesExternos></AgentesExternos>
-  </div>
+      <arena></arena>
+      <AgentesExternos></AgentesExternos>
+    </div>
 </template>
 
 <script>

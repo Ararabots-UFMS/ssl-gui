@@ -28,11 +28,11 @@
             </div>
         </div>
     
-        <div class="texto">
+        <!-- <div class="texto">
             Coordinates: ({{position.x}}, {{position.y}}, {{ position.angle }})
         </div>
     
-        <button @click="sendMessage">Send Message</button>
+        <button @click="sendMessage">Send Message</button> -->
     </div>
 </template>
 
@@ -43,16 +43,26 @@
 
     .conteudo {
         position: fixed;
-        width: 400px; /* Largura fixa */
-        height: 600px; /* Altura fixa */
+        top: 0;
+        right: 0;
+        /*background-color: red; Largura fixa */
+
+        /* width: 400px; /* Largura fixa */
+        /*height: 600px; /* Altura fixa */
     }
 
     .field {
-        width: 100px;
-        height: 100px;
-        background-color: black;
+        border: 5px solid grey;
+        border-radius: 5px;
+        width: 716px;
+        height: 450px;
         position: relative;
-        margin-top: 15px;
+        margin-top: 50px;
+        margin-right: 15px; 
+        background-image: url('../assets/campo.png');
+        background-size: 716px 450px;
+        background-position: center;
+        float:left;
     }
 
     .robot {
