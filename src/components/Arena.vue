@@ -20,11 +20,9 @@
 </script>
 
 <template>
-    <div class="conteudo">
         <div class="field">
             <div class="robot" :style="{top: '10px', left: position.x+'px', transform: 'rotate(2rad)'}">
                 <div class="dot">
-                </div>
             </div>
         </div>
     
@@ -42,7 +40,10 @@
     }
 
     .conteudo {
-        position: fixed;
+        /*position: fixed;
+        display:flex;
+        
+        align-items: center;
         top: 0;
         right: 0;
         /*background-color: red; Largura fixa */
@@ -52,16 +53,19 @@
     }
 
     .field {
+        display: flex;
         border: 5px solid grey;
         border-radius: 5px;
-        width: 716px;
-        height: 450px;
+        /*width: 716px;
+        height: 450px;*/
+        width: 90%; /* Ensures div fills available space */
+        aspect-ratio: 1.575 / 1; /* Sets height to 50% of width */
         position: relative;
         margin-top: 50px;
-        margin-right: 15px; 
         background-image: url('../assets/campo.png');
-        background-size: 716px 450px;
+        background-size: contain;
         background-position: center;
+        background-repeat: no-repeat;
         float:left;
     }
 

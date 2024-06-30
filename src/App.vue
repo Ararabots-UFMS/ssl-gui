@@ -1,8 +1,13 @@
 <template>
-  <div class="full-screen" :style="{ backgroundColor: '#252838' }">
+  <div class="full-screen">
+    <div class="left-side">
+
+    </div>
+    <div class="right-side">
       <arena></arena>
       <AgentesExternos></AgentesExternos>
     </div>
+  </div>
 </template>
 
 <script>
@@ -34,10 +39,27 @@
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: row;
+  background-color: #252838
+}
+
+.left-side {
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 50%;
+}
+
+.right-side {
+  display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 50%;
 }
+
 </style>
 
 
