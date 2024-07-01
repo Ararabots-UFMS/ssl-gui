@@ -45,6 +45,7 @@
                 const newLine = document.createElement('div');
                 newLine.className = 'line last-line';
                 newLine.textContent = `Button clicked times`;
+                newLine.style.color = 'white'; 
                 terminal.prepend(newLine); // Adiciona a nova linha no início do conteúdo
             }
         },
@@ -100,12 +101,12 @@
         margin: 1%; /* Adiciona padding para o conteúdo */
     }
     .line {
-        color: #d2d1cb;
+        color: white;
         white-space: pre-wrap; /* Mantém espaços e quebras de linha */
     }
     .last-line {
         background-color: white; /* Fundo claro para a última mensagem */
-        color: black;
+        color: white;
         border-bottom-left-radius: 5px; /* Adiciona borda arredondada no canto inferior esquerdo */
         border-bottom-right-radius: 5px; /* Adiciona borda arredondada no canto inferior direito */
     }
