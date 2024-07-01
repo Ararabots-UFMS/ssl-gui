@@ -4,21 +4,24 @@
 
     </div>
     <div class="right-side">
-      <arena></arena>
-      <AgentesExternos></AgentesExternos>
+      <field></field>
+      <buttons></buttons>
+      <terminal></terminal>
     </div>
   </div>
 </template>
 
 <script>
-  import Arena from './components/Arena.vue';
-  import AgentesExternos from './components/AgentesExternos.vue';
+  import field from './components/field.vue';
+  import buttons from './components/buttons.vue';
+  import terminal from './components/terminal.vue';
 
   export default {
     name: 'FullScreen',
     components: {
-      Arena,
-      AgentesExternos
+      field,
+      buttons,
+      terminal,
     },
     data() {
       return {
