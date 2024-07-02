@@ -7,8 +7,12 @@
             return {
                 selectedTab: 'juiz', // Default tab
                 visionRef: ref(visionOutput),
-                visionRunnig: false,
             };
+        },
+        computed: {
+            visionStatus() {
+                return visionOutput.status ? 'status-line active-line-color' : 'status-line inactive-line-color';
+            },
         },
         methods: {
             refereeButton() {
@@ -44,6 +48,7 @@
                 },
                 deep: true,
             },
+
         },
     };
 
@@ -62,7 +67,7 @@
             <div class="icon-container">
                 <img class="icons" src="https://img.icons8.com/ios/50/visible--v1.png" alt="visible--v1"/>
             </div>
-            <div class="line-color"></div> 
+            <div :class="visionStatus"></div> 
             <span class="button-text">Visão</span>
         </div>
         <div class="buttons" @click="communicationButton()">
@@ -132,9 +137,14 @@
         align-items: center;
         font-weight: bold;
     }
-    .line-color {
+    .status-line{
         width: 5%; /* Largura da linha */
         height: 100%; /* Altura igual à dos botões */
+    }
+    .inactive-line-color {
+        background-color: #ff0000;
+    }
+    .active-line-color {
         background-color: #00ff00; /* Cor da linha */
     }
     .terminal {

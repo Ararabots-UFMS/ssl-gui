@@ -8,8 +8,9 @@ export const position = reactive({
 });
 
 export const visionOutput = reactive({
+    status: false,
     message: '',
-    });
+});
 
 const URL = "http://localhost:5000";
 
@@ -31,4 +32,9 @@ socket.on("position", (event) => {
 
 socket.on("visionOutput", (event) => {
     visionOutput.message = event;
+});
+
+socket.on("visionStatus", (event) => {
+    visionOutput.status = event.status;
+    visionOutput.message = "Inicializing..."
 });
