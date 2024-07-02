@@ -1,15 +1,29 @@
 <script>
+    import {socket, visionOutput} from '@/socket'
+    import { ref } from 'vue'
+
     export default {
         data() {
-        return {
-            selectedTab: 'juiz', // Default tab
-        };
+            return {
+                selectedTab: 'juiz', // Default tab
+                visionRef: ref(visionOutput),
+                visionRunnig: false,
+            };
         },
         methods: {
+            refereeButton() {
+                socket.emit('refereeButton');
+            },
+            visionButton() {
+                socket.emit('visionButton');
+            },
+            communicationButton() {
+                socket.emit('communicationButton');
+            },
             showTab (tabName) {
                 this.selectedTab = tabName;
             },
-            printText (tabName) {
+            printText (message, tabName) {
                 const terminal = document.getElementById(tabName);
                 // Remove a classe especial da última mensagem anterior
                 const lastLine = terminal.querySelector('.last-line');
@@ -19,30 +33,39 @@
 
                 const newLine = document.createElement('div');
                 newLine.className = 'line last-line';
-                newLine.textContent = `Button clicked times`;
+                newLine.textContent = message;
                 terminal.prepend(newLine); // Adiciona a nova linha no início do conteúdo
-            }
+            },
+        },
+        watch: {
+            visionRef: {
+                handler() {
+                    this.printText(visionOutput.message.line, 'visao');
+                },
+                deep: true,
+            },
         },
     };
+
 </script>
 
 <template>
     <div class="buttons-container">
-        <div class="buttons" onclick="showTab('juiz')">
+        <div class="buttons" @click="refereeButton()">
             <div class="icon-container">
                 <img class="icons" src="https://img.icons8.com/ios/50/foul.png" alt="foul"/>
             </div>
             <div class="line-color"></div>  
             <span class="button-text">Juiz</span>
         </div>
-        <div class="buttons" onclick="showTab('visao')">
+        <div class="buttons" @click="visionButton()">
             <div class="icon-container">
                 <img class="icons" src="https://img.icons8.com/ios/50/visible--v1.png" alt="visible--v1"/>
             </div>
             <div class="line-color"></div> 
             <span class="button-text">Visão</span>
         </div>
-        <div class="buttons" onclick="showTab('comunicacao')">
+        <div class="buttons" @click="communicationButton()">
             <div class="icon-container">
                 <img class="icons" src="https://img.icons8.com/ios/50/wifi--v1.png" alt="wifi--v1"/>
             </div>
@@ -61,15 +84,15 @@
             </div>
         <div class="messages" id="juiz" v-show="selectedTab === 'juiz'">
             <div class="line">Welcome to the Juiz tab!</div>
-            <div class="tab-button" @click="printText('juiz')">Update message</div>
+            <div class="tab-button" @click="printText('teste','juiz')">Update message</div>
         </div>
         <div class="messages" id="visao" v-show="selectedTab === 'visao'">
             <div class="line">Welcome to the Visão tab!</div>
-            <div class="tab-button" @click="printText('visao')">Update message</div>
+            <div class="tab-button" @click="printText('teste','juiz')">Update message</div>
         </div>
         <div class="messages" id="comunicacao" v-show="selectedTab === 'comunicacao'">
             <div class="line">Welcome to the Comunicação tab!</div>
-            <div class="tab-button" @click="printText('comunicacao')">Update message</div>
+            <div class="tab-button" @click="printText('teste','comunicacao')">Update message</div>
         </div>
     </div>
 </template>
@@ -117,8 +140,8 @@
     .terminal {
         background-color: #383f6b;
         border-radius: 10px;
-        width: 90%; /* Largura fixa */
-        height: 20%; /* Altura fixa */
+        width: 90%; 
+        height: 20%; 
         display: flex;
         flex-direction: column;
     }
