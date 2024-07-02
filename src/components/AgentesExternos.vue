@@ -32,7 +32,6 @@
                 // Remove a classe especial da última mensagem anterior
                 const lastLine = terminal.querySelector('.new-line');
                 if (lastLine) {
-                    console.log("teste");
                     lastLine.style.color = '#D2D1CB';
                     lastLine.style.backgroundColor = '#383f6b';
                 }
@@ -52,7 +51,6 @@
         watch: {
             visionRef: {
                 handler() {
-                    console.log("watch")
                     this.printText(visionOutput.message.line, 'visao');
                 },
                 deep: true,
