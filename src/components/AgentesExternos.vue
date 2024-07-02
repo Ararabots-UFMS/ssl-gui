@@ -1,5 +1,5 @@
 <script>
-    import {socket, visionOutput} from '@/socket'
+    import {socket, visionOutput, visionStatus} from '@/socket'
     import { ref } from 'vue'
 
     export default {
@@ -11,7 +11,7 @@
         },
         computed: {
             visionStatus() {
-                return visionOutput.status ? 'status-line active-line-color' : 'status-line inactive-line-color';
+                return visionStatus.status ? 'status-line active-line-color' : 'status-line inactive-line-color';
             },
         },
         methods: {
@@ -30,20 +30,29 @@
             printText (message, tabName) {
                 const terminal = document.getElementById(tabName);
                 // Remove a classe especial da última mensagem anterior
-                const lastLine = terminal.querySelector('.last-line');
+                const lastLine = terminal.querySelector('.new-line');
                 if (lastLine) {
-                    lastLine.classList.remove('last-line');
+                    console.log("teste");
+                    lastLine.style.color = '#D2D1CB';
+                    lastLine.style.backgroundColor = '#383f6b';
                 }
 
                 const newLine = document.createElement('div');
-                newLine.className = 'line last-line';
+                newLine.className = 'new-line';
                 newLine.textContent = message;
+                newLine.style.color = '#000000';
+                newLine.style.backgroundColor = '#D2D1CB';
+                newLine.style.borderBottomLeftRadius = '5px';
+                newLine.style.borderBottomRightRadius = '5px';
+                newLine.style.fontWeight = 'bold';
+                newLine.style.paddingLeft = '1%';
                 terminal.prepend(newLine); // Adiciona a nova linha no início do conteúdo
             },
         },
         watch: {
             visionRef: {
                 handler() {
+                    console.log("watch")
                     this.printText(visionOutput.message.line, 'visao');
                 },
                 deep: true,
@@ -89,15 +98,12 @@
             </div>
         <div class="messages" id="juiz" v-show="selectedTab === 'juiz'">
             <div class="line">Welcome to the Juiz tab!</div>
-            <div class="tab-button" @click="printText('teste','juiz')">Update message</div>
         </div>
         <div class="messages" id="visao" v-show="selectedTab === 'visao'">
             <div class="line">Welcome to the Visão tab!</div>
-            <div class="tab-button" @click="printText('teste','juiz')">Update message</div>
         </div>
         <div class="messages" id="comunicacao" v-show="selectedTab === 'comunicacao'">
             <div class="line">Welcome to the Comunicação tab!</div>
-            <div class="tab-button" @click="printText('teste','comunicacao')">Update message</div>
         </div>
     </div>
 </template>
@@ -195,14 +201,10 @@
         margin: 1%; /* Adiciona padding para o conteúdo */
     }
     .line {
-        color: #d2d1cb;
+        color: #D2D1CB;
         white-space: pre-wrap; /* Mantém espaços e quebras de linha */
-    }
-    .last-line {
-        background-color: white; /* Fundo claro para a última mensagem */
-        color: black;
-        border-bottom-left-radius: 5px; /* Adiciona borda arredondada no canto inferior esquerdo */
-        border-bottom-right-radius: 5px; /* Adiciona borda arredondada no canto inferior direito */
+        font-weight: bold;
+        padding-left: 1%;
     }
     .tab-button{
         cursor: pointer;
