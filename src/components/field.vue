@@ -1,21 +1,25 @@
 <script lang="ts">
     import {position} from '@/socket'
     import {socket} from '@/socket'
-    import ToggleButton from 'primevue/togglebutton'
 
     export default {
         name: 'Arena',
         data() {
             return {
                 position: position,
-                msg: "POR FAVOR FUNCIONA VEI"
+                side: true,
+                teamColor: true
             }
         },
         methods: {
-            sendMessage() {
-                console.log(this.msg);
-                socket.emit('message', this.msg);
-            }
+            changeSide() {
+                this.side = !this.side;
+                socket.emit('fieldSide', this.side);
+            },
+            changeTeamColor() {
+                this.teamColor = !this.teamColor;
+                socket.emit('teamColor', this.teamColor);
+            },
         },
     }
 </script>
@@ -25,14 +29,14 @@
             <div class="button-side">
                 <p class="texto-button">E</p>
                 <label class="switch">
-                    <input type="checkbox">
+                    <input type="checkbox" @click="changeSide()">
                     <span class="slider2 round"></span>
                 </label>
                 <p class="texto-button">D</p>
             </div>
             <div>
                 <label class="switch">
-                    <input type="checkbox">
+                    <input type="checkbox" @click="changeTeamColor()">
                     <span class="slider1 round"></span>
                 </label>
             </div>
@@ -227,5 +231,69 @@
     .slider2.round:before {
         border-radius: 50%;
     }
+
+    .yrobot {
+        background-color: white
+    }
+
+    .field{
+        display: flex;
+        border: 5px solid grey;
+        border-radius: 5px;
+        /*width: 716px;
+        height: 450px;*/
+        width: 90%; /* Ensures div fills available space */
+        aspect-ratio: 1.575 / 1; /* Sets height to 50% of width */
+        position: relative;
+        background-image: url('../assets/campo.png');
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+        float:left;
+    }
+
+    .robot {
+        position: absolute;
+        width: 26px;
+        height: 26px;
+        background-color: yellow;
+        border-radius: 50%;
+    }
+
+    .dot{
+        position: absolute;
+        width: 6px; /* largura do ponto */
+        height: 6px; /* altura do ponto */
+        background-color: black; /* cor do ponto */
+        border-radius: 50%; /* torna o ponto circular */
+        left: 0px; /* posição horizontal do ponto dentro da div container */
+        top: 10px; /* posição vertical do ponto dentro da div container */
+    }
+
+    .texto {
+        font-size: small;
+    }
+
+    .buttons {
+        width: 93%;
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-end;
+    }
+
+    .button-side {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-end;
+        margin-right: 20px;
+    }
+
+    .texto-button {
+        color: #D2D1CB;
+        margin-top: 15%;
+        font-weight: bold;
+    }
+
+    
 
 </style>

@@ -1,4 +1,90 @@
+<script>
+    import {socket, visionOutput, visionStatus} from '@/socket'
+    import { ref } from 'vue'
+
+    export default {
+        data() {
+            return {
+                selectedTab: 'juiz', // Default tab
+                visionRef: ref(visionOutput),
+            };
+        },
+        computed: {
+            visionStatus() {
+                return visionStatus.status ? 'status-line active-line-color' : 'status-line inactive-line-color';
+            },
+        },
+        methods: {
+            refereeButton() {
+                socket.emit('refereeButton');
+            },
+            visionButton() {
+                socket.emit('visionButton');
+            },
+            communicationButton() {
+                socket.emit('communicationButton');
+            },
+            showTab (tabName) {
+                this.selectedTab = tabName;
+            },
+            printText (message, tabName) {
+                const terminal = document.getElementById(tabName);
+                // Remove a classe especial da última mensagem anterior
+                const lastLine = terminal.querySelector('.new-line');
+                if (lastLine) {
+                    lastLine.style.color = '#D2D1CB';
+                    lastLine.style.backgroundColor = '#383f6b';
+                }
+
+                const newLine = document.createElement('div');
+                newLine.className = 'new-line';
+                newLine.textContent = message;
+                newLine.style.color = '#000000';
+                newLine.style.backgroundColor = '#D2D1CB';
+                newLine.style.borderBottomLeftRadius = '5px';
+                newLine.style.borderBottomRightRadius = '5px';
+                newLine.style.fontWeight = 'bold';
+                newLine.style.paddingLeft = '1%';
+                terminal.prepend(newLine); // Adiciona a nova linha no início do conteúdo
+            },
+        },
+        watch: {
+            visionRef: {
+                handler() {
+                    this.printText(visionOutput.message.line, 'visao');
+                },
+                deep: true,
+            },
+
+        },
+    };
+
+</script>
+
 <template>
+    <div class="buttons-container">
+        <div class="buttons" @click="refereeButton()">
+            <div class="icon-container">
+                <img class="icons" src="https://img.icons8.com/ios/50/foul.png" alt="foul"/>
+            </div>
+            <div class="line-color"></div>  
+            <span class="button-text">Juiz</span>
+        </div>
+        <div class="buttons" @click="visionButton()">
+            <div class="icon-container">
+                <img class="icons" src="https://img.icons8.com/ios/50/visible--v1.png" alt="visible--v1"/>
+            </div>
+            <div :class="visionStatus"></div> 
+            <span class="button-text">Visão</span>
+        </div>
+        <div class="buttons" @click="communicationButton()">
+            <div class="icon-container">
+                <img class="icons" src="https://img.icons8.com/ios/50/wifi--v1.png" alt="wifi--v1"/>
+            </div>
+            <div class="line-color"></div> 
+            <span class="button-text">Comunicação</span>
+        </div>
+    </div>
     <div class="terminal">
             <div class="tabs">
                 <div class="tab juizTab" @click="showTab('juiz')" :class="{ 'tab-selected':
@@ -10,54 +96,66 @@
             </div>
         <div class="messages" id="juiz" v-show="selectedTab === 'juiz'">
             <div class="line">Welcome to the Juiz tab!</div>
-            <div class="tab-button" @click="printText('juiz')">Update message</div>
         </div>
         <div class="messages" id="visao" v-show="selectedTab === 'visao'">
             <div class="line">Welcome to the Visão tab!</div>
-            <div class="tab-button" @click="printText('visao')">Update message</div>
         </div>
         <div class="messages" id="comunicacao" v-show="selectedTab === 'comunicacao'">
             <div class="line">Welcome to the Comunicação tab!</div>
-            <div class="tab-button" @click="printText('comunicacao')">Update message</div>
         </div>
     </div>
 </template>
 
-<script>
-    export default {
-        data() {
-        return {
-            selectedTab: 'juiz', // Default tab
-        };
-        },
-        methods: {
-            showTab (tabName) {
-                this.selectedTab = tabName;
-            },
-            printText (tabName) {
-                const terminal = document.getElementById(tabName);
-                // Remove a classe especial da última mensagem anterior
-                const lastLine = terminal.querySelector('.last-line');
-                if (lastLine) {
-                    lastLine.classList.remove('last-line');
-                }
-
-                const newLine = document.createElement('div');
-                newLine.className = 'line last-line';
-                newLine.textContent = `Button clicked times`;
-                newLine.style.color = 'white'; 
-                terminal.prepend(newLine); // Adiciona a nova linha no início do conteúdo
-            }
-        },
-    };
-</script>
-
 <style scoped>
+    .buttons-container {           
+        display: flex;
+        width: 90%;
+        height: 5%;
+        justify-content: space-between;
+        margin-top: 2%;
+        margin-bottom: 2%;
+    }
+    .buttons {
+        cursor: pointer;
+        width: 25%;
+        height: 100%;
+        background-color: #383f6b;
+        color: #d2d1cb;
+        border-radius: 10px;
+        display:flex;
+        flex-direction: row;
+    }
+    .icon-container {
+        width: 30%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .icons {
+        height: 80%;
+    }
+    .button-text {
+        width:100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: bold;
+    }
+    .status-line{
+        width: 5%; /* Largura da linha */
+        height: 100%; /* Altura igual à dos botões */
+    }
+    .inactive-line-color {
+        background-color: #ff0000;
+    }
+    .active-line-color {
+        background-color: #00ff00; /* Cor da linha */
+    }
     .terminal {
         background-color: #383f6b;
         border-radius: 10px;
-        width: 90%; /* Largura fixa */
-        height: 20%; /* Altura fixa */
+        width: 90%; 
+        height: 20%; 
         display: flex;
         flex-direction: column;
     }
@@ -101,14 +199,10 @@
         margin: 1%; /* Adiciona padding para o conteúdo */
     }
     .line {
-        color: white;
+        color: #D2D1CB;
         white-space: pre-wrap; /* Mantém espaços e quebras de linha */
-    }
-    .last-line {
-        background-color: white; /* Fundo claro para a última mensagem */
-        color: white;
-        border-bottom-left-radius: 5px; /* Adiciona borda arredondada no canto inferior esquerdo */
-        border-bottom-right-radius: 5px; /* Adiciona borda arredondada no canto inferior direito */
+        font-weight: bold;
+        padding-left: 1%;
     }
     .tab-button{
         cursor: pointer;
