@@ -20,7 +20,7 @@ div {
   margin-top: 20px;
 }
 h1 {
-  color: white;
+  color: #D2D1CB;
   font-size: 24px;
 }
 </style>

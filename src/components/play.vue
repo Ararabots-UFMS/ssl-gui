@@ -14,8 +14,9 @@ button{
     width: 180px;
     height: 80px;
     background-color: green;
-    color: white;
+    color: #D2D1CB;
     font-size: 2rem;
+    border-radius: 10px;
     border: none;
 }
 </style>

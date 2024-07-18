@@ -16,7 +16,7 @@ export default {
 
 <style scoped>
 .card {
-  background-color: #f0f0f0;
+  background-color: #383f6b;
   border-radius: 8px;
   padding: 10px;
   margin: 10px;
@@ -28,10 +28,10 @@ export default {
 h2 {
   margin-bottom: 10px;
   font-size: 20px;
-  color: #333;
+  color: #D2D1CB;
 }
 
 p {
-  color: #666;
+  color: #D2D1CB;
 }
 </style>
