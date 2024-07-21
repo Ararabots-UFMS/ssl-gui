@@ -1,20 +1,13 @@
 <template>
   <div class="full-screen">
+      <side-menu></side-menu>
     <div class="left-side">
       <name></name>
-       <div class="card-list">
-      <card
-        v-for="(card, index) in cards"
-        :key="index"
-        :title="card.title"
-        :description="card.description"
-      />
-    </div>
+      <card></card>
     <play></play>
     </div>
     <div class="right-side">
       <field></field>
-      <buttons></buttons>
       <terminal></terminal>
     </div>
   </div>
@@ -22,8 +15,8 @@
 
 <script>
   import field from './components/field.vue';
-  import buttons from './components/buttons.vue';
   import terminal from './components/terminal.vue';
+  import sideMenu from './components/sideMenu.vue';
   import name from './components/name.vue';
   import card from './components/card.vue';
   import play from './components/play.vue';
@@ -32,8 +25,8 @@
     name: 'FullScreen',
     components: {
       field,
-      buttons,
       terminal,
+      sideMenu,
       name,
       card,
       play,
@@ -68,11 +61,19 @@
   background-color: #252838
 }
 
+.menu-side {
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 4%;
+  gap: 5px
+}
+
 .left-side {
   top: 0;
   right: 0;
   height: 100%;
-  width: 50%;
+  width: 48%;
   display: flex;
   flex-direction:column;
   align-items: center;
@@ -86,14 +87,7 @@
   top: 0;
   right: 0;
   height: 100%;
-  width: 50%;
-}
-
-.card-list {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  flex-direction: column;
+  width: 48%;
 }
 
 </style>

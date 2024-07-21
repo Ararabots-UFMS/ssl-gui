@@ -62,27 +62,28 @@
 </script>
 
 <template>
-    <div class="buttons-container">
-        <div class="buttons" @click="refereeButton()">
+    <div class="termina-components">
+    <div class="termina-buttons-container">
+        <div class="termina-buttons" @click="refereeButton()">
             <div class="icon-container">
                 <img class="icons" src="https://img.icons8.com/ios/50/foul.png" alt="foul"/>
             </div>
             <div class="line-color"></div>  
-            <span class="button-text">Juiz</span>
+            <span class="termina-button-text">Juiz</span>
         </div>
-        <div class="buttons" @click="visionButton()">
+        <div class="termina-buttons" @click="visionButton()">
             <div class="icon-container">
                 <img class="icons" src="https://img.icons8.com/ios/50/visible--v1.png" alt="visible--v1"/>
             </div>
             <div :class="visionStatus"></div> 
-            <span class="button-text">Visão</span>
+            <span class="termina-button-text">Visão</span>
         </div>
-        <div class="buttons" @click="communicationButton()">
+        <div class="termina-buttons" @click="communicationButton()">
             <div class="icon-container">
                 <img class="icons" src="https://img.icons8.com/ios/50/wifi--v1.png" alt="wifi--v1"/>
             </div>
             <div class="line-color"></div> 
-            <span class="button-text">Comunicação</span>
+            <span class="termina-button-text">Comunicação</span>
         </div>
     </div>
     <div class="terminal">
@@ -104,21 +105,28 @@
             <div class="line">Welcome to the Comunicação tab!</div>
         </div>
     </div>
+    </div>
 </template>
 
 <style scoped>
-    .buttons-container {           
+    .termina-components {           
+        margin-left: 10%;
+        width: 100%;
+        height: 50%;
+    }
+    .termina-buttons-container {           
         display: flex;
         width: 90%;
-        height: 5%;
+        height: 15%;
         justify-content: space-between;
-        margin-top: 2%;
+        margin-top: 9%;
         margin-bottom: 2%;
+
     }
-    .buttons {
+    .termina-buttons {
         cursor: pointer;
         width: 25%;
-        height: 100%;
+        height: 45px;
         background-color: #383f6b;
         color: #d2d1cb;
         border-radius: 10px;
@@ -134,7 +142,7 @@
     .icons {
         height: 80%;
     }
-    .button-text {
+    .termina-button-text {
         width:100%;
         display: flex;
         justify-content: center;
@@ -155,7 +163,7 @@
         background-color: #383f6b;
         border-radius: 10px;
         width: 90%; 
-        height: 20%; 
+        height: 50%; 
         display: flex;
         flex-direction: column;
     }
@@ -166,7 +174,7 @@
         border-top-left-radius: 10px;
         border-top-right-radius: 10px;
         color: black;
-        height: 19%;
+        height: 35px;
     }
     .tabs > div {
         flex: 1;

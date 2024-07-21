@@ -25,6 +25,7 @@
 </script>
 
 <template>
+    <div class="components-field">
         <div class="buttons">
             <div class="button-side">
                 <p class="texto-button">E</p>
@@ -54,90 +55,14 @@
     
         <button @click="sendMessage">Send Message</button> -->
     </div>
+    </div>
 </template>
 
 <style>
-    .yrobot {
-        background-color: white
-    }
-
-    .conteudo {
-        /*position: fixed;
-        display:flex;
-        
-        align-items: center;
-        top: 0;
-        right: 0;
-        /*background-color: red; Largura fixa */
-
-        /* width: 400px; /* Largura fixa */
-        /*height: 600px; /* Altura fixa */
-    }
-
-    .field {
-        display: flex;
-        border: 5px solid grey;
-        border-radius: 5px;
-        /*width: 716px;
-        height: 450px;*/
-        width: 90%; /* Ensures div fills available space */
-        aspect-ratio: 1.575 / 1; /* Sets height to 50% of width */
-        position: relative;
-        background-image: url('../assets/campo.png');
-        background-size: contain;
-        background-position: center;
-        background-repeat: no-repeat;
-        float:left;
-    }
-
-    .robot {
-        position: absolute;
-        width: 2.6%;
-        height: 4%;
-        background-color: yellow;
-        border-radius: 50%;
-    }
-
-    .dot{
-        position: absolute;
-        width: 40%; /* largura do ponto */
-        height: 45%; /* altura do ponto */
-        background-color: black; /* cor do ponto */
-        border-radius: 50%; /* torna o ponto circular */
-        left: 0px; /* posição horizontal do ponto dentro da div container */
-        top: 5px; /* posição vertical do ponto dentro da div container */
-    }
-
-    .ball {
-        position: absolute;
-        width: 1.8%;
-        height: 2.8%;
-        background-color: orange;
-        border-radius: 50%;
-    }
-
-    .texto {
-        font-size: small;
-    }
-
-    .buttons {
-        width: 93%;
-        display: flex;
-        flex-direction: row;
-        justify-content: flex-end;
-    }
-
-    .button-side {
-        display: flex;
-        flex-direction: row;
-        justify-content: flex-end;
-        margin-right: 20px;
-    }
-
-    .texto-button {
-        color: #D2D1CB;
-        margin-top: 15%;
-        font-weight: bold;
+    .components-field {
+        margin-left: 10%;
+        width: 100%; /* Largura fixa */
+        height: 50%; /* Altura fixa */
     }
 
     .switch {
@@ -242,7 +167,7 @@
         border-radius: 5px;
         /*width: 716px;
         height: 450px;*/
-        width: 90%; /* Ensures div fills available space */
+        width: 90%; 
         aspect-ratio: 1.575 / 1; /* Sets height to 50% of width */
         position: relative;
         background-image: url('../assets/campo.png');
@@ -293,7 +218,5 @@
         margin-top: 15%;
         font-weight: bold;
     }
-
-    
 
 </style>
