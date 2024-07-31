@@ -43,7 +43,7 @@
             </div>
         </div>
         <div class="field">
-            <div class="robot" :style="{top: '10px', left: position.x+'px', transform: 'rotate(2rad)'}">
+            <div class="robot" :style="{top: position.y+'px', left: position.x+'px', transform: 'rotate('+position.angle+'rad)'}">
                 <div class="dot">
             </div>
         </div>
@@ -62,7 +62,7 @@
     .components-field {
         margin-left: 10%;
         width: 100%; /* Largura fixa */
-        height: 50%; /* Altura fixa */
+        height: 55%; /* Altura fixa */
     }
 
     .switch {
@@ -212,6 +212,7 @@
         display: flex;
         flex-direction: row;
         justify-content: flex-end;
+        padding-right: 22px;
     }
 
     .button-side {

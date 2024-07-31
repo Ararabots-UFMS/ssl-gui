@@ -62,59 +62,59 @@
 </script>
 
 <template>
-    <div class="termina-components">
-    <div class="termina-buttons-container">
-        <div class="termina-buttons" @click="refereeButton()">
-            <div class="icon-container">
-                <img class="icons" src="https://img.icons8.com/ios/50/foul.png" alt="foul"/>
+    <div class="terminal-components">
+        <div class="terminal-buttons-container">
+            <div class="terminal-buttons" @click="refereeButton()">
+                <div class="icon-container">
+                    <img class="icons" src="https://img.icons8.com/ios/50/foul.png" alt="foul"/>
+                </div>
+                <div class="status-line inactive-line-color"></div>  
+                <span class="terminal-button-text">Juiz</span>
             </div>
-            <div class="line-color"></div>  
-            <span class="termina-button-text">Juiz</span>
-        </div>
-        <div class="termina-buttons" @click="visionButton()">
-            <div class="icon-container">
-                <img class="icons" src="https://img.icons8.com/ios/50/visible--v1.png" alt="visible--v1"/>
+            <div class="terminal-buttons" @click="visionButton()">
+                <div class="icon-container">
+                    <img class="icons" src="https://img.icons8.com/ios/50/visible--v1.png" alt="visible--v1"/>
+                </div>
+                <div :class="visionStatus"></div> 
+                <span class="terminal-button-text">Visão</span>
             </div>
-            <div :class="visionStatus"></div> 
-            <span class="termina-button-text">Visão</span>
-        </div>
-        <div class="termina-buttons" @click="communicationButton()">
-            <div class="icon-container">
-                <img class="icons" src="https://img.icons8.com/ios/50/wifi--v1.png" alt="wifi--v1"/>
+            <div class="terminal-buttons" @click="communicationButton()">
+                <div class="icon-container">
+                    <img class="icons" src="https://img.icons8.com/ios/50/wifi--v1.png" alt="wifi--v1"/>
+                </div>
+                <div class="status-line inactive-line-color"></div> 
+                <span class="terminal-button-text">Comunicação</span>
             </div>
-            <div class="line-color"></div> 
-            <span class="termina-button-text">Comunicação</span>
         </div>
-    </div>
-    <div class="terminal">
-            <div class="tabs">
-                <div class="tab juizTab" @click="showTab('juiz')" :class="{ 'tab-selected':
-                    selectedTab === 'juiz' }">Juiz</div>
-                <div class="tab visaoTab" @click="showTab('visao')" :class="{ 'tab-selected':
-                    selectedTab === 'visao'}">Visão</div>
-                <div class="tab comunicacaoTab" @click="showTab('comunicacao')" :class="{ 'tab-selected':
-                    selectedTab === 'comunicacao'}">Comunicação</div>
+        <div class="terminal">
+                <div class="tabs">
+                    <div class="tab juizTab" @click="showTab('juiz')" :class="{ 'tab-selected':
+                        selectedTab === 'juiz' }">Juiz</div>
+                    <div class="tab visaoTab" @click="showTab('visao')" :class="{ 'tab-selected':
+                        selectedTab === 'visao'}">Visão</div>
+                    <div class="tab comunicacaoTab" @click="showTab('comunicacao')" :class="{ 'tab-selected':
+                        selectedTab === 'comunicacao'}">Comunicação</div>
+                </div>
+            <div class="messages" id="juiz" v-show="selectedTab === 'juiz'">
+                <div class="line">Welcome to the Juiz tab!</div>
             </div>
-        <div class="messages" id="juiz" v-show="selectedTab === 'juiz'">
-            <div class="line">Welcome to the Juiz tab!</div>
+            <div class="messages" id="visao" v-show="selectedTab === 'visao'">
+                <div class="line">Welcome to the Visão tab!</div>
+            </div>
+            <div class="messages" id="comunicacao" v-show="selectedTab === 'comunicacao'">
+                <div class="line">Welcome to the Comunicação tab!</div>
+            </div>
         </div>
-        <div class="messages" id="visao" v-show="selectedTab === 'visao'">
-            <div class="line">Welcome to the Visão tab!</div>
-        </div>
-        <div class="messages" id="comunicacao" v-show="selectedTab === 'comunicacao'">
-            <div class="line">Welcome to the Comunicação tab!</div>
-        </div>
-    </div>
     </div>
 </template>
 
 <style scoped>
-    .termina-components {           
+    .terminal-components {           
         margin-left: 10%;
         width: 100%;
         height: 50%;
     }
-    .termina-buttons-container {           
+    .terminal-buttons-container {           
         display: flex;
         width: 90%;
         height: 15%;
@@ -123,10 +123,10 @@
         margin-bottom: 2%;
 
     }
-    .termina-buttons {
+    .terminal-buttons {
         cursor: pointer;
         width: 25%;
-        height: 45px;
+        height: 75%;
         background-color: #383f6b;
         color: #d2d1cb;
         border-radius: 10px;
@@ -142,7 +142,7 @@
     .icons {
         height: 80%;
     }
-    .termina-button-text {
+    .terminal-button-text {
         width:100%;
         display: flex;
         justify-content: center;

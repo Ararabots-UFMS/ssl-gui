@@ -1,14 +1,37 @@
 <template>
   <div class="full-screen">
-      <side-menu></side-menu>
-    <div class="left-side">
-      <name></name>
-      <card></card>
-    <play></play>
+      <div class="menu-container">
+        <div class="menu-buttons">
+          <div
+            v-for="(button, index) in buttons"
+            :key="index"
+            class="menu-button"
+            :class="{ 'selected': selectedButton === index }"
+            @click="selectButton(index)"
+          >
+            <p class="menu-button-text">{{ button }} Screen</p>
+          </div>
+        </div>
     </div>
-    <div class="right-side">
-      <field></field>
-      <terminal></terminal>
+    <div v-if="selectedButton === 0" class="main-screen">
+      <div class="menu-left-side">
+        <name></name>
+        <card></card>
+        <play></play>
+      </div>
+      <div class="menu-right-side">
+        <field></field>
+        <terminal></terminal>
+      </div>
+    </div>
+    <div v-if="selectedButton === 1" class="config-screen">
+      <div class="config-left-side">
+        <name></name>
+        <robotcard></robotcard>
+      </div>
+      <div class="config-right-side">
+        <field></field>
+      </div>
     </div>
   </div>
 </template>
@@ -16,35 +39,35 @@
 <script>
   import field from './components/field.vue';
   import terminal from './components/terminal.vue';
-  import sideMenu from './components/sideMenu.vue';
   import name from './components/name.vue';
   import card from './components/card.vue';
   import play from './components/play.vue';
+  import robotcard from './components/robotcard.vue';
 
   export default {
     name: 'FullScreen',
     components: {
       field,
       terminal,
-      sideMenu,
       name,
       card,
       play,
+      robotcard,
     },
     data() {
       return {
-        cards: [
-        { title: 'Card 1', description: 'Descrição do Card 1.' },
-        { title: 'Card 2', description: 'Descrição do Card 2.' },
-        { title: 'Card 3', description: 'Descrição do Card 3.' },
-        { title: 'Card 4', description: 'Descrição do Card 4.' },
-        { title: 'Card 5', description: 'Descrição do Card 5.' },
-        { title: 'Card 6', description: 'Descrição do Card 6.' }
-      ]
+        buttons: ['Main', 'Config'], // Índices dos botões
+        selectedButton: null // Índice do botão selecionado
       };
     },
+    mounted() {
+      // Colocar o primeiro botão como selecionado inicialmente
+      this.selectedButton = 0;
+    },
     methods: {
-      // Métodos da sua aplicação aqui
+      selectButton(index) {
+        this.selectedButton = index;
+      }
     },
   };
 </script>
@@ -61,15 +84,52 @@
   background-color: #252838
 }
 
-.menu-side {
+.menu-container {
   top: 0;
   right: 0;
   height: 100%;
   width: 4%;
-  gap: 5px
+  gap: 5px;
 }
 
-.left-side {
+.menu-buttons {
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 80%;
+  display: flex;
+  flex-direction: column; /* Empilha os botões verticalmente */
+}
+
+.menu-button {
+  width: 100%;
+  height: 100%;
+  background-color: #D2D1CB;
+  color: #252838;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center; /* Centraliza o texto verticalmente */
+  justify-content: center; /* Centraliza o texto horizontalmente */
+}
+
+.menu-button-text {
+  writing-mode: vertical-lr; /* Texto na vertical, da esquerda para a direita */
+  transform: rotate(180deg); /* Rotaciona o texto 180 graus */
+}
+
+.selected {
+  background-color: #252838; /* Cor de fundo quando selecionado */
+  color: #D2D1CB;
+}
+
+.main-screen {
+  display: flex;
+  width: 96%;
+  height: 100%;
+}
+
+.menu-left-side {
   top: 0;
   right: 0;
   height: 100%;
@@ -80,7 +140,7 @@
   gap: 5px
 }
 
-.right-side {
+.menu-right-side {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -90,6 +150,32 @@
   width: 48%;
 }
 
+.config-screen {
+  display: flex;
+  flex: 1;
+  height: 96%;
+  width: 100%;
+}
+
+.config-left-side {
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 80%;
+  display: flex;
+  flex-direction:column;
+  align-items: center;
+  gap: 5px
+}
+
+.config-right-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 5%;
+  height: 100%;
+  width: 120%;
+}
 </style>
 
 
