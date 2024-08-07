@@ -27,23 +27,24 @@ export default {
 <style scoped>
 .card {
   background-color: #383f6b;
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 15px;
+  border-radius: 10px;
+  padding: 1.5%;
+  margin-bottom: 1.5%;
   color: #D2D1CB;
 }
 
 .card h2 {
-  margin-bottom: 5px;
-  font-size: 19px;
+  margin-bottom: 0.5%;
+  font-size: 100%;
 }
 
 .card p {
   margin: 0; /* Remover margem padrão do parágrafo */
+  font-size: 80%;
 }
 
 .card-list {
-  height: 75%;
+  height: 70%;
   width: 95%;
   display: flex;
   flex-direction: column;

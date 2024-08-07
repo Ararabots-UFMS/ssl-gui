@@ -86,11 +86,12 @@ export default {
 
 .card h2 {
   margin-bottom: 5px;
-  font-size: 19px;
+  font-size: 100%;
 }
 
 .card p {
   margin: 0; /* Remover margem padrão do parágrafo */
+  font-size: 80%;
 }
 
 .card-list {

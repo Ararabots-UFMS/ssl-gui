@@ -21,6 +21,6 @@ div {
 }
 h1 {
   color: #D2D1CB;
-  font-size: 24px;
+  font-size: 130%;
 }
 </style>
