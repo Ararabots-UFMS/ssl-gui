@@ -10,11 +10,22 @@
         <option value="6">6</option>
       </select>
     </div>
-  <div class="card-list">
-    <div class="card" v-for="(card, index) in filteredCards" :key="index">
-        <h2>{{ card.title }}</h2>
-        <p>{{ card.description }}</p>
+  <div class="card-list-config">
+    <div class="card-config" v-for="(card, index) in filteredCards" :key="index">
+      <div class="card-number">
+      <h2>{{ index + 1 }}</h2>
       </div>
+      <div class="card-info">
+        <label>
+          Nome
+          <input type="text" v-model="card.name" placeholder="Digite o nome" />
+        </label>
+        <label>
+          Endereço
+          <input type="text" v-model="card.address" placeholder="Digite o endereço" />
+        </label>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -24,12 +35,12 @@ export default {
     return {
       selectedOption: '1', // Valor inicial do dropdown
       cards: [
-        { title: 'Card 1', description: 'Descrição do Card 1.' },
-        { title: 'Card 2', description: 'Descrição do Card 2.' },
-        { title: 'Card 3', description: 'Descrição do Card 3.' },
-        { title: 'Card 4', description: 'Descrição do Card 4.' },
-        { title: 'Card 5', description: 'Descrição do Card 5.' },
-        { title: 'Card 6', description: 'Descrição do Card 6.' }
+        { name: '', address: '' },
+        { name: '', address: '' },
+        { name: '', address: '' },
+        { name: '', address: '' },
+        { name: '', address: '' },
+        { name: '', address: '' }
       ]
     };
   },
@@ -76,25 +87,57 @@ export default {
   color: #D2D1CB; /* Cor do texto das opções */
 }
 
-.card {
+.card-config {
   background-color: #383f6b;
   border-radius: 8px;
   padding: 10px;
-  margin-bottom: 15px;
   color: #D2D1CB;
+  margin-bottom: 15px;
+  display: flex;
 }
 
+.card-number {
+  display: flex;
+  margin-bottom: 10px;
+  width: 7%;
+  align-items: center;
+}
+.card-number h2 {
+  font-size: 30px;
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  width: 93%;
+}
+
+.card-info label {
+  display: flex;
+  margin-bottom: 10px;
 .card h2 {
   margin-bottom: 5px;
   font-size: 100%;
 }
 
+.card-info label:last-of-type {
+  margin-bottom: 0; /* Remove a margem do último label */
+}
+
+.card-info input {
+  margin-left: 7px;
+  padding: 5px;
+  border: 1px; /* Cor da borda */
+  border-radius: 4px; /* Cantos arredondados */
+  background-color: #D2D1CB; /* Cor de fundo */
+  color: #383f6b; /* Cor do texto */
+  width: 100%;
 .card p {
   margin: 0; /* Remover margem padrão do parágrafo */
   font-size: 80%;
 }
 
-.card-list {
+.card-list-config {
   height: 75%;
   width: 95%;
   display: flex;
