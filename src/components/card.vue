@@ -41,10 +41,7 @@ export default {
 .card {
   background-color: #383f6b;
   border-radius: 10px;
-  padding: 1.5%;
-  margin-bottom: 1.5%;
-  border-radius: 8px;
-  margin-bottom: 5%;
+  margin-bottom: 2%;
   color: #D2D1CB;
   display: flex;
   width: 100%;
@@ -52,10 +49,11 @@ export default {
 
 .card-icon {
   display: flex;
-  width: 8%;
-  margin: 2%;
+  width: 10%;
+  margin: 1%;
   align-items: center; /* Centraliza o texto verticalmente */
   justify-content: center; /* Centraliza o texto horizontalmente */
+  padding: 1%;
 }
 
 .card-line {
@@ -78,19 +76,20 @@ export default {
 }
 
 .dropdown-position {
-  font-size: 25px;
-  border: 1px;/* solid #252838; /* Cor da borda */
+  font-size: 120%;
+  border: 1px solid #383f6b; /* Cor da borda */
   border-radius: 4px; /* Cantos arredondados */
   background-color: #383f6b; /* Cor de fundo do dropdown */
   color: #D2D1CB; /* Cor do texto */
-  width: 90%; /* Ajusta a largura conforme necessário */
-  height: 75%;
+  width: 75%; /* Ajusta a largura conforme necessário */
+  height: 60%;
 }
 
+/* Estilo para as opções dentro do dropdown
 .dropdown-position option {
-  background-color: #252838; /* Cor de fundo das opções */
-  color: #D2D1CB; /* Cor do texto das opções */
-}
+  background-color: #252838; 
+  color: #D2D1CB; 
+} */
 
 .card-list {
   height: 70%;

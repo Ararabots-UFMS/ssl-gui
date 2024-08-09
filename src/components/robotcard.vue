@@ -74,7 +74,7 @@ export default {
 }
 
 .dropdown {
-  font-size: 14px;
+  font-size: 100%;
   border: 1px solid #D2D1CB; /* Cor da borda */
   border-radius: 4px; /* Cantos arredondados */
   background-color: #D2D1CB; /* Cor de fundo do dropdown */
@@ -92,18 +92,18 @@ export default {
   border-radius: 8px;
   padding: 10px;
   color: #D2D1CB;
-  margin-bottom: 15px;
+  margin-bottom: 1.5%;
   display: flex;
 }
 
 .card-number {
   display: flex;
-  margin-bottom: 10px;
+  margin-bottom: 1%;
   width: 7%;
   align-items: center;
 }
 .card-number h2 {
-  font-size: 30px;
+  font-size: 200%;
 }
 
 .card-info {
@@ -114,9 +114,7 @@ export default {
 
 .card-info label {
   display: flex;
-  margin-bottom: 10px;
-.card h2 {
-  margin-bottom: 5px;
+  margin-bottom: 2%;
   font-size: 100%;
 }
 
@@ -126,15 +124,12 @@ export default {
 
 .card-info input {
   margin-left: 7px;
-  padding: 5px;
+  padding: 1px;
   border: 1px; /* Cor da borda */
   border-radius: 4px; /* Cantos arredondados */
   background-color: #D2D1CB; /* Cor de fundo */
   color: #383f6b; /* Cor do texto */
   width: 100%;
-.card p {
-  margin: 0; /* Remover margem padrão do parágrafo */
-  font-size: 80%;
 }
 
 .card-list-config {
