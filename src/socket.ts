@@ -40,3 +40,7 @@ socket.on("visionOutput", (event) => {
 socket.on("visionStatus", (event) => {
     visionStatus.status = event.status;
 });
+
+socket.on("vision_msg", (event) => {
+    console.log(event);
+});
