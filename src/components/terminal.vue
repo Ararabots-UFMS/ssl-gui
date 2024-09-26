@@ -65,63 +65,71 @@
 </script>
 
 <template>
-    <div class="buttons-container">
-        <div class="buttons" @click="refereeButton()">
-            <div class="icon-container">
-                <img class="icons" src="https://img.icons8.com/ios/50/foul.png" alt="foul"/>
+    <div class="terminal-components">
+        <div class="terminal-buttons-container">
+            <div class="terminal-buttons" @click="refereeButton()">
+                <div class="icon-container">
+                    <img class="icons" src="https://img.icons8.com/ios/50/foul.png" alt="foul"/>
+                </div>
+                <div class="status-line inactive-line-color"></div>  
+                <span class="terminal-button-text">Juiz</span>
             </div>
-            <div class="line-color"></div>  
-            <span class="button-text">Juiz</span>
-        </div>
-        <div class="buttons" @click="visionButton()">
-            <div class="icon-container">
-                <img class="icons" src="https://img.icons8.com/ios/50/visible--v1.png" alt="visible--v1"/>
+            <div class="terminal-buttons" @click="visionButton()">
+                <div class="icon-container">
+                    <img class="icons" src="https://img.icons8.com/ios/50/visible--v1.png" alt="visible--v1"/>
+                </div>
+                <div :class="visionStatus"></div> 
+                <span class="terminal-button-text">Visão</span>
             </div>
-            <div :class="visionStatus"></div> 
-            <span class="button-text">Visão</span>
-        </div>
-        <div class="buttons" @click="communicationButton()">
-            <div class="icon-container">
-                <img class="icons" src="https://img.icons8.com/ios/50/wifi--v1.png" alt="wifi--v1"/>
+            <div class="terminal-buttons" @click="communicationButton()">
+                <div class="icon-container">
+                    <img class="icons" src="https://img.icons8.com/ios/50/wifi--v1.png" alt="wifi--v1"/>
+                </div>
+                <div class="status-line inactive-line-color"></div> 
+                <span class="terminal-button-text">Comunicação</span>
             </div>
-            <div class="line-color"></div> 
-            <span class="button-text">Comunicação</span>
         </div>
-    </div>
-    <div class="terminal">
-            <div class="tabs">
-                <div class="tab juizTab" @click="showTab('juiz')" :class="{ 'tab-selected':
-                    selectedTab === 'juiz' }">Juiz</div>
-                <div class="tab visaoTab" @click="showTab('visao')" :class="{ 'tab-selected':
-                    selectedTab === 'visao'}">Visão</div>
-                <div class="tab comunicacaoTab" @click="showTab('comunicacao')" :class="{ 'tab-selected':
-                    selectedTab === 'comunicacao'}">Comunicação</div>
+        <div class="terminal">
+                <div class="tabs">
+                    <div class="tab juizTab" @click="showTab('juiz')" :class="{ 'tab-selected':
+                        selectedTab === 'juiz' }">Juiz</div>
+                    <div class="tab visaoTab" @click="showTab('visao')" :class="{ 'tab-selected':
+                        selectedTab === 'visao'}">Visão</div>
+                    <div class="tab comunicacaoTab" @click="showTab('comunicacao')" :class="{ 'tab-selected':
+                        selectedTab === 'comunicacao'}">Comunicação</div>
+                </div>
+            <div class="messages" id="juiz" v-show="selectedTab === 'juiz'">
+                <div class="line">Welcome to the Juiz tab!</div>
             </div>
-        <div class="messages" id="juiz" v-show="selectedTab === 'juiz'">
-            <div class="line">Welcome to the Juiz tab!</div>
-        </div>
-        <div class="messages" id="visao" v-show="selectedTab === 'visao'">
-            <div class="line">Welcome to the Visão tab!</div>
-        </div>
-        <div class="messages" id="comunicacao" v-show="selectedTab === 'comunicacao'">
-            <div class="line">Welcome to the Comunicação tab!</div>
+            <div class="messages" id="visao" v-show="selectedTab === 'visao'">
+                <div class="line">Welcome to the Visão tab!</div>
+            </div>
+            <div class="messages" id="comunicacao" v-show="selectedTab === 'comunicacao'">
+                <div class="line">Welcome to the Comunicação tab!</div>
+            </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-    .buttons-container {           
+    .terminal-components {           
+        margin-left: 10%;
+        width: 100%;
+        height: 50%;
+    }
+    .terminal-buttons-container {           
         display: flex;
         width: 90%;
-        height: 5%;
+        height: 15%;
         justify-content: space-between;
-        margin-top: 2%;
+        margin-top: 9%;
         margin-bottom: 2%;
+
     }
-    .buttons {
+    .terminal-buttons {
         cursor: pointer;
         width: 25%;
-        height: 100%;
+        height: 75%;
         background-color: #383f6b;
         color: #d2d1cb;
         border-radius: 10px;
@@ -137,7 +145,7 @@
     .icons {
         height: 80%;
     }
-    .button-text {
+    .terminal-button-text {
         width:100%;
         display: flex;
         justify-content: center;
@@ -158,7 +166,7 @@
         background-color: #383f6b;
         border-radius: 10px;
         width: 90%; 
-        height: 20%; 
+        height: 50%; 
         display: flex;
         flex-direction: column;
     }
@@ -169,7 +177,7 @@
         border-top-left-radius: 10px;
         border-top-right-radius: 10px;
         color: black;
-        height: 19%;
+        height: 35px;
     }
     .tabs > div {
         flex: 1;

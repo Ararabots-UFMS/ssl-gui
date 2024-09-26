@@ -25,6 +25,7 @@
 </script>
 
 <template>
+    <div class="components-field">
         <div class="buttons">
             <div class="button-side">
                 <p class="texto-button">E</p>
@@ -42,10 +43,11 @@
             </div>
         </div>
         <div class="field">
-            <div class="robot" :style="{top: '10px', left: position.x+'px', transform: 'rotate(2rad)'}">
+            <div class="robot" :style="{top: position.y+'px', left: position.x+'px', transform: 'rotate('+position.angle+'rad)'}">
                 <div class="dot">
             </div>
         </div>
+        <div class="ball" :style="{top: '100px', left: '100px', transform: 'rotate(2rad)'}"></div>
     
         <!-- <div class="texto">
             Coordinates: ({{position.x}}, {{position.y}}, {{ position.angle }})
@@ -53,9 +55,16 @@
     
         <button @click="sendMessage">Send Message</button> -->
     </div>
+    </div>
 </template>
 
 <style>
+    .components-field {
+        margin-left: 10%;
+        width: 100%; /* Largura fixa */
+        height: 55%; /* Altura fixa */
+    }
+
     .switch {
         position: relative;
         display: inline-block;
@@ -158,7 +167,7 @@
         border-radius: 5px;
         /*width: 716px;
         height: 450px;*/
-        width: 90%; /* Ensures div fills available space */
+        width: 90%; 
         aspect-ratio: 1.575 / 1; /* Sets height to 50% of width */
         position: relative;
         background-image: url('../assets/campo.png');
@@ -170,20 +179,28 @@
 
     .robot {
         position: absolute;
-        width: 26px;
-        height: 26px;
+        width: 2.6%;
+        height: 4%;
         background-color: yellow;
         border-radius: 50%;
     }
 
     .dot{
         position: absolute;
-        width: 6px; /* largura do ponto */
-        height: 6px; /* altura do ponto */
+        width: 40%; /* largura do ponto */
+        height: 45%; /* altura do ponto */
         background-color: black; /* cor do ponto */
         border-radius: 50%; /* torna o ponto circular */
         left: 0px; /* posição horizontal do ponto dentro da div container */
-        top: 10px; /* posição vertical do ponto dentro da div container */
+        top: 5px; /* posição vertical do ponto dentro da div container */
+    }
+
+    .ball {
+        position: absolute;
+        width: 1.8%;
+        height: 2.8%;
+        background-color: orange;
+        border-radius: 50%;
     }
 
     .texto {
@@ -195,6 +212,7 @@
         display: flex;
         flex-direction: row;
         justify-content: flex-end;
+        padding-right: 22px;
     }
 
     .button-side {
@@ -209,7 +227,5 @@
         margin-top: 15%;
         font-weight: bold;
     }
-
-    
 
 </style>
