@@ -17,12 +17,15 @@
         methods: {
             refereeButton() {
                 socket.emit('refereeButton');
+                console.log('refereeButton');
             },
             visionButton() {
                 socket.emit('visionButton');
+                console.log('visionButton');
             },
             communicationButton() {
                 socket.emit('communicationButton');
+                console.log('communicationButton');
             },
             showTab (tabName) {
                 this.selectedTab = tabName;
