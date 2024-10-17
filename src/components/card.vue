@@ -10,7 +10,8 @@
         <h2>{{ card.name }}</h2>
       </div>
       <div class="card-position">
-        <select id="options" class="dropdown-position" v-model="selectedOption" @change="updateCardList">
+        <select class="dropdown-position" v-model="selectedOptions[index]" @change="updateCardList(index)">
+          <option value="0">Posição...</option>
           <option value="1">Atacante</option>
           <option value="2">Goleiro</option>
           <option value="3">Zagueiro</option>
@@ -21,9 +22,11 @@
 </template>
 
 <script>
+import {socket} from '@/socket'
 export default {
   data() {
     return {
+      selectedOptions: Array(6).fill("0"),
       cards: [
         { name: 'Robô 1', position: 'Descrição do Card 1.' },
         { name: 'Robô 2', position: 'Descrição do Card 2.' },
@@ -33,6 +36,13 @@ export default {
         { name: 'Robô 6', position: 'Descrição do Card 6.' }
       ]
     };
+  },
+  methods: {
+    updateCardList(index) {
+      socket.emit('updateCard',index + 1,this.selectedOptions[index]);
+      console.log('updateCard',index + 1,this.selectedOptions[index]);
+      // Aqui você pode implementar qualquer lógica adicional ao selecionar uma opção
+    }
   }
 };
 </script>

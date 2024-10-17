@@ -1,71 +1,152 @@
 <template>
-    <div class="dropdown-container">
-      <label for="options">Quantidade de Robôs</label>
-      <select id="options" class="dropdown" v-model="selectedOption" @change="updateCardList">
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-      </select>
-    </div>
+  <div class="dropdown-container">
+    <label for="options">Quantidade de Robôs</label>
+    <select id="options" class="dropdown" v-model="selectedOption" @change="updateCardList">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+    </select>
+  </div>
   <div class="card-list-config">
     <div class="card-config" v-for="(card, index) in filteredCards" :key="index">
       <div class="card-number">
-      <h2>{{ index + 1 }}</h2>
+        <select v-model="card.number" class="card-number-dropdown" @change="onCardChange(index)">
+          <option v-for="number in availableNumbers(card.number)" :key="number" :value="number">
+            {{ number }}
+          </option>
+        </select>
       </div>
       <div class="card-info">
-        <label>
-          Nome
-          <input type="text" v-model="card.name" placeholder="Digite o nome" />
-        </label>
-        <label>
-          Endereço
-          <input type="text" v-model="card.address" placeholder="Digite o endereço" />
-        </label>
+        <!-- Linha com Nome e Endereço -->
+        <div class="row">
+          <label class="half-width">
+            Nome
+            <input type="text" v-model="card.name" placeholder="Digite o nome" @input="onCardChange(index)" />
+          </label>
+          <label class="half-width">
+            Endereço
+            <input type="text" v-model="card.address" placeholder="Digite o endereço" @input="onCardChange(index)" />
+          </label>
+        </div>
+        <!-- Linha com KP, KI e KD -->
+        <div class="row">
+          <label class="third-width">
+            KP
+            <input type="text" v-model="card.kp" placeholder="Digite o KP" @input="onCardChange(index)" />
+          </label>
+          <label class="third-width">
+            KI
+            <input type="text" v-model="card.ki" placeholder="Digite o KI" @input="onCardChange(index)" />
+          </label>
+          <label class="third-width">
+            KD
+            <input type="text" v-model="card.kd" placeholder="Digite o KD" @input="onCardChange(index)" />
+          </label>
+        </div>
       </div>
     </div>
+  </div>
+  <div class="save" @click="saveButton()" >
+    <button>
+      Salvar
+    </button>
   </div>
 </template>
 
 <script>
-export default {
-  data() {
-    return {
-      selectedOption: '1', // Valor inicial do dropdown
-      cards: [
-        { name: '', address: '' },
-        { name: '', address: '' },
-        { name: '', address: '' },
-        { name: '', address: '' },
-        { name: '', address: '' },
-        { name: '', address: '' }
-      ]
-    };
-  },
-  computed: {
-    filteredCards() {
-      // Filtra os cartões com base na opção selecionada
-      const numberOfCards = parseInt(this.selectedOption, 10);
-      return this.cards.slice(0, numberOfCards);
+  import {socket} from '@/socket'
+
+  export default {
+    data() {
+      return {
+        selectedOption: '1', // Valor inicial do dropdown
+        cards: [
+          { name: '', address: '', kp: '', ki: '', kd: '' , number: null},
+          { name: '', address: '', kp: '', ki: '', kd: '' , number: null},
+          { name: '', address: '', kp: '', ki: '', kd: '' , number: null},
+          { name: '', address: '', kp: '', ki: '', kd: '' , number: null},
+          { name: '', address: '', kp: '', ki: '', kd: '' , number: null},
+          { name: '', address: '', kp: '', ki: '', kd: '' , number: null}
+        ],
+        maxNumber: 15 // Máximo de números disponíveis
+      };
+    },
+    computed: {
+      filteredCards() {
+        const numberOfCards = parseInt(this.selectedOption, 10);
+        const filtered = this.cards.slice(0, numberOfCards);
+
+        // Lista de números já selecionados
+        const usedNumbers = this.cards.map(card => card.number).filter(n => n !== null);
+
+        // Atribui um número automaticamente para cada card se não tiver um número já selecionado
+        filtered.forEach(card => {
+          if (card.number === null) {
+            const available = this.availableNumbers(null).filter(n => !usedNumbers.includes(n));
+            if (available.length > 0) {
+              card.number = available[0]; // Seleciona o primeiro número disponível e único
+              usedNumbers.push(available[0]); // Adiciona o número à lista de usados
+            }
+          }
+        });
+
+        return filtered;
+      }
+    },
+    methods: {
+      saveButton() {
+        // Cria um array contendo os dados de todos os cartões
+        const allCardData = this.filteredCards.map((card, index) => ({
+          id: card.number,
+          name: card.name,
+          address: card.address,
+          kp: card.kp,
+          ki: card.ki,
+          kd: card.kd,
+        }));
+
+        // Emite os dados através do socket
+        socket.emit('dados', allCardData);
+
+        console.log('Dados enviados:', allCardData);
+      },
+
+      updateCardList() {
+        // Método opcional para lidar com mudanças no dropdown
+        console.log('Selected option:', this.selectedOption);
+      },
+      availableNumbers(currentNumber) {
+        // Filtra os números disponíveis, de 0 a 15, excluindo os já selecionados, exceto o número atual
+        const selectedNumbers = this.cards.map(card => card.number);
+        const allNumbers = Array.from({ length: this.maxNumber + 1 }, (_, i) => i); // Inclui o número 0
+        return allNumbers.filter(n => !selectedNumbers.includes(n) || n === currentNumber || currentNumber === null);
+      },
+      onCardChange(index) {
+        const card = this.cards[index];
+        const cardData = {
+          id: card.number,
+          name: card.name,
+          address: card.address,
+          kp: card.kp,
+          ki: card.ki,
+          kd: card.kd,
+        };
+        // console.log('Card changed:', cardData);
+      }
     }
-  },
-  methods: {
-    updateCardList() {
-      // Método opcional para lidar com mudanças no dropdown
-      console.log('Selected option:', this.selectedOption);
-    }
-  }
-};
+  };
 </script>
 
 <style scoped>
 .dropdown-container {
   display: flex;
   align-items: center;
-  width: 100%; /* Ajusta a largura conforme necessário */
+  width: 80%; /* Ajusta a largura conforme necessário */
   margin-left: 5%;
+  margin-right: 5%; /* Garantir que não ultrapasse os limites da tela */
 }
 
 .dropdown-container label {
@@ -92,18 +173,42 @@ export default {
   border-radius: 8px;
   padding: 10px;
   color: #D2D1CB;
-  margin-bottom: 1.5%;
+  margin-bottom: 0.5%;
   display: flex;
 }
 
 .card-number {
   display: flex;
-  margin-bottom: 1%;
+  justify-content: center;
   width: 7%;
   align-items: center;
 }
-.card-number h2 {
-  font-size: 200%;
+.card-number-dropdown {
+  font-size: 2rem; /* Tamanho da fonte semelhante ao do h2 */
+  text-align: center; /* Centraliza o texto */
+  border: none; /* Remove a borda padrão */
+  background-color: transparent; /* Fundo transparente para estilo simples */
+  color: #D2D1CB; /* Cor do texto */
+  appearance: none; /* Remove o estilo padrão do dropdown no navegador */
+  width: 100%; /* Ocupa o espaço do contêiner */
+  font-weight: bold; /* Texto em negrito para destacar */
+  -webkit-appearance: none; /* Remove a seta no Safari/Chrome */
+  -moz-appearance: none; /* Remove a seta no Firefox */
+  appearance: none; /* Remove a seta nos navegadores que suportam appearance */
+  outline: none; /* Remove o foco padrão */
+}
+
+.card-number-dropdown option {
+  background-color: #252838; /* Cor de fundo das opções */
+  color: #D2D1CB; /* Cor do texto das opções */
+}
+
+.card-number-dropdown:focus {
+  outline: none; /* Remove o foco padrão */
+}
+
+.card-number-dropdown::-ms-expand {
+  display: none; /* Remove a seta do select no IE e Edge */
 }
 
 .card-info {
@@ -114,7 +219,6 @@ export default {
 
 .card-info label {
   display: flex;
-  margin-bottom: 2%;
   font-size: 100%;
 }
 
@@ -132,10 +236,44 @@ export default {
   width: 100%;
 }
 
-.card-list-config {
-  height: 75%;
-  width: 95%;
+.row {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  margin: 4px;
+}
+
+.half-width {
+  width: 48%;
+}
+
+.third-width {
+  width: 30%;
+}
+
+.card-list-config {
+  width: 95%; /* Ajuste para não ultrapassar a tela */
+  display: flex;
+  flex-direction: column; /* Organiza os elementos verticalmente */
+  margin-left: 5%; /* Ajuste lateral para centralizar */
+}
+
+.save {
+  width: 100%;
+  height: 90px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+button {
+    cursor: pointer;
+    width: 20%;
+    height:50%;
+    color: #D2D1CB;
+    font-size: 2rem;
+    background-color: green;
+    border-radius: 10px;
+    border: none;
+    font-size: 200%;
 }
 </style>

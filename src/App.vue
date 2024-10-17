@@ -158,13 +158,11 @@
 }
 
 .config-left-side {
-  top: 0;
-  right: 0;
-  height: 100%;
-  width: 80%;
   display: flex;
-  flex-direction:column;
+  flex-direction: column;
   align-items: center;
+  height: 100%;
+  width: 120%;
   gap: 5px
 }
 
@@ -172,9 +170,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 5%;
+  top: 0;
+  right: 0;
   height: 100%;
-  width: 120%;
+  width: 100%;
 }
 </style>
 

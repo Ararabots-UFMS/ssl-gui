@@ -8,10 +8,15 @@
             return {
                 position: position,
                 side: true,
-                teamColor: true
+                teamColor: true,
+                mode: true,
             }
         },
         methods: {
+            changeMode() {
+                this.mode = !this.mode;
+                socket.emit('fieldMode', this.side);
+            },
             changeSide() {
                 this.side = !this.side;
                 socket.emit('fieldSide', this.side);
@@ -27,6 +32,14 @@
 <template>
     <div class="components-field">
         <div class="buttons">
+            <div class="button-side">
+                <p class="texto-button">Real</p>
+                <label class="switch">
+                    <input type="checkbox" @click="changeMode()">
+                    <span class="slider3 round"></span>
+                </label>
+                <p class="texto-button">Simu</p>
+            </div>
             <div class="button-side">
                 <p class="texto-button">E</p>
                 <label class="switch">
@@ -60,7 +73,6 @@
 
 <style>
     .components-field {
-        margin-left: 10%;
         width: 100%; /* Largura fixa */
         height: 55%; /* Altura fixa */
     }
@@ -157,6 +169,43 @@
         border-radius: 50%;
     }
 
+    .slider3 {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: greenyellow;
+        -webkit-transition: .4s;
+        transition: .4s;
+    }
+    .slider3:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        -webkit-transition: .4s;
+        transition: .4s;
+    }
+    input:checked + .slider3 {
+        background-color: green;
+    }
+    input:checked + .slider3:before {
+        -webkit-transform: translateX(26px);
+        -ms-transform: translateX(26px);
+        transform: translateX(26px);
+    }
+    .slider3.round {
+        border-radius: 34px;
+    }
+    .slider3.round:before {
+        border-radius: 50%;
+    }
+
     .yrobot {
         background-color: white
     }
@@ -167,6 +216,7 @@
         border-radius: 5px;
         /*width: 716px;
         height: 450px;*/
+        margin-left: 5%;
         width: 90%; 
         aspect-ratio: 1.575 / 1; /* Sets height to 50% of width */
         position: relative;
@@ -223,6 +273,7 @@
     }
 
     .texto-button {
+        text-align: top;
         color: #D2D1CB;
         margin-top: 15%;
         font-weight: bold;
