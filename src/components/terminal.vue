@@ -1,5 +1,5 @@
 <script>
-    import {socket, visionOutput, visionStatus} from '@/socket'
+    import {socket, visionOutput, refereeOutput, communicationOutput, visionStatus, refereeStatus, communicationStatus} from '@/socket'
     import { ref } from 'vue'
 
     export default {
@@ -7,11 +7,19 @@
             return {
                 selectedTab: 'juiz', // Default tab
                 visionRef: ref(visionOutput),
+                refereeRef: ref(refereeOutput),
+                communicationRef: ref(communicationOutput),
             };
         },
         computed: {
             visionStatus() {
                 return visionStatus.status ? 'status-line active-line-color' : 'status-line inactive-line-color';
+            },
+            refereeStatus() {
+                return refereeStatus.status ? 'status-line active-line-color' : 'status-line inactive-line-color';
+            },
+            communicationStatus() {
+                return communicationStatus.status ? 'status-line active-line-color' : 'status-line inactive-line-color';
             },
         },
         methods: {
@@ -58,6 +66,18 @@
                 },
                 deep: true,
             },
+            refereeRef: {
+                handler() {
+                    this.printText(refereeOutput.message.line, 'juiz');
+                },
+                deep: true,
+            },
+            communicationRef: {
+                handler() {
+                    this.printText(communicationOutput.message.line, 'comunicacao');
+                },
+                deep: true,
+            },
 
         },
     };
@@ -71,7 +91,7 @@
                 <div class="icon-container">
                     <img class="icons" src="https://img.icons8.com/ios/50/foul.png" alt="foul"/>
                 </div>
-                <div class="status-line inactive-line-color"></div>  
+                <div :class="refereeStatus"></div>  
                 <span class="terminal-button-text">Juiz</span>
             </div>
             <div class="terminal-buttons" @click="visionButton()">
@@ -85,7 +105,7 @@
                 <div class="icon-container">
                     <img class="icons" src="https://img.icons8.com/ios/50/wifi--v1.png" alt="wifi--v1"/>
                 </div>
-                <div class="status-line inactive-line-color"></div> 
+                <div :class="communicationStatus"></div> 
                 <span class="terminal-button-text">Comunicação</span>
             </div>
         </div>
