@@ -1,6 +1,6 @@
 <template>
-  <div class="play" @click="playButton()" >
-    <button v-bind:class="{'red': clicked, 'green': !clicked}">
+  <div class="play" >
+    <button v-bind:class="{'red': clicked, 'green': !clicked}" @click="playButton()">
       {{ buttonText }}
     </button>
   </div>
@@ -77,7 +77,7 @@
 button {
     cursor: pointer;
     width: 30%;
-    height:45%;
+    height: 20%;
     color: #D2D1CB;
     font-size: 2rem;
     border-radius: 10px;
@@ -87,6 +87,7 @@ button {
 .green {
     background-color: green;
 }
+
 .red {
     background-color: red;
 }

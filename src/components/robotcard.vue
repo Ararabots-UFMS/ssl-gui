@@ -49,8 +49,8 @@
       </div>
     </div>
   </div>
-  <div class="save" @click="saveButton()" >
-    <button>
+  <div class="save">
+    <button @click="saveButton(index)">
       Salvar
     </button>
   </div>
@@ -64,12 +64,12 @@
       return {
         selectedOption: '1', // Valor inicial do dropdown
         cards: [
-          { name: '', address: '', kp: '', ki: '', kd: '' , number: null},
-          { name: '', address: '', kp: '', ki: '', kd: '' , number: null},
-          { name: '', address: '', kp: '', ki: '', kd: '' , number: null},
-          { name: '', address: '', kp: '', ki: '', kd: '' , number: null},
-          { name: '', address: '', kp: '', ki: '', kd: '' , number: null},
-          { name: '', address: '', kp: '', ki: '', kd: '' , number: null}
+          { name: '', address: '0,0,0,0,0', kp: '0.0', ki: '0.0', kd: '0.0' , number: null},
+          { name: '', address: '0,0,0,0,0', kp: '0.0', ki: '0.0', kd: '0.0' , number: null},
+          { name: '', address: '0,0,0,0,0', kp: '0.0', ki: '0.0', kd: '0.0' , number: null},
+          { name: '', address: '0,0,0,0,0', kp: '0.0', ki: '0.0', kd: '0.0' , number: null},
+          { name: '', address: '0,0,0,0,0', kp: '0.0', ki: '0.0', kd: '0.0' , number: null},
+          { name: '', address: '0,0,0,0,0', kp: '0.0', ki: '0.0', kd: '0.0' , number: null}
         ],
         maxNumber: 15 // Máximo de números disponíveis
       };
@@ -99,7 +99,7 @@
     methods: {
       saveButton() {
         // Cria um array contendo os dados de todos os cartões
-        const allCardData = this.filteredCards.map((card, index) => ({
+        const allCardData = this.filteredCards.map((card) => ({
           id: card.number,
           name: card.name,
           address: card.address,
@@ -109,7 +109,7 @@
         }));
 
         // Emite os dados através do socket
-        socket.emit('dados', allCardData);
+        socket.emit('configSaveButton', allCardData);
 
         console.log('Dados enviados:', allCardData);
       },
@@ -266,14 +266,19 @@
 }
 
 button {
-    cursor: pointer;
-    width: 20%;
-    height:50%;
-    color: #D2D1CB;
-    font-size: 2rem;
-    background-color: green;
-    border-radius: 10px;
-    border: none;
-    font-size: 200%;
+  cursor: pointer;
+  width: 25%;
+  height: 80%;
+  color: #D2D1CB;
+  font-size: 2rem;
+  background-color: green;
+  border-radius: 10px;
+  border: none;
+  font-size: 200%;
 }
+
+button:active {
+  background-color: #3e8e41;
+}
+
 </style>

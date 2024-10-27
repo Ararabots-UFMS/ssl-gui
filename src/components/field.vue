@@ -15,7 +15,7 @@
         methods: {
             changeMode() {
                 this.mode = !this.mode;
-                socket.emit('fieldMode', this.side);
+                socket.emit('fieldMode', this.mode);
             },
             changeSide() {
                 this.side = !this.side;
