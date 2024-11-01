@@ -50,7 +50,7 @@
     </div>
   </div>
   <div class="save">
-    <button @click="saveButton(index)">
+    <button @click="saveButton()">
       Salvar
     </button>
   </div>
@@ -62,17 +62,20 @@
   export default {
     data() {
       return {
-        selectedOption: '1', // Valor inicial do dropdown
-        cards: [
-          { name: '', address: '0,0,0,0,0', kp: '0.0', ki: '0.0', kd: '0.0' , number: null},
-          { name: '', address: '0,0,0,0,0', kp: '0.0', ki: '0.0', kd: '0.0' , number: null},
-          { name: '', address: '0,0,0,0,0', kp: '0.0', ki: '0.0', kd: '0.0' , number: null},
-          { name: '', address: '0,0,0,0,0', kp: '0.0', ki: '0.0', kd: '0.0' , number: null},
-          { name: '', address: '0,0,0,0,0', kp: '0.0', ki: '0.0', kd: '0.0' , number: null},
-          { name: '', address: '0,0,0,0,0', kp: '0.0', ki: '0.0', kd: '0.0' , number: null}
-        ],
+        selectedOption: localStorage.getItem('selectedOption') || '1', // Carrega do localStorage ou usa '1'
+        cards: Array(6).fill().map(() => ({
+          name: '',
+          address: '0,0,0,0,0',
+          kp: '0.0',
+          ki: '0.0',
+          kd: '0.0',
+          number: null
+        })),
         maxNumber: 15 // Máximo de números disponíveis
       };
+    },
+    created() {
+      this.loadCardData();
     },
     computed: {
       filteredCards() {
@@ -112,9 +115,20 @@
         socket.emit('configSaveButton', allCardData);
 
         console.log('Dados enviados:', allCardData);
+
+        // Salva os dados no localStorage
+        localStorage.setItem('cardData', JSON.stringify(allCardData));
+      },
+      loadCardData() {
+        const savedData = JSON.parse(localStorage.getItem('cardData'));
+        if (savedData) {
+          this.cards = this.cards.map((card, index) => savedData[index] || card);
+        }
       },
 
       updateCardList() {
+        // Salva a opção selecionada no localStorage
+        localStorage.setItem('selectedOption', this.selectedOption);
         // Método opcional para lidar com mudanças no dropdown
         console.log('Selected option:', this.selectedOption);
       },
@@ -134,7 +148,15 @@
           ki: card.ki,
           kd: card.kd,
         };
+        // Salva o estado dos cards no localStorage
+        localStorage.setItem('cards', JSON.stringify(this.cards));
         // console.log('Card changed:', cardData);
+      }
+    },
+    mounted() {
+      const savedCards = JSON.parse(localStorage.getItem('cards'));
+      if (savedCards) {
+        this.cards = savedCards;
       }
     }
   };
@@ -171,9 +193,9 @@
 .card-config {
   background-color: #383f6b;
   border-radius: 8px;
-  padding: 10px;
+  padding: 12px;
   color: #D2D1CB;
-  margin-bottom: 0.5%;
+  margin-bottom: 1.5%;
   display: flex;
 }
 
@@ -228,7 +250,7 @@
 
 .card-info input {
   margin-left: 7px;
-  padding: 1px;
+  padding: 6px;
   border: 1px; /* Cor da borda */
   border-radius: 4px; /* Cantos arredondados */
   background-color: #D2D1CB; /* Cor de fundo */

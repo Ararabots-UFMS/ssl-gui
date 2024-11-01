@@ -7,24 +7,33 @@
         data() {
             return {
                 position: position,
-                side: true,
-                teamColor: true,
-                mode: true,
+                side: JSON.parse(localStorage.getItem('side') || 'true'),
+                teamColor: JSON.parse(localStorage.getItem('teamColor') || 'true'),
+                mode: JSON.parse(localStorage.getItem('mode') || 'true'),
             }
         },
         methods: {
             changeMode() {
                 this.mode = !this.mode;
                 socket.emit('fieldMode', this.mode);
+                localStorage.setItem('mode', JSON.stringify(this.mode)); // Salva o estado
             },
             changeSide() {
                 this.side = !this.side;
                 socket.emit('fieldSide', this.side);
+                localStorage.setItem('side', JSON.stringify(this.side)); // Salva o estado
             },
             changeTeamColor() {
                 this.teamColor = !this.teamColor;
                 socket.emit('teamColor', this.teamColor);
+                localStorage.setItem('teamColor', JSON.stringify(this.teamColor)); // Salva o estado
             },
+        },
+        mounted() {
+            // Carrega os estados salvos do localStorage
+            this.side = JSON.parse(localStorage.getItem('side') || 'true');
+            this.teamColor = JSON.parse(localStorage.getItem('teamColor') || 'true');
+            this.mode = JSON.parse(localStorage.getItem('mode') || 'true');
         },
     }
 </script>
@@ -33,24 +42,24 @@
     <div class="components-field">
         <div class="buttons">
             <div class="button-side">
-                <p class="texto-button">Real</p>
+                <p class="texto-button">Simu</p>
                 <label class="switch">
-                    <input type="checkbox" @click="changeMode()">
+                    <input type="checkbox" :checked="mode" @click="changeMode()">
                     <span class="slider3 round"></span>
                 </label>
-                <p class="texto-button">Simu</p>
+                <p class="texto-button">Real</p>
             </div>
             <div class="button-side">
                 <p class="texto-button">E</p>
                 <label class="switch">
-                    <input type="checkbox" @click="changeSide()">
+                    <input type="checkbox" :checked="side" @click="changeSide()">
                     <span class="slider2 round"></span>
                 </label>
                 <p class="texto-button">D</p>
             </div>
             <div>
                 <label class="switch">
-                    <input type="checkbox" @click="changeTeamColor()">
+                    <input type="checkbox" :checked="teamColor" @click="changeTeamColor()">
                     <span class="slider1 round"></span>
                 </label>
             </div>
