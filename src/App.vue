@@ -31,6 +31,7 @@
       </div>
       <div class="config-right-side">
         <field></field>
+        <configvision></configvision>
       </div>
     </div>
   </div>
@@ -43,6 +44,7 @@
   import card from './components/card.vue';
   import play from './components/play.vue';
   import robotcard from './components/robotcard.vue';
+  import configvision from './components/configvision.vue';
 
   export default {
     name: 'FullScreen',
@@ -53,6 +55,7 @@
       card,
       play,
       robotcard,
+      configvision,
     },
     data() {
       return {
@@ -162,7 +165,7 @@
   flex-direction: column;
   align-items: center;
   height: 100%;
-  width: 120%;
+  width: 100%;
   gap: 5px
 }
 
