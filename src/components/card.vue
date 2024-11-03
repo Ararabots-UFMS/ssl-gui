@@ -37,11 +37,19 @@ export default {
       ]
     };
   },
+  created() {
+    // Carrega as opções selecionadas do localStorage ao montar o componente
+    const storedSelections = JSON.parse(localStorage.getItem('selectedOptions'));
+    if (storedSelections) {
+      this.selectedOptions = storedSelections;
+    }
+  },
   methods: {
     updateCardList(index) {
       socket.emit('updateCard',index + 1,this.selectedOptions[index]);
       console.log('updateCard',index + 1,this.selectedOptions[index]);
       // Aqui você pode implementar qualquer lógica adicional ao selecionar uma opção
+      localStorage.setItem('selectedOptions', JSON.stringify(this.selectedOptions));
     }
   }
 };

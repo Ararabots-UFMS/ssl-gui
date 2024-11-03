@@ -31,7 +31,7 @@
       </div>
       <div class="config-right-side">
         <field></field>
-        <configvision></configvision>
+        <configterminal></configterminal>
       </div>
     </div>
   </div>
@@ -44,7 +44,7 @@
   import card from './components/card.vue';
   import play from './components/play.vue';
   import robotcard from './components/robotcard.vue';
-  import configvision from './components/configvision.vue';
+  import configterminal from './components/configterminal.vue';
 
   export default {
     name: 'FullScreen',
@@ -55,7 +55,7 @@
       card,
       play,
       robotcard,
-      configvision,
+      configterminal,
     },
     data() {
       return {
