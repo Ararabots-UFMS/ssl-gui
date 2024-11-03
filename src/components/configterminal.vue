@@ -89,7 +89,11 @@ export default {
   methods: {
     saveButton() {
       // Coleta os dados dos três cartões e os envia via socket
-      const allCardData = [this.card1, this.card2, this.card3];
+      const allCardData = [
+        { id: this.card1.id, port: this.card1.port },
+        { id: this.card2.id, port: this.card2.port, num_cams: this.card2.num_cams },
+        { id: this.card3.id, port: this.card3.port }
+      ];
       socket.emit('terminalSaveButton', allCardData);
       console.log('Dados enviados:', allCardData);
       
@@ -99,7 +103,7 @@ export default {
     onCardChange(cardIndex) {
       // Salva os dados no localStorage após qualquer mudança
       const allCards = { card1: this.card1, card2: this.card2, card3: this.card3 };
-      console.log(`Card ${cardIndex + 1} atualizado:`, allCards[`card${cardIndex + 1}`]);
+      // console.log(`Card ${cardIndex + 1} atualizado:`, allCards[`card${cardIndex + 1}`]);
       localStorage.setItem('cardData', JSON.stringify(allCards));
     },
   },
