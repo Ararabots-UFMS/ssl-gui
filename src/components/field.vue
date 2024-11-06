@@ -34,6 +34,10 @@
             this.side = JSON.parse(localStorage.getItem('side') || 'true');
             this.teamColor = JSON.parse(localStorage.getItem('teamColor') || 'true');
             this.mode = JSON.parse(localStorage.getItem('mode') || 'true');
+            socket.emit('fieldMode', this.mode);
+            socket.emit('fieldSide', this.side);
+            socket.emit('teamColor', this.teamColor);
+
         },
     }
 </script>

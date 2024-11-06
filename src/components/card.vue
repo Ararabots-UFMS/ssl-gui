@@ -1,8 +1,8 @@
 <template>
   <div class="card-list">
-    <div class="card" v-for="(card, index) in cards" :key="index">
+    <div class="card" v-for="(card, index) in limitedCards" :key="index">
       <div class="card-icon">
-        <h2>{{ index + 1 }}</h2>
+        <h2>{{ card.id || index + 1 }}</h2>
       </div>
       <div class="card-line">
       </div>
@@ -26,22 +26,40 @@ import {socket} from '@/socket'
 export default {
   data() {
     return {
+      num: 6, // Define quantos cartões serão mostrados
       selectedOptions: Array(6).fill("0"),
       cards: [
-        { name: 'Robô 1', position: 'Descrição do Card 1.' },
-        { name: 'Robô 2', position: 'Descrição do Card 2.' },
-        { name: 'Robô 3', position: 'Descrição do Card 3.' },
-        { name: 'Robô 4', position: 'Descrição do Card 4.' },
-        { name: 'Robô 5', position: 'Descrição do Card 5.' },
-        { name: 'Robô 6', position: 'Descrição do Card 6.' }
+        { id: 1, name: 'Robô 1', position: 'Descrição do Card 1.' },
+        { id: 2, name: 'Robô 2', position: 'Descrição do Card 2.' },
+        { id: 3, name: 'Robô 3', position: 'Descrição do Card 3.' },
+        { id: 4, name: 'Robô 4', position: 'Descrição do Card 4.' },
+        { id: 5, name: 'Robô 5', position: 'Descrição do Card 5.' },
+        { id: 6, name: 'Robô 6', position: 'Descrição do Card 6.' }
       ]
     };
   },
   created() {
     // Carrega as opções selecionadas do localStorage ao montar o componente
     const storedSelections = JSON.parse(localStorage.getItem('selectedOptions'));
+    const storedCard = JSON.parse(localStorage.getItem('cardData'));
+
     if (storedSelections) {
       this.selectedOptions = storedSelections;
+    }
+    if (storedCard) {
+      storedCard.forEach((item, index) => {
+        if (this.cards[index]) {
+          this.cards[index].name = item.name || this.cards[index].name;
+          this.cards[index].id = item.id || this.cards[index].id;
+        }
+      });
+      this.num = storedCard.length;
+    }
+  },
+  computed: {
+    // Computed property para limitar o número de cards exibidos
+    limitedCards() {
+      return this.cards.slice(0, this.num);
     }
   },
   methods: {
