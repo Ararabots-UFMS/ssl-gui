@@ -104,7 +104,6 @@ export default {
       // Salva os dados no localStorage após qualquer mudança
       const allCards = { card1: this.card1, card2: this.card2, card3: this.card3 };
       // console.log(`Card ${cardIndex + 1} atualizado:`, allCards[`card${cardIndex + 1}`]);
-      localStorage.setItem('cardData', JSON.stringify(allCards));
     },
   },
 };
