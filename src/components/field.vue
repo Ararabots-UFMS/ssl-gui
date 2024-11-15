@@ -7,9 +7,9 @@
         data() {
             return {
                 position: position,
-                side: JSON.parse(localStorage.getItem('side') || 'true'),
-                teamColor: JSON.parse(localStorage.getItem('teamColor') || 'true'),
-                mode: JSON.parse(localStorage.getItem('mode') || 'true'),
+                side: JSON.parse(localStorage.getItem('side') || 'false'),
+                teamColor: JSON.parse(localStorage.getItem('teamColor') || 'false'),
+                mode: JSON.parse(localStorage.getItem('mode') || 'false'),
             }
         },
         methods: {
@@ -31,9 +31,9 @@
         },
         mounted() {
             // Carrega os estados salvos do localStorage
-            this.side = JSON.parse(localStorage.getItem('side') || 'true');
-            this.teamColor = JSON.parse(localStorage.getItem('teamColor') || 'true');
-            this.mode = JSON.parse(localStorage.getItem('mode') || 'true');
+            this.side = JSON.parse(localStorage.getItem('side') || 'false');
+            this.teamColor = JSON.parse(localStorage.getItem('teamColor') || 'false');
+            this.mode = JSON.parse(localStorage.getItem('mode') || 'false');
             socket.emit('fieldMode', this.mode);
             socket.emit('fieldSide', this.side);
             socket.emit('teamColor', this.teamColor);
