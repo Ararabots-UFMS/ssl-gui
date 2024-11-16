@@ -1,63 +1,45 @@
 <template>
   <div class="card-list-config">
-    <div class="card-group">
+    <div class="card-group" v-for="(card, index) in cards" :key="index">
       <div class="card-config">
         <div class="card-info">
           <div class="row">
-            <img class="icons" src="https://img.icons8.com/ios/50/foul.png" alt="foul" />
+            <img
+              class="icons"
+              :src="icons[index]"
+              :alt="`icon-${index}`"
+            />
             <label class="third-width">
               ID
-              <input type="text" v-model="card1.id" placeholder="Digite o ID" @input="onCardChange(0)" />
+              <input
+                type="text"
+                v-model="card.id"
+                placeholder="Digite o ID"
+                @input="onCardChange"
+              />
             </label>
-            <label class="third-width">
+            <label class="third-width" v-if="index !== 2">
               Porta
-              <input type="text" v-model="card1.port" placeholder="Digite a Porta" @input="onCardChange(0)" />
+              <input
+                type="text"
+                v-model="card.port"
+                placeholder="Digite a Porta"
+                @input="onCardChange"
+              />
             </label>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card-group">
-      <div class="card-config">
-        <div class="card-info">
-          <div class="row">
-            <img class="icons" src="https://img.icons8.com/ios/50/visible--v1.png" alt="visible--v1" />
-            <label class="third-width">
-              ID
-              <input type="text" v-model="card2.id" placeholder="Digite o ID" @input="onCardChange(1)" />
-            </label>
-            <label class="third-width">
-              Porta
-              <input type="text" v-model="card2.port" placeholder="Digite a Porta" @input="onCardChange(1)" />
-            </label>
-            <label class="third-width">
+            <label class="third-width" v-if="index === 1">
               N° Cameras
-              <input type="text" v-model="card2.num_cams" placeholder="Digite o Número de Cameras" @input="onCardChange(1)" />
+              <input
+                type="text"
+                v-model="card.num_cams"
+                placeholder="Digite o Número de Cameras"
+                @input="onCardChange"
+              />
             </label>
           </div>
         </div>
       </div>
     </div>
-
-    <div class="card-group">
-      <div class="card-config">
-        <div class="card-info">
-          <div class="row">
-            <img class="icons" src="https://img.icons8.com/ios/50/wifi--v1.png" alt="wifi--v1" />
-            <label class="third-width">
-              ID
-              <input type="text" v-model="card3.id" placeholder="Digite o ID" @input="onCardChange(2)" />
-            </label>
-            <label class="third-width">
-              Porta
-              <input type="text" v-model="card3.port" placeholder="Digite a Porta" @input="onCardChange(2)" />
-            </label>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="save">
       <button @click="saveButton()">Salvar</button>
     </div>
@@ -70,44 +52,39 @@ import { socket } from '@/socket';
 export default {
   data() {
     return {
-      // Definindo três objetos separados para cada cartão
-      card1: { id: '0', port: '0' },
-      card2: { id: '0', port: '0', num_cams: '0' },
-      card3: { id: '0', port: '0' },
+      cards: [
+        { id: '0', port: '0' },
+        { id: '0', port: '0', num_cams: '0' },
+        { id: '0', port: '0' },
+      ],
+      icons: [
+        'https://img.icons8.com/ios/50/foul.png',
+        'https://img.icons8.com/ios/50/visible--v1.png',
+        'https://img.icons8.com/ios/50/wifi--v1.png',
+      ],
     };
   },
   created() {
-    // Carrega os dados do localStorage quando o componente é montado
+    // Carrega os dados do localStorage ao criar o componente
     const storedData = localStorage.getItem('cardData');
     if (storedData) {
-      const parsedData = JSON.parse(storedData);
-      this.card1 = parsedData.card1 || this.card1;
-      this.card2 = parsedData.card2 || this.card2;
-      this.card3 = parsedData.card3 || this.card3;
+      this.cards = JSON.parse(storedData);
     }
   },
   methods: {
-    saveButton() {
-      // Coleta os dados dos três cartões e os envia via socket
-      const allCardData = [
-        { id: this.card1.id, port: this.card1.port },
-        { id: this.card2.id, port: this.card2.port, num_cams: this.card2.num_cams },
-        { id: this.card3.id, port: this.card3.port }
-      ];
-      socket.emit('terminalSaveButton', allCardData);
-      console.log('Dados enviados:', allCardData);
-      
-      // Atualiza o localStorage com os dados atuais dos cartões
-      localStorage.setItem('cardData', JSON.stringify({ card1: this.card1, card2: this.card2, card3: this.card3 }));
+    onCardChange() {
+      // Salva os dados no localStorage a cada alteração
+      localStorage.setItem('cardData', JSON.stringify(this.cards));
     },
-    onCardChange(cardIndex) {
-      // Salva os dados no localStorage após qualquer mudança
-      const allCards = { card1: this.card1, card2: this.card2, card3: this.card3 };
-      // console.log(`Card ${cardIndex + 1} atualizado:`, allCards[`card${cardIndex + 1}`]);
+    saveButton() {
+      // Envia os dados para o backend via socket
+      socket.emit('terminalSaveButton', this.cards);
+      console.log('Dados enviados:', this.cards);
     },
   },
 };
 </script>
+
 
 <style scoped>
 
