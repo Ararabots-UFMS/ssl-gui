@@ -32,6 +32,10 @@ export const refereeStatus = reactive({
 
 const URL = "http://localhost:5000";
 
+export const yellowRobots = reactive<any[]>([]);
+export const blueRobots   = reactive<any[]>([]);
+export const balls        = reactive<any[]>([]);
+
 export const socket = io(URL,{cors: {origin: "*"}} as any);
 
 socket.on("connect", () => {
@@ -42,11 +46,17 @@ socket.on("disconnect", () => {
     console.log("Disconnected from the server");
 });
 
-socket.on("position", (event) => {
-    position.y = event.y.toFixed(2);
-    position.x = event.x.toFixed(2);
-    position.angle = event.angle.toFixed(2);
-});
+socket.on("vision_update", (payload) => {
+    yellowRobots.splice(0, yellowRobots.length, ...payload.yellow);
+    blueRobots.splice(0,   blueRobots.length,   ...payload.blue);
+    balls.splice(0,        balls.length,        ...payload.balls);
+  });
+
+// socket.on("position", (event) => {
+//     position.y = event.y.toFixed(2);
+//     position.x = event.x.toFixed(2);
+//     position.angle = event.angle.toFixed(2);
+// });
 
 socket.on("visionOutput", (event) => {
     visionOutput.message = event;

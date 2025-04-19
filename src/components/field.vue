@@ -1,15 +1,25 @@
 <script lang="ts">
-    import {position} from '@/socket'
+    import {yellowRobots, blueRobots, balls} from '@/socket'
     import {socket} from '@/socket'
+
+    const FIELD_W_MM = 5500;
+    const FIELD_H_MM = 4000;
+
 
     export default {
         name: 'Arena',
         data() {
             return {
-                position: position,
+                yellowRobots,
+                blueRobots,
+                balls,
                 side: JSON.parse(localStorage.getItem('side') || 'false'),
                 teamColor: JSON.parse(localStorage.getItem('teamColor') || 'false'),
                 mode: JSON.parse(localStorage.getItem('mode') || 'false'),
+                scaleX: 1,
+                scaleY: 1,
+                fieldWidth: 1,
+                fieldHeight: 1,
             }
         },
         methods: {
@@ -28,6 +38,23 @@
                 socket.emit('teamColor', this.teamColor);
                 localStorage.setItem('teamColor', JSON.stringify(this.teamColor)); // Salva o estado
             },
+            updateScale() {
+                const fieldEl = (this.$el as HTMLElement).querySelector(".field") as HTMLElement;
+                if (!fieldEl) return;
+                const { width, height } = fieldEl.getBoundingClientRect();
+                this.fieldWidth = width;
+                this.fieldHeight = height;
+                this.scaleX = (width)  / FIELD_W_MM;
+                this.scaleY = (height) / FIELD_H_MM;
+                },
+            mapX(x_mm: number): string {
+                const robotWidth = this.fieldWidth * 0.026;
+                return `${((FIELD_W_MM / 2 + x_mm) * this.scaleX) - robotWidth / 2}px`;
+            },
+            mapY(y_mm: number): string {
+                const robotHeight = this.fieldHeight * 0.04;
+                return `${((FIELD_H_MM / 2 - y_mm) * this.scaleY) - robotHeight / 2}px`;
+            },
         },
         mounted() {
             // Carrega os estados salvos do localStorage
@@ -37,7 +64,12 @@
             socket.emit('fieldMode', this.mode);
             socket.emit('fieldSide', this.side);
             socket.emit('teamColor', this.teamColor);
-
+            
+            this.$nextTick(this.updateScale);
+            window.addEventListener("resize", this.updateScale);
+        },
+        beforeUnmount() {
+            window.removeEventListener("resize", this.updateScale);
         },
     }
 </script>
@@ -69,18 +101,47 @@
             </div>
         </div>
         <div class="field">
-            <div class="robot" :style="{top: position.y+'px', left: position.x+'px', transform: 'rotate('+position.angle+'rad)'}">
-                <div class="dot">
-            </div>
+            <!-- yellow robots -->
+            <div
+            v-for="r in yellowRobots"
+            :key="`yellow-${r.id}`"
+            class="robot yellow"
+            :style="{
+                top:    mapY(r.position_y),
+                left:   mapX(r.position_x),
+                transform: 'rotate(' + r.orientation + 'rad)'
+            }"
+            />
+
+            <!-- blue robots -->
+            <div
+            v-for="r in blueRobots"
+            :key="`blue-${r.id}`"
+            class="robot blue"
+            :style="{
+                top:    mapY(r.position_y),
+                left:   mapX(r.position_x),
+                transform: 'rotate(' + r.orientation + 'rad)'
+            }"
+            />
+
+            <!-- balls -->
+            <div
+            v-for="b in balls"
+            :key="`ball-${b.id}`"
+            class="ball"
+            :style="{
+                top:  mapY(b.position_y),
+                left: mapX(b.position_x),
+            }"
+            />
         </div>
-        <div class="ball" :style="{top: '100px', left: '100px', transform: 'rotate(2rad)'}"></div>
     
         <!-- <div class="texto">
             Coordinates: ({{position.x}}, {{position.y}}, {{ position.angle }})
         </div>
     
         <button @click="sendMessage">Send Message</button> -->
-    </div>
     </div>
 </template>
 
@@ -231,7 +292,7 @@
         height: 450px;*/
         margin-left: 5%;
         width: 90%; 
-        aspect-ratio: 1.575 / 1; /* Sets height to 50% of width */
+        aspect-ratio: 1.575; /* Sets height to 50% of width */
         position: relative;
         background-image: url('../assets/campo.png');
         background-size: contain;
@@ -247,6 +308,9 @@
         background-color: yellow;
         border-radius: 50%;
     }
+
+    .robot.yellow { background: yellow; }
+    .robot.blue   { background: blue; }
 
     .dot{
         position: absolute;
