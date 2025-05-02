@@ -9,6 +9,10 @@
 
 </div>
 
+<div align="center">
+<img height="200" src="https://i.postimg.cc/wjPMX0DF/1.png"/> <img height="200" src="https://i.postimg.cc/SRyxS5pQ/2.png"/>
+</div>
+
 ## Software Requirements
 - [node](https://nodejs.org/pt/download)
 
