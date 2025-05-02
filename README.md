@@ -39,9 +39,17 @@ npm -v # Should print "10.9.2".
 ---------------------
 First of all, we need to clone the [ssl-gui](https://github.com/Ararabots-UFMS/ssl-gui) repository, using the following commmands:
 
+With SSH:
+
 ```bash
 git clone git@github.com:Ararabots-UFMS/ssl-gui.git
 ```
+With HTTP:
+
+```bash
+git clone https://github.com/Ararabots-UFMS/ssl-gui.git
+```
+
 
 After cloning the repository, enter the repository folder and install the repository dependences:
 ```bash
