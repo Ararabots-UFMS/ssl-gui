@@ -111,6 +111,7 @@
                 left:   mapX(r.position_x),
                 transform: 'rotate(' + r.orientation + 'rad)'
             }"
+
             />
 
             <!-- blue robots -->
@@ -135,8 +136,32 @@
                 left: mapX(b.position_x),
             }"
             />
+
+            <div 
+            class="ret-ext"
+            />
+
+            <div class="linha-centro horizontal"
+            />
+            <div class="linha-centro vertical"
+            />
+
+            <div class="gol-esquerdo"
+            />
+
+            <div class="gol-direito"
+            />
+
+            <div class="circulo-central"
+            />
+
+            <div class="area-direita"
+            />
+            
+            <div class="area-esquerda"
+            />
         </div>
-    
+
         <!-- <div class="texto">
             Coordinates: ({{position.x}}, {{position.y}}, {{ position.angle }})
         </div>
@@ -147,8 +172,11 @@
 
 <style>
     .components-field {
-        width: 100%; /* Largura fixa */
-        height: 55%; /* Altura fixa */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px; /* Reduzido de 16px para 8px, por exemplo */
+        width: 100%;
     }
 
     .switch {
@@ -284,21 +312,103 @@
         background-color: white
     }
 
-    .field{
+    .field {
         display: flex;
         border: 5px solid grey;
         border-radius: 5px;
-        /*width: 716px;
-        height: 450px;*/
-        margin-left: 5%;
-        width: 90%; 
-        aspect-ratio: 1.575; /* Sets height to 50% of width */
+        width: 90%;
+        margin: 0 auto;
+        aspect-ratio: 1.375; /* 5500 / 4000 */
         position: relative;
-        background-image: url('../assets/campo.png');
+        background-color: #008000;
         background-size: contain;
         background-position: center;
         background-repeat: no-repeat;
-        float:left;
+        float: none;
+    }
+
+    .linha-centro{
+        position: absolute;
+        background-color: #ffffff;
+        z-index: 2;
+    }
+
+    .ret-ext {
+        position: absolute;
+        width: 81.82%;
+        height: 75%;
+        top: 12.5%;
+        left: 9.09%;
+        border: 2px solid white;
+        background-color: rgba(255, 255, 255, 0.1);
+        box-sizing: border-box;
+        z-index: 1;
+    }
+
+    .linha-centro.horizontal {
+        width: 81.82%;
+        height: 0.6%;
+        left: 9.09%;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .linha-centro.vertical {
+        height: 75%;
+        width: 0.4%;
+        top: 12.5%;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .gol-esquerdo, .gol-direito {
+        position: absolute;
+        width: 6.0675%;
+        height: 20%;
+        top: 40%;
+        background-color: #008000;
+        border: 3px solid #5C4033;
+        z-index: 2;
+        box-sizing: border-box;
+    }
+
+    .gol-esquerdo {
+        left: 3.25%;
+        border-right: 2px solid white;
+    }
+
+    .gol-direito {
+        right: 3.25%;
+        border-left: 2px solid white;
+    }
+
+    .circulo-central {
+        position: absolute;
+        width: 18.18%;
+        height: 25%;
+        background-color: #008000;
+        border-radius: 50%;
+        border: 2px solid white;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .area-esquerda, .area-direita {
+        position: absolute;
+        width: 9.09%;
+        height: 24.08%;
+        background-color: #008000;
+        border: 3px solid white;
+        top: 38%;
+    }
+
+    .area-esquerda {
+        left: 9.25%;
+    }
+
+    .area-direita {
+        right: 9.25%;
     }
 
     .robot {
