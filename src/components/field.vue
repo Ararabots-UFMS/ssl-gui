@@ -1,77 +1,117 @@
 <script lang="ts">
-    import {yellowRobots, blueRobots, balls} from '@/socket'
-    import {socket} from '@/socket'
+import { yellowRobots, blueRobots, balls } from '@/socket'
+import { socket } from '@/socket'
 
-    const FIELD_W_MM = 5500;
-    const FIELD_H_MM = 4000;
-
-
-    export default {
-        name: 'Arena',
-        data() {
-            return {
-                yellowRobots,
-                blueRobots,
-                balls,
-                side: JSON.parse(localStorage.getItem('side') || 'false'),
-                teamColor: JSON.parse(localStorage.getItem('teamColor') || 'false'),
-                mode: JSON.parse(localStorage.getItem('mode') || 'false'),
-                scaleX: 1,
-                scaleY: 1,
-                fieldWidth: 1,
-                fieldHeight: 1,
-            }
-        },
-        methods: {
-            changeMode() {
-                this.mode = !this.mode;
-                socket.emit('fieldMode', this.mode);
-                localStorage.setItem('mode', JSON.stringify(this.mode)); // Salva o estado
-            },
-            changeSide() {
-                this.side = !this.side;
-                socket.emit('fieldSide', this.side);
-                localStorage.setItem('side', JSON.stringify(this.side)); // Salva o estado
-            },
-            changeTeamColor() {
-                this.teamColor = !this.teamColor;
-                socket.emit('teamColor', this.teamColor);
-                localStorage.setItem('teamColor', JSON.stringify(this.teamColor)); // Salva o estado
-            },
-            updateScale() {
-                const fieldEl = (this.$el as HTMLElement).querySelector(".field") as HTMLElement;
-                if (!fieldEl) return;
-                const { width, height } = fieldEl.getBoundingClientRect();
-                this.fieldWidth = width;
-                this.fieldHeight = height;
-                this.scaleX = (width)  / FIELD_W_MM;
-                this.scaleY = (height) / FIELD_H_MM;
-                },
-            mapX(x_mm: number): string {
-                const robotWidth = this.fieldWidth * 0.026;
-                return `${((FIELD_W_MM / 2 + x_mm) * this.scaleX) - robotWidth / 2}px`;
-            },
-            mapY(y_mm: number): string {
-                const robotHeight = this.fieldHeight * 0.04;
-                return `${((FIELD_H_MM / 2 - y_mm) * this.scaleY) - robotHeight / 2}px`;
-            },
-        },
-        mounted() {
-            // Carrega os estados salvos do localStorage
-            this.side = JSON.parse(localStorage.getItem('side') || 'false');
-            this.teamColor = JSON.parse(localStorage.getItem('teamColor') || 'false');
-            this.mode = JSON.parse(localStorage.getItem('mode') || 'false');
-            socket.emit('fieldMode', this.mode);
-            socket.emit('fieldSide', this.side);
-            socket.emit('teamColor', this.teamColor);
-            
-            this.$nextTick(this.updateScale);
-            window.addEventListener("resize", this.updateScale);
-        },
-        beforeUnmount() {
-            window.removeEventListener("resize", this.updateScale);
-        },
+// Definição das dimensões dos campos
+const FIELD_DIMENSIONS = {
+    'SSL-EL': {
+        fieldW: 5500,
+        fieldH: 4000,
+    },
+    'SSL': {
+        fieldW: 13400,
+        fieldH: 10400,
+    },
+    'treino': {
+        fieldW: 3000,
+        fieldH: 2000,
     }
+}
+
+export default {
+    name: 'Arena',
+    data() {
+        return {
+            fieldType: localStorage.getItem('fieldType') || 'SSL-EL',
+            yellowRobots,
+            blueRobots,
+            balls,
+            side: JSON.parse(localStorage.getItem('side') || 'false'),
+            teamColor: JSON.parse(localStorage.getItem('teamColor') || 'false'),
+            mode: JSON.parse(localStorage.getItem('mode') || 'false'),
+            scaleX: 1,
+            scaleY: 1,
+            fieldWidth: 1,
+            fieldHeight: 1,
+        }
+    },
+    methods: {
+        changeMode() {
+            this.mode = !this.mode;
+            socket.emit('fieldMode', this.mode);
+            localStorage.setItem('mode', JSON.stringify(this.mode)); // Salva o estado
+        },
+        changeSide() {
+            this.side = !this.side;
+            socket.emit('fieldSide', this.side);
+            localStorage.setItem('side', JSON.stringify(this.side)); // Salva o estado
+        },
+        changeTeamColor() {
+            this.teamColor = !this.teamColor;
+            socket.emit('teamColor', this.teamColor);
+            localStorage.setItem('teamColor', JSON.stringify(this.teamColor)); // Salva o estado
+        },
+        changeFieldType(event: Event) {
+            const select = event.target as HTMLSelectElement;
+            this.fieldType = select.value;
+            socket.emit('fieldType', this.fieldType);
+            localStorage.setItem('fieldType', this.fieldType);
+        },
+        updateScale() {
+            const fieldEl = (this.$el as HTMLElement).querySelector(".field") as HTMLElement;
+            if (!fieldEl) return;
+            const { width, height } = fieldEl.getBoundingClientRect();
+            this.fieldWidth = width;
+            this.fieldHeight = height;
+
+            const dims = FIELD_DIMENSIONS[this.fieldType];  // Dimensões do campo com base no fieldType
+            this.scaleX = this.fieldWidth / dims.fieldW;
+            this.scaleY = this.fieldHeight / dims.fieldH;
+
+            const lines = document.querySelectorAll('.linha-centro, .ret-ext, .gol-esquerdo, .gol-direito, .circulo-central, .area-esquerda, .area-direita');
+            
+            lines.forEach((line) => {
+                if (line.classList.contains('linha-centro.horizontal')) {
+                    line.style.width = `${(dims.fieldW * 0.8182 / dims.fieldW) * this.scaleX}%`;
+                }
+                if (line.classList.contains('linha-centro.vertical')) {
+                    line.style.height = `${(dims.fieldH * 0.75 / dims.fieldH) * this.scaleY}%`; 
+                }
+                if (line.classList.contains('ret-ext')) {
+                    line.style.width = `${(dims.fieldW * 0.8182 / dims.fieldW) * this.scaleX}%`;
+                    line.style.height = `${(dims.fieldH * 0.75 / dims.fieldH) * this.scaleY}%`;
+                }
+                if (line.classList.contains('gol-esquerdo') || line.classList.contains('gol-direito')) {
+                    line.style.width = `${(dims.golW / dims.fieldW) * 100 * this.scaleX}%`;
+                    line.style.height = `${(dims.golH / dims.fieldH) * 100 * this.scaleY}%`;
+                }
+                if (line.classList.contains('circulo-central')) {
+                    line.style.width = `${(dims.circleW / dims.fieldW) * 100 * this.scaleX}%`;
+                    line.style.height = `${(dims.circleH / dims.fieldH) * 100 * this.scaleY}%`;
+                }
+                if (line.classList.contains('area-esquerda') || line.classList.contains('area-direita')) {
+                    line.style.width = `${(dims.areaW / dims.fieldW) * 100 * this.scaleX}%`;
+                    line.style.height = `${(dims.areaH / dims.fieldH) * 100 * this.scaleY}%`;
+                }
+            });
+        },
+    },
+    mounted() {
+        this.side = JSON.parse(localStorage.getItem('side') || 'false');
+        this.teamColor = JSON.parse(localStorage.getItem('teamColor') || 'false');
+        this.mode = JSON.parse(localStorage.getItem('mode') || 'false');
+        socket.emit('fieldMode', this.mode);
+        socket.emit('fieldSide', this.side);
+        socket.emit('teamColor', this.teamColor);
+        socket.emit('fieldType', this.fieldType);
+
+        this.$nextTick(this.updateScale);
+        window.addEventListener("resize", this.updateScale);
+    },
+    beforeUnmount() {
+        window.removeEventListener("resize", this.updateScale);
+    },
+}
 </script>
 
 <template>
@@ -80,7 +120,7 @@
             <div class="button-side">
                 <p class="texto-button">Simu</p>
                 <label class="switch">
-                    <input type="checkbox" :checked="mode" @click="changeMode()">
+                    <input type="checkbox" :checked="mode" @click="changeMode()" />
                     <span class="slider3 round"></span>
                 </label>
                 <p class="texto-button">Real</p>
@@ -88,84 +128,79 @@
             <div class="button-side">
                 <p class="texto-button">E</p>
                 <label class="switch">
-                    <input type="checkbox" :checked="side" @click="changeSide()">
+                    <input type="checkbox" :checked="side" @click="changeSide()" />
                     <span class="slider2 round"></span>
                 </label>
                 <p class="texto-button">D</p>
             </div>
             <div>
                 <label class="switch">
-                    <input type="checkbox" :checked="teamColor" @click="changeTeamColor()">
+                    <input type="checkbox" :checked="teamColor" @click="changeTeamColor()" />
                     <span class="slider1 round"></span>
                 </label>
             </div>
+            <div class="button-side">
+                <label for="field-select" class="texto-button" style="margin-right: 5px;">Campo:</label>
+                <select id="field-select" :value="fieldType" @change="changeFieldType" class="select-field">
+                    <option value="SSS-EL">SSL-EL</option>
+                    <option value="SSL">SSL</option>
+                    <option value="treino">Treino</option>
+                </select>
+            </div>
         </div>
-        <div class="field">
-            <!-- yellow robots -->
-            <div
-            v-for="r in yellowRobots"
-            :key="`yellow-${r.id}`"
-            class="robot yellow"
-            :style="{
-                top:    mapY(r.position_y),
-                left:   mapX(r.position_x),
-                transform: 'rotate(' + r.orientation + 'rad)'
-            }"
 
-            />
+        <div class="field-wrapper">
+            <div :class="['field', fieldType]">
+                <!-- yellow robots -->
+                <div
+                    v-for="r in yellowRobots"
+                    :key="`yellow-${r.id}`"
+                    class="robot yellow"
+                    :style="{
+                        top: mapY(r.position_y),
+                        left: mapX(r.position_x),
+                        transform: 'rotate(' + r.orientation + 'rad)'
+                    }"
+                />
 
-            <!-- blue robots -->
-            <div
-            v-for="r in blueRobots"
-            :key="`blue-${r.id}`"
-            class="robot blue"
-            :style="{
-                top:    mapY(r.position_y),
-                left:   mapX(r.position_x),
-                transform: 'rotate(' + r.orientation + 'rad)'
-            }"
-            />
+                <!-- blue robots -->
+                <div
+                    v-for="r in blueRobots"
+                    :key="`blue-${r.id}`"
+                    class="robot blue"
+                    :style="{
+                        top: mapY(r.position_y),
+                        left: mapX(r.position_x),
+                        transform: 'rotate(' + r.orientation + 'rad)'
+                    }"
+                />
 
-            <!-- balls -->
-            <div
-            v-for="b in balls"
-            :key="`ball-${b.id}`"
-            class="ball"
-            :style="{
-                top:  mapY(b.position_y),
-                left: mapX(b.position_x),
-            }"
-            />
+                <!-- balls -->
+                <div
+                    v-for="b in balls"
+                    :key="`ball-${b.id}`"
+                    class="ball"
+                    :style="{
+                        top: mapY(b.position_y),
+                        left: mapX(b.position_x)
+                    }"
+                />
 
-            <div 
-            class="ret-ext"
-            />
-
-            <div class="linha-centro horizontal"
-            />
-            <div class="linha-centro vertical"
-            />
-
-            <div class="gol-esquerdo"
-            />
-
-            <div class="gol-direito"
-            />
-
-            <div class="circulo-central"
-            />
-
-            <div class="area-direita"
-            />
-            
-            <div class="area-esquerda"
-            />
+                <div class="ret-ext"></div>
+                <div class="linha-centro horizontal"></div>
+                <div class="linha-centro vertical"></div>
+                <div class="gol-esquerdo"></div>
+                <div class="gol-direito"></div>
+                <div class="circulo-central"></div>
+                <div class="area-esquerda"></div>
+                <div class="area-direita"></div>
+            </div>
         </div>
 
         <!-- <div class="texto">
-            Coordinates: ({{position.x}}, {{position.y}}, {{ position.angle }})
+            Coordinates: ({{ position.x }}, {{ position.y }}, {{ position.angle }})
         </div>
-    
+
         <button @click="sendMessage">Send Message</button> -->
     </div>
 </template>
@@ -311,106 +346,206 @@
     .yrobot {
         background-color: white
     }
-
+    .field-wrapper {
+        width: 100%;
+        max-width: 1000px;
+        margin: 0 auto;
+        aspect-ratio: 2 / 1;
+        position: relative;
+        height: auto;
+    }
     .field {
         display: flex;
         border: 5px solid grey;
         border-radius: 5px;
-        width: 90%;
+        width: 100%;
+        height: 100%;
         margin: 0 auto;
         aspect-ratio: 1.375; /* 5500 / 4000 */
         position: relative;
-        background-color: #008000;
+        background-color: #008000; /* Cor padrão */
         background-size: contain;
         background-position: center;
         background-repeat: no-repeat;
         float: none;
+        transition: background-color 0.3s ease, 
+        background-image 0.3s ease;
+    }
+    .field.SSL-EL {
+        background-color: #008000;
+        background-image: none;
+        aspect-ratio: 1.375;
     }
 
-    .linha-centro{
-        position: absolute;
-        background-color: #ffffff;
-        z-index: 2;
+    .field.SSL {
+        background-color: #008000;
+        background-size: cover;
+        aspect-ratio: 1.288461538;
     }
 
-    .ret-ext {
-        position: absolute;
-        width: 81.82%;
-        height: 75%;
-        top: 12.5%;
-        left: 9.09%;
-        border: 2px solid white;
-        background-color: rgba(255, 255, 255, 0.1);
-        box-sizing: border-box;
-        z-index: 1;
+    .field.treino {
+        background-color: #222222;
+        background-image: repeating-linear-gradient(
+            0deg,
+            #333,
+            #333 10px,
+            #444 10px,
+            #444 20px
+        );
     }
-
     .linha-centro.horizontal {
-        width: 81.82%;
-        height: 0.6%;
-        left: 9.09%;
+        position: absolute;
+        height: 2px;
+        width: 81.82%; /* 4500 / 5500 */
+        background-color: white;
         top: 50%;
+        left: 9.09%; /* (1 - 0.8182) / 2 */
         transform: translateY(-50%);
     }
 
     .linha-centro.vertical {
+        position: absolute;
+        width: 2px; /* 2 / 5500 */
         height: 75%;
-        width: 0.4%;
-        top: 12.5%;
+        background-color: white;
         left: 50%;
+        top: 12.5%;
         transform: translateX(-50%);
+    }
+
+    .ret-ext {
+        position: absolute;
+        border: 2px solid white; 
+        background-color: transparent;
+        width: 81.82%; 
+        height: 75%; 
+        top: 12.5%; 
+        left: 9.09%;
+        box-sizing: border-box;
     }
 
     .gol-esquerdo, .gol-direito {
         position: absolute;
-        width: 6.0675%;
-        height: 20%;
-        top: 40%;
-        background-color: #008000;
-        border: 3px solid #5C4033;
-        z-index: 2;
+        width: 5.82%;
+        height: 20.00%;
+        background-color: transparent;
+        border: 3px solid rgb(73, 38, 24);
+        top: 50%;
+        transform: translateY(-50%);
         box-sizing: border-box;
     }
 
     .gol-esquerdo {
-        left: 3.25%;
+        left: 3.55%;
         border-right: 2px solid white;
     }
 
     .gol-direito {
-        right: 3.25%;
+        right: 3.55%;
         border-left: 2px solid white;
     }
 
     .circulo-central {
         position: absolute;
-        width: 18.18%;
+        width: 15%;
         height: 25%;
-        background-color: #008000;
-        border-radius: 50%;
         border: 2px solid white;
-        top: 50%;
+        background-color: transparent;
+        border-radius: 50%;
         left: 50%;
+        top: 50%;
         transform: translate(-50%, -50%);
+        box-sizing: border-box;
     }
 
     .area-esquerda, .area-direita {
         position: absolute;
-        width: 9.09%;
-        height: 24.08%;
-        background-color: #008000;
-        border: 3px solid white;
-        top: 38%;
+        width: 8.4375%;
+        height: 36.36%;
+        border: 2px solid white;
+        top: 50%;
+        transform: translateY(-50%);
+        box-sizing: border-box;
     }
 
     .area-esquerda {
-        left: 9.25%;
+        left: 9.10%;
     }
 
     .area-direita {
-        right: 9.25%;
+        right: 9.10%;
     }
 
+    .field.SSL .linha-centro.horizontal {
+        width: 89.55%; /* exemplo: 4300 / 5500 */
+        left: 5%;
+    }
+    .field.SSL .linha-centro.vertical {
+        height: 86.53%;
+        top: 6.5%;
+    }
+    .field.SSL .ret-ext {
+        width: 89.55%;
+        height: 86.53%;
+        top: 6.5%;
+        left: 5%;
+    }
+    .field.SSL .gol-esquerdo, .field.SSL .gol-direito {
+        width: 5%;
+        height: 17.30%;
+    }
+    .field.SSL .gol-esquerdo {
+        left: 0.25%;
+    }
+    .field.SSL .gol-direito {
+        right: 0.65%;
+    }
+    .field.SSL .circulo-central {
+        width: 12%;
+        height: 20%;
+    }
+    .field.SSL .area-esquerda, .field.SSL .area-direita {
+        width: 13.43%;
+        height: 34.61%;
+    }
+    .field.SSL .area-esquerda {
+        left: 5%;
+    }
+    .field.SSL .area-direita {
+        right: 5.5%;
+    }
+    .field.treino .linha-centro.horizontal {
+        width: 70%;
+        left: 15%;
+    }
+    .field.treino .linha-centro.vertical {
+        height: 60%;
+        top: 20%;
+    }
+    .field.treino .ret-ext {
+        width: 70%;
+        height: 60%;
+        top: 20%;
+        left: 15%;
+    }
+    .field.treino .gol-esquerdo, .field.treino .gol-direito {
+        width: 6%;
+        height: 15%;
+    }
+    .field.treino .circulo-central {
+        width: 10%;
+        height: 15%;
+    }
+    .field.treino .area-esquerda, .field.treino .area-direita {
+        width: 6.5%;
+        height: 25%;
+    }
+    .field.treino .area-esquerda {
+        left: 15%;
+    }
+    .field.treino .area-direita {
+        right: 15%;
+    }
     .robot {
         position: absolute;
         width: 2.6%;
@@ -464,6 +599,15 @@
         color: #D2D1CB;
         margin-top: 15%;
         font-weight: bold;
+    }
+
+    .select-field {
+        background-color: #333;
+        color: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 6px 10px;
+        font-size: 14px;
     }
 
 </style>
