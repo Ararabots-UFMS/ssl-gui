@@ -9,8 +9,8 @@ const FIELD_DIMENSIONS = {
         fieldH: 4000,
     },
     'SSL': {
-        fieldW: 13400,
-        fieldH: 10400,
+        fieldW: 10400,
+        fieldH: 7400,
     },
     'treino': {
         fieldW: 3000,
@@ -380,7 +380,7 @@ export default {
     .field.SSL {
         background-color: #008000;
         background-size: cover;
-        aspect-ratio: 1.288461538;
+        aspect-ratio: 1.405405405;
     }
 
     .field.treino {
@@ -412,7 +412,6 @@ export default {
         top: 12.5%;
         transform: translateX(-50%);
     }
-
     .ret-ext {
         position: absolute;
         border: 2px solid white; 
@@ -477,42 +476,43 @@ export default {
     }
 
     .field.SSL .linha-centro.horizontal {
-        width: 89.55%; /* exemplo: 4300 / 5500 */
-        left: 5%;
+        width: 86.53%;
+        left: 7%;
     }
     .field.SSL .linha-centro.vertical {
-        height: 86.53%;
-        top: 6.5%;
+        height: 81.081%;
+        top: 9.5%;
     }
     .field.SSL .ret-ext {
-        width: 89.55%;
-        height: 86.53%;
-        top: 6.5%;
-        left: 5%;
+        width: 86.53%;
+        height: 81.081%;
+        border: 2px solid white;
+        top: 9.5%;
+        left: 7%;
     }
     .field.SSL .gol-esquerdo, .field.SSL .gol-direito {
         width: 5%;
-        height: 17.30%;
+        height: 13.51%;
     }
     .field.SSL .gol-esquerdo {
-        left: 0.25%;
+        left: 2.15%;
     }
     .field.SSL .gol-direito {
-        right: 0.65%;
+        right: 1.75%;
     }
     .field.SSL .circulo-central {
         width: 12%;
         height: 20%;
     }
     .field.SSL .area-esquerda, .field.SSL .area-direita {
-        width: 13.43%;
-        height: 34.61%;
+        width: 9.61%;
+        height: 27.027%;
     }
     .field.SSL .area-esquerda {
-        left: 5%;
+        left: 7%;
     }
     .field.SSL .area-direita {
-        right: 5.5%;
+        right: 6.5%;
     }
     .field.treino .linha-centro.horizontal {
         width: 70%;
@@ -602,12 +602,16 @@ export default {
     }
 
     .select-field {
-        background-color: #333;
+        position: relative;
+        top: 20%;
+        background-color: #353C6B;
         color: white;
-        border: 1px solid #ccc;
+        border-color: transparent;
+        height: 80%;
         border-radius: 5px;
-        padding: 6px 10px;
+        padding: 4px 10px;
         font-size: 14px;
+
     }
 
 </style>
