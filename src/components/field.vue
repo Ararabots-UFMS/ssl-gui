@@ -177,7 +177,7 @@ export default {
 
                 <!-- balls -->
                 <div
-                    v-for="b in balls"
+                    v-for="b in balls"  
                     :key="`ball-${b.id}`"
                     class="ball"
                     :style="{
@@ -346,6 +346,35 @@ export default {
     .yrobot {
         background-color: white
     }
+    .robot {
+        position: absolute;
+        width: 2.6%;
+        height: 4%;
+        background-color: yellow;
+        border-radius: 50%;
+    }
+
+    .robot.yellow { background: yellow; }
+    .robot.blue   { background: blue; }
+
+    .dot{
+        position: absolute;
+        width: 40%; /* largura do ponto */
+        height: 45%; /* altura do ponto */
+        background-color: black; /* cor do ponto */
+        border-radius: 50%; /* torna o ponto circular */
+        left: 0px; /* posição horizontal do ponto dentro da div container */
+        top: 5px; /* posição vertical do ponto dentro da div container */
+    }
+
+    .ball {
+        position: absolute;
+        width: 1.8%;
+        height: 2.8%;
+        background-color: orange;
+        border-radius: 50%;
+    }
+    
     .field-wrapper {
         width: 100%;
         max-width: 1000px;
@@ -545,34 +574,6 @@ export default {
     }
     .field.treino .area-direita {
         right: 15%;
-    }
-    .robot {
-        position: absolute;
-        width: 2.6%;
-        height: 4%;
-        background-color: yellow;
-        border-radius: 50%;
-    }
-
-    .robot.yellow { background: yellow; }
-    .robot.blue   { background: blue; }
-
-    .dot{
-        position: absolute;
-        width: 40%; /* largura do ponto */
-        height: 45%; /* altura do ponto */
-        background-color: black; /* cor do ponto */
-        border-radius: 50%; /* torna o ponto circular */
-        left: 0px; /* posição horizontal do ponto dentro da div container */
-        top: 5px; /* posição vertical do ponto dentro da div container */
-    }
-
-    .ball {
-        position: absolute;
-        width: 1.8%;
-        height: 2.8%;
-        background-color: orange;
-        border-radius: 50%;
     }
 
     .texto {
