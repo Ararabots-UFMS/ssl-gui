@@ -1,33 +1,50 @@
-# teste
+<div align="center">
+<a href="https://quackfy.vercel.app/">
+<img height="100" src="https://ararabots-ufms.github.io/img/arara_no_bg.png" alt="Arara">
+</a>
+</div>
 
-This template should help get you started developing with Vue 3 in Vite.
+<div align="center">
+<img src="https://img.shields.io/badge/build-latest-blue">
+<img src="https://img.shields.io/github/issues/Ararabots-UFMS/ssl-gui">
+</div>
 
-## Recommended IDE Setup
+# ssl-GUI
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+Este projeto é a interface gráfica (GUI) do sistema ssl-VICE, desenvolvido com Vue 3 e Vite.
 
-## Type Support for `.vue` Imports in TS
+## Configuração do Ambiente de Desenvolvimento
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+Recomendado utilizar:
 
-## Customize configuration
+- [VSCode](https://code.visualstudio.com/)
 
-See [Vite Configuration Reference](https://vitejs.dev/config/).
+## Execução com Docker
 
-## Project Setup
+**Importante:** É necessário clonas o repositório do `ssl-VICE` e seguir os passos do README de lá. Fazendo isso não é necessário rodar mais nada do `ssl-GUI`
 
-```sh
-npm install
+Para rodar o projeto com Docker, **entre na pasta do `ssl-VICE`** (onde está o `docker-compose.yml`) e execute:
+
+```bash
+docker-compose up --build
 ```
 
-### Compile and Hot-Reload for Development
+Isso criará dois serviços:
+- `ssl-vice`
+- `ssl-gui`
 
-```sh
+A interface estará disponível em: [http://localhost:5173](http://localhost:5173)
+
+---
+#### Execução sem o Docker (não recomendado)
+
+```bash
+npm install
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+### Build para Produção
 
-```sh
+```bash
 npm run build
 ```
