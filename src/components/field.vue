@@ -36,6 +36,21 @@ export default {
         }
     },
     methods: {
+        mapX(x_mm: number): string {
+            // Busca as dimensões originais definidas para o campo selecionado
+            const dims = FIELD_DIMENSIONS[this.fieldType];
+            // Calcula a largura do robô com base no percentual definido no CSS
+            const robotWidth = this.fieldWidth * 0.026;
+            // Usa o centro real do campo (definido em mm) para ajustar a posição
+            const centerX = dims.fieldW / 2;
+            return `${((centerX + x_mm) * this.scaleX) - robotWidth / 2}px`;
+        },
+        mapY(y_mm: number): string {
+            const dims = FIELD_DIMENSIONS[this.fieldType];
+            const robotHeight = this.fieldHeight * 0.04;
+            const centerY = dims.fieldH / 2;
+            return `${((centerY - y_mm) * this.scaleY) - robotHeight / 2}px`;
+        },
         changeMode() {
             this.mode = !this.mode;
             socket.emit('fieldMode', this.mode);
@@ -68,7 +83,7 @@ export default {
             this.scaleX = this.fieldWidth / dims.fieldW;
             this.scaleY = this.fieldHeight / dims.fieldH;
 
-            const lines = document.querySelectorAll('.linha-centro, .ret-ext, .gol-esquerdo, .gol-direito, .circulo-central, .area-esquerda, .area-direita');
+            const lines = (this.$el as HTMLElement).querySelectorAll('.linha-centro, .ret-ext, .gol-esquerdo, .gol-direito, .circulo-central, .area-esquerda, .area-direita');
             
             lines.forEach((line) => {
                 if (line.classList.contains('linha-centro.horizontal')) {
@@ -142,7 +157,7 @@ export default {
             <div class="button-side">
                 <label for="field-select" class="texto-button" style="margin-right: 5px;">Campo:</label>
                 <select id="field-select" :value="fieldType" @change="changeFieldType" class="select-field">
-                    <option value="SSS-EL">SSL-EL</option>
+                    <option value="SSL-EL">SSL-EL</option>
                     <option value="SSL">SSL</option>
                     <option value="treino">Treino</option>
                 </select>
@@ -355,8 +370,7 @@ export default {
     }
 
     .robot.yellow { background: yellow; }
-    .robot.blue   { background: blue; }
-
+    .robot.blue   { background: blue; } 
     .dot{
         position: absolute;
         width: 40%; /* largura do ponto */
@@ -407,7 +421,7 @@ export default {
     }
 
     .field.SSL {
-        background-color: #008000;
+        background-color: #022002;
         background-size: cover;
         aspect-ratio: 1.405405405;
     }
