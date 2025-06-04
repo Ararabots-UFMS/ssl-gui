@@ -13,8 +13,8 @@ const FIELD_DIMENSIONS = {
         fieldH: 7400,
     },
     'treino': {
-        fieldW: 3000,
-        fieldH: 2000,
+        fieldW: 1530,
+        fieldH: 1330,
     }
 }
 
@@ -41,7 +41,6 @@ export default {
             const dims = FIELD_DIMENSIONS[this.fieldType];
             // Calcula a largura do robô com base no percentual definido no CSS
             const robotWidth = this.fieldWidth * 0.026;
-            // Usa o centro real do campo (definido em mm) para ajustar a posição
             const centerX = dims.fieldW / 2;
             return `${((centerX + x_mm) * this.scaleX) - robotWidth / 2}px`;
         },
@@ -83,7 +82,7 @@ export default {
             this.scaleX = this.fieldWidth / dims.fieldW;
             this.scaleY = this.fieldHeight / dims.fieldH;
 
-            const lines = (this.$el as HTMLElement).querySelectorAll('.linha-centro, .ret-ext, .gol-esquerdo, .gol-direito, .circulo-central, .area-esquerda, .area-direita');
+            const lines = document.querySelectorAll('.linha-centro, .ret-ext, .gol-esquerdo, .gol-direito, .circulo-central, .area-esquerda, .area-direita');
             
             lines.forEach((line) => {
                 if (line.classList.contains('linha-centro.horizontal')) {
@@ -91,10 +90,6 @@ export default {
                 }
                 if (line.classList.contains('linha-centro.vertical')) {
                     line.style.height = `${(dims.fieldH * 0.75 / dims.fieldH) * this.scaleY}%`; 
-                }
-                if (line.classList.contains('ret-ext')) {
-                    line.style.width = `${(dims.fieldW * 0.8182 / dims.fieldW) * this.scaleX}%`;
-                    line.style.height = `${(dims.fieldH * 0.75 / dims.fieldH) * this.scaleY}%`;
                 }
                 if (line.classList.contains('gol-esquerdo') || line.classList.contains('gol-direito')) {
                     line.style.width = `${(dims.golW / dims.fieldW) * 100 * this.scaleX}%`;
@@ -421,20 +416,15 @@ export default {
     }
 
     .field.SSL {
-        background-color: #022002;
+        background-color: #008000;
         background-size: cover;
         aspect-ratio: 1.405405405;
     }
 
     .field.treino {
-        background-color: #222222;
-        background-image: repeating-linear-gradient(
-            0deg,
-            #333,
-            #333 10px,
-            #444 10px,
-            #444 20px
-        );
+        background-color: #535353;
+        background-size: cover;
+        aspect-ratio: 1.15037593;
     }
     .linha-centro.horizontal {
         position: absolute;
@@ -571,9 +561,15 @@ export default {
         top: 20%;
         left: 15%;
     }
-    .field.treino .gol-esquerdo, .field.treino .gol-direito {
+    .field.treino .gol-direito {
         width: 6%;
         height: 15%;
+        right: 9.20%
+    }
+    .field.treino .gol-esquerdo {
+        width: 6%;
+        height: 15%;
+        left: 9.20%
     }
     .field.treino .circulo-central {
         width: 10%;
