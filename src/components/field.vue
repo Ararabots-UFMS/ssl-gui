@@ -7,22 +7,56 @@ const FIELD_DIMENSIONS = {
     'SSL-EL': {
         fieldW: 5500,
         fieldH: 4000,
+        golW: 320,
+        golH: 800,
+        circleW: 825,
+        circleH: 1000,
+        areaW: 464,
+        areaH: 1455,
     },
     'SSL': {
         fieldW: 10400,
         fieldH: 7400,
+        golW: 520,
+        golH: 1000,
+        circleW: 1248,
+        circleH: 1480,
+        areaW: 1000,
+        areaH: 2000,
     },
     'treino': {
         fieldW: 1530,
         fieldH: 1330,
+        golW: 92,
+        golH: 200,
+        circleW: 153,
+        circleH: 200,
+        areaW: 99,
+        areaH: 333,
     }
+} as const
+
+type FieldType = keyof typeof FIELD_DIMENSIONS;
+
+interface ComponentData {
+    fieldType: FieldType;
+    yellowRobots: typeof yellowRobots;
+    blueRobots: typeof blueRobots;
+    balls: typeof balls;
+    side: boolean;
+    teamColor: boolean;
+    mode: boolean;
+    scaleX: number;
+    scaleY: number;
+    fieldWidth: number;
+    fieldHeight: number;
 }
 
 export default {
     name: 'Arena',
-    data() {
+    data(): ComponentData {
         return {
-            fieldType: localStorage.getItem('fieldType') || 'SSL-EL',
+            fieldType: (localStorage.getItem('fieldType') as FieldType) || 'SSL-EL',
             yellowRobots,
             blueRobots,
             balls,
@@ -67,55 +101,41 @@ export default {
         },
         changeFieldType(event: Event) {
             const select = event.target as HTMLSelectElement;
-            this.fieldType = select.value;
+            this.fieldType = select.value as FieldType;
             socket.emit('fieldType', this.fieldType);
             localStorage.setItem('fieldType', this.fieldType);
+            // Atualiza a escala após mudança do tipo de campo
+            this.$nextTick(() => this.updateScale());
         },
         updateScale() {
             const fieldEl = (this.$el as HTMLElement).querySelector(".field") as HTMLElement;
             if (!fieldEl) return;
-            const { width, height } = fieldEl.getBoundingClientRect();
-            this.fieldWidth = width;
-            this.fieldHeight = height;
-
-            const dims = FIELD_DIMENSIONS[this.fieldType];  // Dimensões do campo com base no fieldType
-            this.scaleX = this.fieldWidth / dims.fieldW;
-            this.scaleY = this.fieldHeight / dims.fieldH;
-
-            const lines = document.querySelectorAll('.linha-centro, .ret-ext, .gol-esquerdo, .gol-direito, .circulo-central, .area-esquerda, .area-direita');
             
-            lines.forEach((line) => {
-                if (line.classList.contains('linha-centro.horizontal')) {
-                    line.style.width = `${(dims.fieldW * 0.8182 / dims.fieldW) * this.scaleX}%`;
-                }
-                if (line.classList.contains('linha-centro.vertical')) {
-                    line.style.height = `${(dims.fieldH * 0.75 / dims.fieldH) * this.scaleY}%`; 
-                }
-                if (line.classList.contains('gol-esquerdo') || line.classList.contains('gol-direito')) {
-                    line.style.width = `${(dims.golW / dims.fieldW) * 100 * this.scaleX}%`;
-                    line.style.height = `${(dims.golH / dims.fieldH) * 100 * this.scaleY}%`;
-                }
-                if (line.classList.contains('circulo-central')) {
-                    line.style.width = `${(dims.circleW / dims.fieldW) * 100 * this.scaleX}%`;
-                    line.style.height = `${(dims.circleH / dims.fieldH) * 100 * this.scaleY}%`;
-                }
-                if (line.classList.contains('area-esquerda') || line.classList.contains('area-direita')) {
-                    line.style.width = `${(dims.areaW / dims.fieldW) * 100 * this.scaleX}%`;
-                    line.style.height = `${(dims.areaH / dims.fieldH) * 100 * this.scaleY}%`;
-                }
+            const dims = FIELD_DIMENSIONS[this.fieldType];
+            const correctAspectRatio = dims.fieldW / dims.fieldH;
+            
+            // Força o aspect-ratio correto baseado no tipo de campo
+            fieldEl.style.aspectRatio = correctAspectRatio.toString();
+            
+            // Aguarda o browser aplicar o novo aspect-ratio
+            this.$nextTick(() => {
+                const { width, height } = fieldEl.getBoundingClientRect();
+                this.fieldWidth = width;
+                this.fieldHeight = height;
+
+                this.scaleX = this.fieldWidth / dims.fieldW;
+                this.scaleY = this.fieldHeight / dims.fieldH;
             });
         },
     },
     mounted() {
-        this.side = JSON.parse(localStorage.getItem('side') || 'false');
-        this.teamColor = JSON.parse(localStorage.getItem('teamColor') || 'false');
-        this.mode = JSON.parse(localStorage.getItem('mode') || 'false');
+        // Os valores já são carregados no data(), só precisamos emitir para o socket
         socket.emit('fieldMode', this.mode);
         socket.emit('fieldSide', this.side);
         socket.emit('teamColor', this.teamColor);
         socket.emit('fieldType', this.fieldType);
 
-        this.$nextTick(this.updateScale);
+        this.$nextTick(() => this.updateScale());
         window.addEventListener("resize", this.updateScale);
     },
     beforeUnmount() {
@@ -362,6 +382,11 @@ export default {
         height: 4%;
         background-color: yellow;
         border-radius: 50%;
+        /* Garante que o robô mantenha proporção circular */
+        aspect-ratio: 1;
+        /* Usa a menor dimensão para manter o círculo */
+        width: min(2.6%, 4vh);
+        height: min(2.6%, 4vh);
     }
 
     .robot.yellow { background: yellow; }
@@ -382,13 +407,17 @@ export default {
         height: 2.8%;
         background-color: orange;
         border-radius: 50%;
+        /* Garante que a bola mantenha proporção circular */
+        aspect-ratio: 1;
+        /* Usa a menor dimensão para manter o círculo */
+        width: min(1.8%, 2.8vh);
+        height: min(1.8%, 2.8vh);
     }
     
     .field-wrapper {
         width: 100%;
         max-width: 1000px;
         margin: 0 auto;
-        aspect-ratio: 2 / 1;
         position: relative;
         height: auto;
     }
@@ -397,9 +426,8 @@ export default {
         border: 5px solid grey;
         border-radius: 5px;
         width: 100%;
-        height: 100%;
+        height: auto;
         margin: 0 auto;
-        aspect-ratio: 1.375; /* 5500 / 4000 */
         position: relative;
         background-color: #008000; /* Cor padrão */
         background-size: contain;
@@ -412,19 +440,19 @@ export default {
     .field.SSL-EL {
         background-color: #008000;
         background-image: none;
-        aspect-ratio: 1.375;
+        aspect-ratio: 1.375; /* 5500 / 4000 */
     }
 
     .field.SSL {
         background-color: #008000;
         background-size: cover;
-        aspect-ratio: 1.405405405;
+        aspect-ratio: 1.405405405; /* 10400 / 7400 */
     }
 
     .field.treino {
         background-color: #535353;
         background-size: cover;
-        aspect-ratio: 1.15037593;
+        aspect-ratio: 1.15037593; /* 1530 / 1330 */
     }
     .linha-centro.horizontal {
         position: absolute;
@@ -564,12 +592,12 @@ export default {
     .field.treino .gol-direito {
         width: 6%;
         height: 15%;
-        right: 9.20%
+        right: 9.20%;
     }
     .field.treino .gol-esquerdo {
         width: 6%;
         height: 15%;
-        left: 9.20%
+        left: 9.20%;
     }
     .field.treino .circulo-central {
         width: 10%;
@@ -622,7 +650,36 @@ export default {
         border-radius: 5px;
         padding: 4px 10px;
         font-size: 14px;
+    }
 
+    /* Media queries para diferentes proporções de tela */
+    @media (max-aspect-ratio: 1/1) {
+        .field-wrapper {
+            max-width: 90vw;
+        }
+    }
+
+    @media (min-aspect-ratio: 3/1) {
+        .field-wrapper {
+            max-width: 80vw;
+        }
+    }
+
+    /* Ajustes para telas muito pequenas */
+    @media (max-width: 768px) {
+        .field-wrapper {
+            max-width: 95vw;
+        }
+        
+        .robot {
+            width: min(3%, 6vh);
+            height: min(3%, 6vh);
+        }
+        
+        .ball {
+            width: min(2.5%, 4vh);
+            height: min(2.5%, 4vh);
+        }
     }
 
 </style>
