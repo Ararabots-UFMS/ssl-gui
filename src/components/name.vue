@@ -1,26 +1,29 @@
+<script setup lang="ts">
+defineProps({
+  title: {
+    type: String,
+    required: true, 
+    default: 'ARARABOTS - GUI'
+  }
+})
+</script>
+
 <template>
-  <div>
-    <h1>{{ message }}</h1>
+  <div class="title-container">
+    <h1>{{ title }}</h1>
   </div>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      message: 'ARARABOTS - GUI'
-    };
-  }
-};
-</script>
-
 <style scoped>
-div {
-  text-align: left;
-  margin-top: 20px;
+.title-container {
+  padding: var(--spacing-2) var(--spacing-4);
 }
+
 h1 {
-  color: #D2D1CB;
-  font-size: 130%;
+  color: var(--texto-principal);
+  font-size: var(--font-size-h1); /* Tamanho de título principal do nosso sistema. */
+  font-weight: var(--font-weight-bold);
+  text-align: center; /* Centralizamos para um visual de header. */
+  margin: 0;
 }
 </style>

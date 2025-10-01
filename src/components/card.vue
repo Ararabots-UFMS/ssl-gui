@@ -1,136 +1,180 @@
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import { socket } from '@/socket'
+
+// --- INTERFACE ---
+interface RobotInfo {
+  id: number;
+  name: string;
+}
+
+// --- PROPRIEDADES ---
+const props = defineProps({
+  robots: {
+    type: Array as () => RobotInfo[],
+    required: true,
+    default: () => []
+  }
+});
+
+const selectedRoles = ref<string[]>([]);
+
+function updateRobotRole(robotId: number, role: string) {
+  // As funções de 'role' são salvas no localStorage e emitidas para o backend
+  // A configuração principal do robô (nome, etc) vem do RobotCard.vue
+  const rolesToSave = { ...JSON.parse(localStorage.getItem('selectedRobotRoles') || '{}'), [robotId]: role };
+  localStorage.setItem('selectedRobotRoles', JSON.stringify(rolesToSave));
+  
+  socket.emit('updateRobotRole', { id: robotId, role: role });
+}
+
+// Observa a propriedade 'robots' para ajustar a lista de funções selecionadas
+watch(() => props.robots, (newRobots) => {
+  if (!newRobots) return;
+  const storedRoles = JSON.parse(localStorage.getItem('selectedRobotRoles') || '{}');
+  const newSelectedRoles: string[] = [];
+  
+  newRobots.forEach(robot => {
+    newSelectedRoles[robot.id] = storedRoles[robot.id] || "0";
+  });
+  
+  selectedRoles.value = newSelectedRoles;
+}, { immediate: true, deep: true });
+</script>
+
 <template>
   <div class="card-list">
-    <div class="card" v-for="(card, index) in limitedCards" :key="index">
+    <div class="card" v-for="robot in robots" :key="robot.id">
+      <div class="status-dot"></div>
       <div class="card-icon">
-        <h2>{{ card.id || index + 1 }}</h2>
+        <h2>{{ robot.id }}</h2>
       </div>
-      <div class="card-line">
-      </div>
+      
       <div class="card-name">
-        <h2>{{ card.name }}</h2>
+        <h2>{{ robot.name || `Robô ${robot.id}` }}</h2>
       </div>
-      <div class="card-position">
-        <select class="dropdown-position" v-model="selectedOptions[index]" @change="updateCardList(index)">
-          <option value="0">Posição...</option>
+
+      <div class="card-role-selector">
+        <select 
+          class="dropdown-role" 
+          v-model="selectedRoles[robot.id]" 
+          @change="updateRobotRole(robot.id, selectedRoles[robot.id])"
+        >
+          <option value="0">Função...</option>
           <option value="1">Atacante</option>
           <option value="2">Goleiro</option>
           <option value="3">Zagueiro</option>
         </select>
       </div>      
     </div>
+     <p v-if="!robots || robots.length === 0" class="no-robots-message">Nenhum robô configurado.</p>
   </div>
 </template>
 
-<script>
-import {socket} from '@/socket'
-export default {
-  data() {
-    return {
-      num: 6, // Define quantos cartões serão mostrados
-      selectedOptions: Array(6).fill("0"),
-      cards: [
-        { id: 1, name: 'Robô 1', position: 'Descrição do Card 1.' },
-        { id: 2, name: 'Robô 2', position: 'Descrição do Card 2.' },
-        { id: 3, name: 'Robô 3', position: 'Descrição do Card 3.' },
-        { id: 4, name: 'Robô 4', position: 'Descrição do Card 4.' },
-        { id: 5, name: 'Robô 5', position: 'Descrição do Card 5.' },
-        { id: 6, name: 'Robô 6', position: 'Descrição do Card 6.' }
-      ]
-    };
-  },
-  created() {
-    // Carrega as opções selecionadas do localStorage ao montar o componente
-    const storedSelections = JSON.parse(localStorage.getItem('selectedOptions'));
-    const storedCard = JSON.parse(localStorage.getItem('cardData'));
-
-    if (storedSelections) {
-      this.selectedOptions = storedSelections;
-    }
-    if (storedCard) {
-      storedCard.forEach((item, index) => {
-        if (this.cards[index]) {
-          this.cards[index].name = item.name || this.cards[index].name;
-          this.cards[index].id = item.id || this.cards[index].id;
-        }
-      });
-      this.num = storedCard.length;
-    }
-  },
-  computed: {
-    // Computed property para limitar o número de cards exibidos
-    limitedCards() {
-      return this.cards.slice(0, this.num);
-    }
-  },
-  methods: {
-    updateCardList(index) {
-      socket.emit('updateCard',index + 1,this.selectedOptions[index]);
-      console.log('updateCard',index + 1,this.selectedOptions[index]);
-      // Aqui você pode implementar qualquer lógica adicional ao selecionar uma opção
-      localStorage.setItem('selectedOptions', JSON.stringify(this.selectedOptions));
-    }
-  }
-};
-</script>
-
 <style scoped>
-.card {
-  background-color: #383f6b;
-  border-radius: 10px;
-  margin-bottom: 2%;
-  color: #D2D1CB;
+.card-list {
   display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
   width: 100%;
+}
+
+.card {
+  background-color: var(--fundo-secundario);
+  border-radius: var(--border-radius-md);
+  color: var(--texto-principal);
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--spacing-2);
+  border: var(--border-width) solid var(--cor-borda);
+  box-shadow: var(--box-shadow-sm);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-md);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+  margin-right: var(--spacing-2);
+  flex-shrink: 0;
 }
 
 .card-icon {
   display: flex;
-  width: 10%;
-  margin: 1%;
-  align-items: center; /* Centraliza o texto verticalmente */
-  justify-content: center; /* Centraliza o texto horizontalmente */
-  padding: 1%;
+  align-items: center;
+  justify-content: center;
+  padding-right: var(--spacing-2);
+  border-right: var(--border-width) solid var(--cor-borda);
 }
 
-.card-line {
-  height: 100%;
-  width: 2%;
-  background-color: green;
+.card-icon h2, .card-name h2 {
+  font-size: var(--font-size-md);
+  margin: 0;
+  color: var(--texto-secundario);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
 }
 
 .card-name {
-  display: flex;
-  width: 100%;
-  margin-left: 10px;
-  align-items: center; /* Centraliza o texto verticalmente */
+  flex-grow: 1;
+  margin-left: var(--spacing-2);
+  min-width: 0; /* Permite que o nome encolha se necessário */
 }
 
-.card-position {
-  width: 40%;
-  display: flex;
-  align-items: center; /* Centraliza o texto verticalmente */
+.card-role-selector {
+  margin-left: auto;
+  position: relative; /* Necessário para posicionar a seta customizada */
 }
 
-.dropdown-position {
-  font-size: 120%;
-  border: 1px solid #383f6b; /* Cor da borda */
-  border-radius: 4px; /* Cantos arredondados */
-  background-color: #383f6b; /* Cor de fundo do dropdown */
-  color: #D2D1CB; /* Cor do texto */
-  width: 75%; /* Ajusta a largura conforme necessário */
-  height: 60%;
+/* --- AQUI ESTÁ A ESTILIZAÇÃO DO DROPDOWN --- */
+.dropdown-role {
+  /* 1. Remove a aparência padrão do navegador */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  
+  /* 2. Aplica os estilos do nosso Design System */
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  border: var(--border-width) solid var(--cor-borda);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--fundo-terciario);
+  color: var(--texto-principal);
+  padding: var(--spacing-1) var(--spacing-3) var(--spacing-1) var(--spacing-2);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
 }
 
-/* Estilo para as opções dentro do dropdown
-.dropdown-position option {
-  background-color: #252838; 
-  color: #D2D1CB; 
-} */
+/* 3. Adiciona a seta customizada como uma imagem de fundo */
+.dropdown-role {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a0a0c0'%3E%3Cpath d='M7.41,8.59L12,13.17l4.59-4.58L18,10l-6,6l-6-6L7.41,8.59z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 1.5em;
+}
 
-.card-list {
-  height: 70%;
-  width: 95%;
-  display: flex;
-  flex-direction: column;
+.dropdown-role:hover {
+  border-color: var(--cor-destaque-hover);
+}
+
+.dropdown-role:focus {
+  outline: 2px solid var(--cor-destaque);
+  outline-offset: 2px;
+  border-color: var(--cor-destaque);
+}
+
+.no-robots-message {
+  text-align: center;
+  color: var(--texto-secundario);
+  padding: var(--spacing-3);
 }
 </style>

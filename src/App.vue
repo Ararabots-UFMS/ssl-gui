@@ -1,183 +1,152 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+
+import Name from './components/name.vue';
+import PlayButton from './components/play.vue';
+import Field from './components/field.vue';
+import Card from './components/card.vue';
+import RobotCard from './components/robotcard.vue';
+import ConfigTerminal from './components/configterminal.vue';
+import Terminal from './components/terminal.vue';
+
+// --- INTERFACE PARA O ESTADO COMPARTILHADO ---
+interface RobotSharedConfig {
+  id: number;
+  name: string;
+}
+
+// --- ESTADO CENTRALIZADO ---
+const activeSidebarComponent = ref<'robots' | 'config'>('robots');
+
+// O ESTADO AGORA É UM ARRAY DE OBJETOS COM AS CONFIGURAÇÕES DOS ROBÔS
+const robotConfigs = ref<RobotSharedConfig[]>([]);
+
+function handleConfigsUpdate(newConfigs: RobotSharedConfig[]) {
+  robotConfigs.value = newConfigs;
+}
+onMounted(() => {
+  const savedData = localStorage.getItem('cardData');
+  if (savedData) {
+    robotConfigs.value = JSON.parse(savedData);
+  } else {
+    robotConfigs.value = Array.from({ length: 3 }, (_, i) => ({ id: i, name: `Robô ${i + 1}`}));
+  }
+});
+</script>
+
 <template>
-  <div class="full-screen">
-      <div class="menu-container">
-        <div class="menu-buttons">
-          <div
-            v-for="(button, index) in buttons"
-            :key="index"
-            class="menu-button"
-            :class="{ 'selected': selectedButton === index }"
-            @click="selectButton(index)"
+  <div class="app-container">
+    <main class="dashboard-grid">
+      <aside class="sidebar sidebar-left">
+        <Name title="ARARABOTS" />
+        <Card :robots="robotConfigs" />
+        <PlayButton />
+      </aside>
+
+      <section class="main-content">
+        <Field class="field-area" />
+        <Terminal class="terminal-area" />
+      </section>
+
+      <aside class="sidebar sidebar-right">
+        <div class="sidebar-nav">
+          <button 
+            :class="{ active: activeSidebarComponent === 'robots' }" 
+            @click="activeSidebarComponent = 'robots'"
           >
-            <p class="menu-button-text">{{ button }} Screen</p>
-          </div>
+            Robots
+          </button>
+          <button 
+            :class="{ active: activeSidebarComponent === 'config' }" 
+            @click="activeSidebarComponent = 'config'"
+          >
+            Terminal Config
+          </button>
         </div>
-    </div>
-    <div v-if="selectedButton === 0" class="main-screen">
-      <div class="menu-left-side">
-        <name></name>
-        <card></card>
-        <play></play>
-      </div>
-      <div class="menu-right-side">
-        <field></field>
-        <terminal></terminal>
-      </div>
-    </div>
-    <div v-if="selectedButton === 1" class="config-screen">
-      <div class="config-left-side">
-        <name></name>
-        <robotcard></robotcard>
-      </div>
-      <div class="config-right-side">
-        <field></field>
-        <configterminal></configterminal>
-      </div>
-    </div>
+        
+        <RobotCard 
+          v-if="activeSidebarComponent === 'robots'" 
+          @configs-updated="handleConfigsUpdate" 
+        />
+        <ConfigTerminal v-if="activeSidebarComponent === 'config'" />
+      </aside>
+    </main>
   </div>
 </template>
 
-<script>
-  import field from './components/field.vue';
-  import terminal from './components/terminal.vue';
-  import name from './components/name.vue';
-  import card from './components/card.vue';
-  import play from './components/play.vue';
-  import robotcard from './components/robotcard.vue';
-  import configterminal from './components/configterminal.vue';
-
-  export default {
-    name: 'FullScreen',
-    components: {
-      field,
-      terminal,
-      name,
-      card,
-      play,
-      robotcard,
-      configterminal,
-    },
-    data() {
-      return {
-        buttons: ['Main', 'Config'], // Índices dos botões
-        selectedButton: null // Índice do botão selecionado
-      };
-    },
-    mounted() {
-      // Colocar o primeiro botão como selecionado inicialmente
-      this.selectedButton = 0;
-    },
-    methods: {
-      selectButton(index) {
-        this.selectedButton = index;
-      }
-    },
-  };
-</script>
-
 <style scoped>
-.full-screen {
-  position: absolute;
-  top: 0;
-  left: 0;
+.app-container {
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--fundo-principal);
+  color: var(--texto-principal);
+  overflow: hidden;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.7fr) 1.5fr minmax(420px, 0.9fr);
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  height: 100%;
   width: 100%;
-  height: 100%;
+}
+
+.sidebar,
+.main-content {
   display: flex;
-  flex-direction: row;
-  background-color: #252838
+  flex-direction: column;
+  gap: var(--spacing-3);
+  background-color: var(--fundo-secundario);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-3);
+  overflow-y: auto;
+  min-width: 0;
 }
 
-.menu-container {
-  top: 0;
-  right: 0;
-  height: 100%;
-  width: 4%;
-  gap: 5px;
+.main-content {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--spacing-3);
+  overflow: hidden;
+  padding: var(--spacing-3);
 }
 
-.menu-buttons {
-  top: 0;
-  right: 0;
-  height: 100%;
-  width: 80%;
+.field-area {
+  overflow: hidden;
+}
+
+.terminal-area {
+  min-height: 200px;
+}
+
+.sidebar-nav {
   display: flex;
-  flex-direction: column; /* Empilha os botões verticalmente */
+  gap: var(--spacing-2);
+  border-bottom: var(--border-width) solid var(--cor-borda);
+  padding-bottom: var(--spacing-3);
+  flex-shrink: 0;
 }
 
-.menu-button {
-  width: 100%;
-  height: 100%;
-  background-color: #D2D1CB;
-  color: #252838;
-  font-size: 18px;
+.sidebar-nav button {
+  flex-grow: 1;
+  padding: var(--spacing-2) var(--spacing-3);
+  background-color: var(--fundo-terciario);
+  color: var(--texto-secundario);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-weight: var(--font-weight-bold);
   cursor: pointer;
-  display: flex;
-  align-items: center; /* Centraliza o texto verticalmente */
-  justify-content: center; /* Centraliza o texto horizontalmente */
+  transition: all 0.2s ease;
 }
 
-.menu-button-text {
-  writing-mode: vertical-lr; /* Texto na vertical, da esquerda para a direita */
-  transform: rotate(180deg); /* Rotaciona o texto 180 graus */
+.sidebar-nav button:hover {
+  color: var(--texto-principal);
+  background-color: #4a507a;
 }
 
-.selected {
-  background-color: #252838; /* Cor de fundo quando selecionado */
-  color: #D2D1CB;
-}
-
-.main-screen {
-  display: flex;
-  width: 96%;
-  height: 100%;
-}
-
-.menu-left-side {
-  top: 0;
-  right: 0;
-  height: 100%;
-  width: 48%;
-  display: flex;
-  flex-direction:column;
-  align-items: center;
-  gap: 5px
-}
-
-.menu-right-side {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  top: 0;
-  right: 0;
-  height: 100%;
-  width: 48%;
-}
-
-.config-screen {
-  display: flex;
-  flex: 1;
-  height: 96%;
-  width: 100%;
-}
-
-.config-left-side {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-  gap: 5px
-}
-
-.config-right-side {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  top: 0;
-  right: 0;
-  height: 100%;
-  width: 100%;
+.sidebar-nav button.active {
+  color: #ffffff;
+  background-color: var(--cor-destaque);
 }
 </style>
-
-
