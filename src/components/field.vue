@@ -111,21 +111,16 @@ export default {
             const fieldEl = (this.$el as HTMLElement).querySelector(".field") as HTMLElement;
             if (!fieldEl) return;
             
-            const dims = FIELD_DIMENSIONS[this.fieldType];
-            const correctAspectRatio = dims.fieldW / dims.fieldH;
-            
-            // Força o aspect-ratio correto baseado no tipo de campo
-            fieldEl.style.aspectRatio = correctAspectRatio.toString();
-            
-            // Aguarda o browser aplicar o novo aspect-ratio
-            this.$nextTick(() => {
-                const { width, height } = fieldEl.getBoundingClientRect();
-                this.fieldWidth = width;
-                this.fieldHeight = height;
+            const { width, height } = fieldEl.getBoundingClientRect();
+            this.fieldWidth = width;
+            this.fieldHeight = height;
 
-                this.scaleX = this.fieldWidth / dims.fieldW;
-                this.scaleY = this.fieldHeight / dims.fieldH;
-            });
+            const dims = FIELD_DIMENSIONS[this.fieldType];
+            this.scaleX = this.fieldWidth / dims.fieldW;
+            this.scaleY = this.fieldHeight / dims.fieldH;
+
+            // As dimensões já são calculadas via CSS responsivo
+            // Este método agora só atualiza as escalas para os robôs e bolas
         },
     },
     mounted() {
@@ -382,11 +377,6 @@ export default {
         height: 4%;
         background-color: yellow;
         border-radius: 50%;
-        /* Garante que o robô mantenha proporção circular */
-        aspect-ratio: 1;
-        /* Usa a menor dimensão para manter o círculo */
-        width: min(2.6%, 4vh);
-        height: min(2.6%, 4vh);
     }
 
     .robot.yellow { background: yellow; }
@@ -407,17 +397,13 @@ export default {
         height: 2.8%;
         background-color: orange;
         border-radius: 50%;
-        /* Garante que a bola mantenha proporção circular */
-        aspect-ratio: 1;
-        /* Usa a menor dimensão para manter o círculo */
-        width: min(1.8%, 2.8vh);
-        height: min(1.8%, 2.8vh);
     }
     
     .field-wrapper {
         width: 100%;
         max-width: 1000px;
         margin: 0 auto;
+        aspect-ratio: 2 / 1;
         position: relative;
         height: auto;
     }
@@ -426,8 +412,9 @@ export default {
         border: 5px solid grey;
         border-radius: 5px;
         width: 100%;
-        height: auto;
+        height: 100%;
         margin: 0 auto;
+        aspect-ratio: 1.375; /* 5500 / 4000 */
         position: relative;
         background-color: #008000; /* Cor padrão */
         background-size: contain;
@@ -440,19 +427,19 @@ export default {
     .field.SSL-EL {
         background-color: #008000;
         background-image: none;
-        aspect-ratio: 1.375; /* 5500 / 4000 */
+        aspect-ratio: 1.375;
     }
 
     .field.SSL {
         background-color: #008000;
         background-size: cover;
-        aspect-ratio: 1.405405405; /* 10400 / 7400 */
+        aspect-ratio: 1.405405405;
     }
 
     .field.treino {
         background-color: #535353;
         background-size: cover;
-        aspect-ratio: 1.15037593; /* 1530 / 1330 */
+        aspect-ratio: 1.15037593;
     }
     .linha-centro.horizontal {
         position: absolute;
@@ -650,36 +637,7 @@ export default {
         border-radius: 5px;
         padding: 4px 10px;
         font-size: 14px;
-    }
 
-    /* Media queries para diferentes proporções de tela */
-    @media (max-aspect-ratio: 1/1) {
-        .field-wrapper {
-            max-width: 90vw;
-        }
-    }
-
-    @media (min-aspect-ratio: 3/1) {
-        .field-wrapper {
-            max-width: 80vw;
-        }
-    }
-
-    /* Ajustes para telas muito pequenas */
-    @media (max-width: 768px) {
-        .field-wrapper {
-            max-width: 95vw;
-        }
-        
-        .robot {
-            width: min(3%, 6vh);
-            height: min(3%, 6vh);
-        }
-        
-        .ball {
-            width: min(2.5%, 4vh);
-            height: min(2.5%, 4vh);
-        }
     }
 
 </style>
