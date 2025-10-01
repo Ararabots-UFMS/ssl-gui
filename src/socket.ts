@@ -47,10 +47,16 @@ socket.on("disconnect", () => {
 });
 
 socket.on("vision_update", (payload) => {
-    yellowRobots.splice(0, yellowRobots.length, ...payload.yellow);
-    blueRobots.splice(0,   blueRobots.length,   ...payload.blue);
-    balls.splice(0,        balls.length,        ...payload.balls);
-  });
+    // Limpar arrays de forma mais eficiente
+    yellowRobots.length = 0;
+    blueRobots.length = 0;
+    balls.length = 0;
+    
+    // Adicionar novos dados
+    yellowRobots.push(...payload.yellow);
+    blueRobots.push(...payload.blue);
+    balls.push(...payload.balls);
+});
 
 // socket.on("position", (event) => {
 //     position.y = event.y.toFixed(2);

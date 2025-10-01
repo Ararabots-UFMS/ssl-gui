@@ -1,6 +1,7 @@
 <script lang="ts">
 import { yellowRobots, blueRobots, balls } from '@/socket'
 import { socket } from '@/socket'
+import { computed } from 'vue'
 
 // Definição das dimensões dos campos
 const FIELD_DIMENSIONS = {
@@ -40,9 +41,6 @@ type FieldType = keyof typeof FIELD_DIMENSIONS;
 
 interface ComponentData {
     fieldType: FieldType;
-    yellowRobots: typeof yellowRobots;
-    blueRobots: typeof blueRobots;
-    balls: typeof balls;
     side: boolean;
     teamColor: boolean;
     mode: boolean;
@@ -50,6 +48,7 @@ interface ComponentData {
     scaleY: number;
     fieldWidth: number;
     fieldHeight: number;
+    resizeTimeout?: ReturnType<typeof setTimeout>;
 }
 
 export default {
@@ -57,9 +56,6 @@ export default {
     data(): ComponentData {
         return {
             fieldType: (localStorage.getItem('fieldType') as FieldType) || 'SSL-EL',
-            yellowRobots,
-            blueRobots,
-            balls,
             side: JSON.parse(localStorage.getItem('side') || 'false'),
             teamColor: JSON.parse(localStorage.getItem('teamColor') || 'false'),
             mode: JSON.parse(localStorage.getItem('mode') || 'false'),
@@ -69,20 +65,41 @@ export default {
             fieldHeight: 1,
         }
     },
+    computed: {
+        // Computed properties para os dados reativos
+        yellowRobots() {
+            return yellowRobots;
+        },
+        blueRobots() {
+            return blueRobots;
+        },
+        balls() {
+            return balls;
+        },
+        // Computed properties para otimizar cálculos de dimensões
+        fieldDimensions() {
+            return FIELD_DIMENSIONS[this.fieldType];
+        },
+        robotWidth() {
+            return this.fieldWidth * 0.026;
+        },
+        robotHeight() {
+            return this.fieldHeight * 0.04;
+        },
+        centerX() {
+            return this.fieldDimensions.fieldW / 2;
+        },
+        centerY() {
+            return this.fieldDimensions.fieldH / 2;
+        }
+    },
     methods: {
         mapX(x_mm: number): string {
-            // Busca as dimensões originais definidas para o campo selecionado
-            const dims = FIELD_DIMENSIONS[this.fieldType];
-            // Calcula a largura do robô com base no percentual definido no CSS
-            const robotWidth = this.fieldWidth * 0.026;
-            const centerX = dims.fieldW / 2;
-            return `${((centerX + x_mm) * this.scaleX) - robotWidth / 2}px`;
+            // Usa as computed properties para melhor performance
+            return `${((this.centerX + x_mm) * this.scaleX) - this.robotWidth / 2}px`;
         },
         mapY(y_mm: number): string {
-            const dims = FIELD_DIMENSIONS[this.fieldType];
-            const robotHeight = this.fieldHeight * 0.04;
-            const centerY = dims.fieldH / 2;
-            return `${((centerY - y_mm) * this.scaleY) - robotHeight / 2}px`;
+            return `${((this.centerY - y_mm) * this.scaleY) - this.robotHeight / 2}px`;
         },
         changeMode() {
             this.mode = !this.mode;
@@ -115,12 +132,20 @@ export default {
             this.fieldWidth = width;
             this.fieldHeight = height;
 
-            const dims = FIELD_DIMENSIONS[this.fieldType];
-            this.scaleX = this.fieldWidth / dims.fieldW;
-            this.scaleY = this.fieldHeight / dims.fieldH;
+            this.scaleX = this.fieldWidth / this.fieldDimensions.fieldW;
+            this.scaleY = this.fieldHeight / this.fieldDimensions.fieldH;
 
             // As dimensões já são calculadas via CSS responsivo
             // Este método agora só atualiza as escalas para os robôs e bolas
+        },
+        throttledUpdateScale() {
+            // Throttling para evitar muitas chamadas durante redimensionamento
+            if (this.resizeTimeout) {
+                clearTimeout(this.resizeTimeout);
+            }
+            this.resizeTimeout = setTimeout(() => {
+                this.updateScale();
+            }, 16); // ~60fps
         },
     },
     mounted() {
@@ -131,10 +156,13 @@ export default {
         socket.emit('fieldType', this.fieldType);
 
         this.$nextTick(() => this.updateScale());
-        window.addEventListener("resize", this.updateScale);
+        window.addEventListener("resize", this.throttledUpdateScale);
     },
     beforeUnmount() {
-        window.removeEventListener("resize", this.updateScale);
+        window.removeEventListener("resize", this.throttledUpdateScale);
+        if (this.resizeTimeout) {
+            clearTimeout(this.resizeTimeout);
+        }
     },
 }
 </script>
@@ -403,24 +431,19 @@ export default {
         width: 100%;
         max-width: 1000px;
         margin: 0 auto;
-        aspect-ratio: 2 / 1;
         position: relative;
-        height: auto;
     }
     .field {
-        display: flex;
         border: 5px solid grey;
         border-radius: 5px;
         width: 100%;
-        height: 100%;
-        margin: 0 auto;
+        height: auto;
         aspect-ratio: 1.375; /* 5500 / 4000 */
         position: relative;
         background-color: #008000; /* Cor padrão */
         background-size: contain;
         background-position: center;
         background-repeat: no-repeat;
-        float: none;
         transition: background-color 0.3s ease, 
         background-image 0.3s ease;
     }
