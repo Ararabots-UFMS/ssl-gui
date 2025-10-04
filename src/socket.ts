@@ -1,156 +1,44 @@
-/* import { reactive } from "vue";
+import { reactive, ref } from 'vue';
 import { io } from "socket.io-client";
 
-export const position = reactive({
-  x: 0,
-  y: 0,
-  angle: 0,
-});
+interface Robot { id: number; position_x: number; position_y: number; orientation: number; }
+interface Ball { id: number; position_x: number; position_y: number; }
 
-export const visionOutput = reactive({
-    message: '',
-});
+export const yellowRobots = reactive<Robot[]>([]);
+export const blueRobots = reactive<Robot[]>([]);
+export const balls = reactive<Ball[]>([]);
 
-export const visionStatus = reactive({
-    status: false,
-});
+export const trajectories = reactive<{ [key: string]: { [key: string]: { x: number, y: number }[] } }>({ yellow: {}, blue: {} });
 
-export const communicationOutput = reactive({
-    message: '',
-});
+export const systemStatus = reactive({ guiConnected: false, visionNode: false, strategyService: false, pidService: false });
 
-export const communicationStatus = reactive({
-    status: false,
-});
-export const refereeOutput = reactive({
-    message: '',
-});
-
-export const refereeStatus = reactive({
-    status: false,
-});
+export const refereeLog = ref<string[]>(['Terminal do Juiz inicializado.']);
+export const visionLog = ref<string[]>(['Terminal da Visão inicializado.']);
+export const communicationLog = ref<string[]>(['Terminal de Comunicação inicializado.']);
 
 const URL = "http://localhost:5000";
-
-export const yellowRobots = reactive<any[]>([]);
-export const blueRobots   = reactive<any[]>([]);
-export const balls        = reactive<any[]>([]);
-
-export const socket = io(URL,{cors: {origin: "*"}} as any);
+export const socket = io(URL);
 
 socket.on("connect", () => {
-    console.log("Connected to the server");
+    communicationLog.value.unshift(`[${new Date().toLocaleTimeString()}] ✅ Conexão estabelecida.`);
+    systemStatus.guiConnected = true;
 });
-
 socket.on("disconnect", () => {
-    console.log("Disconnected from the server");
+    communicationLog.value.unshift(`[${new Date().toLocaleTimeString()}] ❌ Conexão perdida.`);
+    systemStatus.guiConnected = false; systemStatus.visionNode = false; systemStatus.strategyService = false;
 });
-
-socket.on("vision_update", (payload) => {
+socket.on("system_status", (payload) => { Object.assign(systemStatus, payload); });
+socket.on("vision_update", (payload: { yellow: Robot[], blue: Robot[], balls: Ball[] }) => {
     yellowRobots.splice(0, yellowRobots.length, ...payload.yellow);
-    blueRobots.splice(0,   blueRobots.length,   ...payload.blue);
-    balls.splice(0,        balls.length,        ...payload.balls);
+    blueRobots.splice(0, blueRobots.length, ...payload.blue);
+    balls.splice(0, balls.length, ...payload.balls);
+});
+socket.on("update_trajectories", (payload) => {
+  Object.keys(trajectories).forEach(team => {
+    Object.keys(trajectories[team]).forEach(key => delete trajectories[team][key]);
+    Object.assign(trajectories[team], payload[team] || {});
   });
-
-// socket.on("position", (event) => {
-//     position.y = event.y.toFixed(2);
-//     position.x = event.x.toFixed(2);
-//     position.angle = event.angle.toFixed(2);
-// });
-
-socket.on("visionOutput", (event) => {
-    visionOutput.message = event;
 });
-
-socket.on("visionStatus", (event) => {
-    visionStatus.status = event.status;
-});
-
-socket.on("vision_msg", (event) => {
-    console.log(event);
-});
-
-socket.on("communicationOutput", (event) => {
-    communicationOutput.message = event;
-});
-
-socket.on("communicationStatus", (event) => {
-    communicationStatus.status = event.status;
-});
-
-socket.on("refereeOutput", (event) => {
-    refereeOutput.message = event;
-});
-
-socket.on("refereeStatus", (event) => {
-    refereeStatus.status = event.status;
-});
- */
-
-import { reactive } from "vue";
-import { io } from "socket.io-client";
-
-export const position = reactive({ x: 0, y: 0, angle: 0 });
-export const visionOutput = reactive({ message: '' });
-export const visionStatus = reactive({ status: false });
-export const communicationOutput = reactive({ message: '' });
-export const communicationStatus = reactive({ status: false });
-export const refereeOutput = reactive({ message: '' });
-export const refereeStatus = reactive({ status: false });
-
-export const logOutput = reactive({
-  juiz: [],
-  visao: [],
-  comunicacao: [],
-});
-
-const URL = "http://localhost:5000";
-
-export const yellowRobots = reactive<any[]>([]);
-export const blueRobots   = reactive<any[]>([]);
-export const balls        = reactive<any[]>([]);
-
-export const socket = io(URL,{cors: {origin: "*"}} as any);
-
-socket.on("connect", () => {
-    console.log("Connected to the server");
-    logOutput.comunicacao.unshift(`[${new Date().toLocaleTimeString()}] Conexão estabelecida.`);
-});
-
-socket.on("disconnect", () => {
-    console.log("Disconnected from the server");
-    logOutput.comunicacao.unshift(`[${new Date().toLocaleTimeString()}] Conexão perdida.`);
-});
-
-socket.on("vision_update", (payload) => {
-    yellowRobots.splice(0, yellowRobots.length, ...payload.yellow);
-    blueRobots.splice(0,   blueRobots.length,   ...payload.blue);
-    balls.splice(0,        balls.length,        ...payload.balls);
-});
-
-socket.on("visionOutput", (event) => {
-    visionOutput.message = event;
-    if (event?.line) logOutput.visao.unshift(event.line);
-});
-
-socket.on("visionStatus", (event) => {
-    visionStatus.status = event.status;
-});
-
-socket.on("communicationOutput", (event) => {
-    communicationOutput.message = event;
-    if (event?.line) logOutput.comunicacao.unshift(event.line);
-});
-
-socket.on("communicationStatus", (event) => {
-    communicationStatus.status = event.status;
-});
-
-socket.on("refereeOutput", (event) => {
-    refereeOutput.message = event;
-    if (event?.line) logOutput.juiz.unshift(event.line);
-});
-
-socket.on("refereeStatus", (event) => {
-    refereeStatus.status = event.status;
-});
+socket.on("refereeOutput", (event) => { if(event?.line) refereeLog.value.unshift(event.line); });
+socket.on("visionOutput", (event) => { if(event?.line) visionLog.value.unshift(event.line); });
+socket.on("communicationOutput", (event) => { if(event?.line) communicationLog.value.unshift(event.line); });
