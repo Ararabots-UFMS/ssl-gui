@@ -1,5 +1,5 @@
 <script lang="ts">
-import { yellowRobots, blueRobots, balls } from '@/socket'
+import { yellowRobots, blueRobots, balls, trajectories } from '@/socket'
 import { socket } from '@/socket'
 import { computed } from 'vue'
 
@@ -49,6 +49,7 @@ interface ComponentData {
     fieldWidth: number;
     fieldHeight: number;
     resizeTimeout?: ReturnType<typeof setTimeout>;
+    showTrajectories: boolean;
 }
 
 export default {
@@ -63,6 +64,7 @@ export default {
             scaleY: 1,
             fieldWidth: 1,
             fieldHeight: 1,
+            showTrajectories: JSON.parse(localStorage.getItem('showTrajectories') || 'true'),
         }
     },
     computed: {
@@ -75,6 +77,9 @@ export default {
         },
         balls() {
             return balls;
+        },
+        trajectories() {
+            return trajectories;
         },
         // Computed properties para otimizar cálculos de dimensões
         fieldDimensions() {
@@ -100,6 +105,65 @@ export default {
         },
         mapY(y_mm: number): string {
             return `${((this.centerY - y_mm) * this.scaleY) - this.robotHeight / 2}px`;
+        },
+        
+        // Métodos para conversão de coordenadas das trajetórias (metros para pixels)
+        fieldToCanvasX(fieldX: number): number {
+            // Converte de metros para mm e depois para pixels
+            const x_mm = fieldX * 1000;
+            return (this.centerX + x_mm) * this.scaleX;
+        },
+        
+        fieldToCanvasY(fieldY: number): number {
+            // Converte de metros para mm e depois para pixels
+            const y_mm = fieldY * 1000;
+            return (this.centerY - y_mm) * this.scaleY;
+        },
+        
+        toggleTrajectories() {
+            this.showTrajectories = !this.showTrajectories;
+            localStorage.setItem('showTrajectories', JSON.stringify(this.showTrajectories));
+        },
+        
+        generateTrajectoryPath(points: any[]): string {
+            if (points.length < 2) return '';
+            
+            let path = `M ${this.fieldToCanvasX(points[0].x)} ${this.fieldToCanvasY(points[0].y)}`;
+            
+            for (let i = 1; i < points.length; i++) {
+                const x = this.fieldToCanvasX(points[i].x);
+                const y = this.fieldToCanvasY(points[i].y);
+                path += ` L ${x} ${y}`;
+            }
+            
+            return path;
+        },
+        
+        generateVelocityArrow(point: any): string {
+            const canvasX = this.fieldToCanvasX(point.x);
+            const canvasY = this.fieldToCanvasY(point.y);
+            
+            // Calcula direção da velocidade
+            const velocity = Math.sqrt(point.velocity_x ** 2 + point.velocity_y ** 2);
+            if (velocity < 0.1) return ''; // Ignora velocidades muito baixas
+            
+            const angle = Math.atan2(point.velocity_y, point.velocity_x);
+            const arrowLength = Math.min(20, velocity * 10); // Escala a seta baseada na velocidade
+            
+            // Ponta da seta
+            const endX = canvasX + Math.cos(angle) * arrowLength;
+            const endY = canvasY + Math.sin(angle) * arrowLength;
+            
+            // Pontas da seta
+            const arrowHeadLength = 8;
+            const arrowHeadAngle = Math.PI / 6;
+            
+            const leftX = endX - Math.cos(angle - arrowHeadAngle) * arrowHeadLength;
+            const leftY = endY - Math.sin(angle - arrowHeadAngle) * arrowHeadLength;
+            const rightX = endX - Math.cos(angle + arrowHeadAngle) * arrowHeadLength;
+            const rightY = endY - Math.sin(angle + arrowHeadAngle) * arrowHeadLength;
+            
+            return `M ${canvasX} ${canvasY} L ${endX} ${endY} M ${endX} ${endY} L ${leftX} ${leftY} M ${endX} ${endY} L ${rightX} ${rightY}`;
         },
         changeMode() {
             this.mode = !this.mode;
@@ -200,10 +264,59 @@ export default {
                     <option value="treino">Treino</option>
                 </select>
             </div>
+            <div class="button-side">
+                <button @click="toggleTrajectories" class="trajectory-button" :class="{ active: showTrajectories }">
+                    {{ showTrajectories ? 'Ocultar' : 'Mostrar' }} Trajetórias
+                </button>
+            </div>
         </div>
 
         <div class="field-wrapper">
             <div :class="['field', fieldType]">
+                <!-- Trajetórias dos robôs -->
+                <svg v-if="showTrajectories" class="trajectory-overlay" 
+                     :width="`${fieldDimensions.fieldW * scaleX}px`" 
+                     :height="`${fieldDimensions.fieldH * scaleY}px`">
+                    <g v-for="[robotId, trajectory] in trajectories" :key="`trajectory-${robotId}`">
+                        <!-- Linha da trajetória -->
+                        <path v-if="trajectory.points.length > 1"
+                              :d="generateTrajectoryPath(trajectory.points)"
+                              :stroke="trajectory.color"
+                              stroke-width="3"
+                              fill="none"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              opacity="0.8" />
+                        
+                        <!-- Setas de velocidade -->
+                        <g v-for="(point, index) in trajectory.points" :key="`arrow-${robotId}-${index}`">
+                            <path v-if="index % Math.max(1, Math.floor(trajectory.points.length / 10)) === 0 && 
+                                       (point.velocity_x * point.velocity_x + point.velocity_y * point.velocity_y) > 0.01"
+                                  :d="generateVelocityArrow(point)"
+                                  :fill="trajectory.color"
+                                  :stroke="trajectory.color"
+                                  stroke-width="2"
+                                  opacity="0.7" />
+                        </g>
+                        
+                        <!-- Ponto de destino -->
+                        <circle v-if="trajectory.points.length > 0"
+                                :cx="fieldToCanvasX(trajectory.points[trajectory.points.length - 1].x)"
+                                :cy="fieldToCanvasY(trajectory.points[trajectory.points.length - 1].y)"
+                                r="8"
+                                :fill="trajectory.color"
+                                opacity="0.9" />
+                        
+                        <!-- Label do robô -->
+                        <text v-if="trajectory.points.length > 0"
+                              :x="fieldToCanvasX(trajectory.points[trajectory.points.length - 1].x) + 12"
+                              :y="fieldToCanvasY(trajectory.points[trajectory.points.length - 1].y) - 8"
+                              fill="#000000"
+                              font-family="Arial"
+                              font-size="12"
+                              font-weight="bold">R{{ robotId }}</text>
+                    </g>
+                </svg>
                 <!-- yellow robots -->
                 <div
                     v-for="r in yellowRobots"
@@ -660,7 +773,40 @@ export default {
         border-radius: 5px;
         padding: 4px 10px;
         font-size: 14px;
+    }
 
+    .trajectory-button {
+        padding: 8px 16px;
+        border: 2px solid #000000;
+        border-radius: 6px;
+        background-color: transparent;
+        color: #ffffff;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.3s ease;
+        margin-top: 5px;
+    }
+
+    .trajectory-button:hover {
+        background-color: #ff0000;
+        color: white;
+    }
+
+    .trajectory-button.active {
+        background-color: #34ff01;
+        color: white;
+        box-shadow: 0 2px 4px rgba(78, 205, 196, 0.3);
+    }
+
+    .trajectory-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        z-index: 10;
     }
 
 </style>
