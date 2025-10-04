@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
-import { yellowRobots, blueRobots, balls, socket } from '@/socket'
+import { yellowRobots, blueRobots, balls, trajectories, socket } from '@/socket'
 
 const FIELD_DIMENSIONS = {
     'SSL-EL': { fieldW: 5500, fieldH: 4000 },
@@ -19,6 +19,7 @@ const fieldType = ref<FieldType>((localStorage.getItem('fieldType') as FieldType
 const side = ref<boolean>(JSON.parse(localStorage.getItem('side') || 'false'))
 const teamColor = ref<boolean>(JSON.parse(localStorage.getItem('teamColor') || 'false'))
 const mode = ref<boolean>(JSON.parse(localStorage.getItem('mode') || 'false'))
+const showTrajectories = ref<boolean>(JSON.parse(localStorage.getItem('showTrajectories') || 'true'))
 const fieldSize = reactive({ width: 1, height: 1 })
 
 const scaleFactors = computed(() => {
@@ -48,6 +49,54 @@ const styledYellowRobots = getStyledEntities(yellowRobots)
 const styledBlueRobots = getStyledEntities(blueRobots)
 const styledBalls = getStyledEntities(balls)
 
+const styledTrajectories = computed(() => {
+    const result: { [key: number]: { x: number, y: number }[] } = {}
+    
+    Object.entries(trajectories).forEach(([robotId, points]) => {
+        const dims = FIELD_DIMENSIONS[fieldType.value]
+        const centerX = dims.fieldW / 2
+        const centerY = dims.fieldH / 2
+        
+        // Converter de metros para milímetros (backend envia em metros)
+        result[parseInt(robotId)] = points.map(point => {
+            const xMm = point.x * 1000  // metros para milímetros
+            const yMm = point.y * 1000  // metros para milímetros
+            
+            const xPixels = (centerX + xMm) * scaleFactors.value.x
+            const yPixels = (centerY - yMm) * scaleFactors.value.y
+            
+            return { x: xPixels, y: yPixels }
+        })
+    })
+    
+    return result
+})
+
+const generatePathString = (points: { x: number, y: number }[]) => {
+    if (points.length === 0) return ''
+    if (points.length === 1) return `M ${points[0].x} ${points[0].y}`
+    
+    let path = `M ${points[0].x} ${points[0].y}`
+    
+    for (let i = 1; i < points.length; i++) {
+        // Verificar se as coordenadas são válidas
+        if (!isNaN(points[i].x) && !isNaN(points[i].y)) {
+            path += ` L ${points[i].x} ${points[i].y}`
+        }
+    }
+    
+    return path
+}
+
+const getRobotColor = (robotId: number) => {
+    const yellowRobot = yellowRobots.find(r => r.id === robotId)
+    const blueRobot = blueRobots.find(r => r.id === robotId)
+    
+    if (yellowRobot) return 'yellow'
+    if (blueRobot) return 'blue'
+    return 'unknown'
+}
+
 const updateScale = () => {
     if (fieldEl.value) {
         const { width, height } = fieldEl.value.getBoundingClientRect()
@@ -66,6 +115,10 @@ const createToggleHandler = (stateRef: typeof side, eventName: string, storageKe
 const changeMode = createToggleHandler(mode, 'fieldMode', 'mode')
 const changeSide = createToggleHandler(side, 'fieldSide', 'side')
 const changeTeamColor = createToggleHandler(teamColor, 'teamColor', 'teamColor')
+const changeTrajectories = () => {
+    showTrajectories.value = !showTrajectories.value
+    localStorage.setItem('showTrajectories', JSON.stringify(showTrajectories.value))
+}
 
 const changeFieldType = (event: Event) => {
     const newType = (event.target as HTMLSelectElement).value as FieldType
@@ -125,14 +178,59 @@ onBeforeUnmount(() => {
                     </option>
                 </select>
             </div>
+            <div class="control-group">
+                <span class="control-label">Trajetórias</span>
+                <p class="toggle-label" :class="{ inactive: !showTrajectories }">{{ showTrajectories ? 'ON' : 'OFF' }}</p>
+                <label class="switch">
+                    <input type="checkbox" :checked="showTrajectories" @click="changeTrajectories" />
+                    <span class="slider trajectories round"></span>
+                </label>
+            </div>
         </div>
 
         <div class="field-wrapper">
             <div :class="['field', fieldType]" ref="fieldEl">
-                <div v-for="r in styledYellowRobots" :key="`yellow-${r.id}`" class="robot yellow" :style="r.style" />
-                <div v-for="r in styledBlueRobots" :key="`blue-${r.id}`" class="robot blue" :style="r.style" />
+                <!-- Trajetórias dos robôs -->
+                <svg v-if="showTrajectories && Object.keys(styledTrajectories).length > 0" class="trajectories-overlay" :width="fieldSize.width" :height="fieldSize.height">
+                    <g v-for="(points, robotId) in styledTrajectories" :key="`trajectory-${robotId}`">
+                        <path 
+                            v-if="points.length > 1"
+                            :d="generatePathString(points)" 
+                            :class="['trajectory', getRobotColor(robotId)]"
+                            fill="none"
+                            stroke-width="3"
+                            stroke-dasharray="8,4"
+                        />
+                        <!-- Pontos da trajetória -->
+                        <circle 
+                            v-for="(point, index) in points" 
+                            :key="`point-${robotId}-${index}`"
+                            :cx="point.x" 
+                            :cy="point.y" 
+                            r="3"
+                            :class="['trajectory-point', getRobotColor(robotId)]"
+                        />
+                        <!-- Marcador do primeiro ponto (início da trajetória) -->
+                        <circle 
+                            v-if="points.length > 0"
+                            :cx="points[0].x" 
+                            :cy="points[0].y" 
+                            r="5"
+                            :class="['trajectory-start', getRobotColor(robotId)]"
+                        />
+                    </g>
+                </svg>
+                
+                <!-- Robôs -->
+                <div v-for="r in styledYellowRobots" :key="`yellow-${r.id}`" class="robot yellow" :style="r.style">
+                    <span class="robot-id">{{ r.id }}</span>
+                </div>
+                <div v-for="r in styledBlueRobots" :key="`blue-${r.id}`" class="robot blue" :style="r.style">
+                    <span class="robot-id">{{ r.id }}</span>
+                </div>
                 <div v-for="b in styledBalls" :key="`ball-${b.id}`" class="ball" :style="b.style" />
 
+                <!-- Elementos do campo -->
                 <div class="ret-ext"></div>
                 <div class="linha-centro horizontal"></div>
                 <div class="linha-centro vertical"></div>
@@ -183,6 +281,8 @@ input:checked + .slider.mode { background-color: var(--cor-aviso); }
 input:checked + .slider.side { background-color: #555; }
 .slider.team-color { background-color: var(--time-azul); }
 input:checked + .slider.team-color { background-color: var(--time-amarelo); }
+.slider.trajectories { background-color: #888; }
+input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
 .select-field { background-color: var(--fundo-terciario); color: var(--texto-principal); border: var(--border-width) solid var(--cor-borda); border-radius: var(--border-radius-sm); padding: var(--spacing-1) var(--spacing-2); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); cursor: pointer; }
 .select-field:focus { outline: 2px solid var(--cor-destaque); outline-offset: 2px; }
 
@@ -208,10 +308,90 @@ input:checked + .slider.team-color { background-color: var(--time-amarelo); }
     transform: translate(-50%, -50%);
     border-radius: 50%;
 }
-.robot { width: 2.6%; height: 4%; }
+.robot { 
+    width: 2.6%; 
+    height: 4%; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(0, 0, 0, 0.3);
+}
 .robot.yellow { background: var(--time-amarelo); }
 .robot.blue { background: var(--time-azul); }
+.robot-id {
+    font-size: 10px;
+    font-weight: bold;
+    color: rgba(0, 0, 0, 0.8);
+    text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.5);
+}
 .ball { width: 1.8%; height: 2.8%; background-color: var(--cor-aviso); }
+
+/* Estilos para trajetórias */
+.trajectories-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.trajectory {
+    opacity: 0.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.trajectory.yellow {
+    stroke: var(--time-amarelo);
+    filter: drop-shadow(0 0 4px rgba(255, 193, 7, 0.8));
+}
+
+.trajectory.blue {
+    stroke: var(--time-azul);
+    filter: drop-shadow(0 0 4px rgba(0, 123, 255, 0.8));
+}
+
+.trajectory.unknown {
+    stroke: #ff6b6b;
+    opacity: 0.8;
+    filter: drop-shadow(0 0 3px rgba(255, 107, 107, 0.6));
+}
+
+.trajectory-point {
+    opacity: 0.7;
+}
+
+.trajectory-point.yellow {
+    fill: var(--time-amarelo);
+}
+
+.trajectory-point.blue {
+    fill: var(--time-azul);
+}
+
+.trajectory-point.unknown {
+    fill: #ff6b6b;
+}
+
+.trajectory-start {
+    opacity: 0.9;
+    stroke-width: 2;
+}
+
+.trajectory-start.yellow {
+    fill: var(--time-amarelo);
+    stroke: rgba(0, 0, 0, 0.3);
+}
+
+.trajectory-start.blue {
+    fill: var(--time-azul);
+    stroke: rgba(0, 0, 0, 0.3);
+}
+
+.trajectory-start.unknown {
+    fill: #ff6b6b;
+    stroke: rgba(0, 0, 0, 0.3);
+}
 
 .field.SSL-EL { 
     aspect-ratio: 1.375;
