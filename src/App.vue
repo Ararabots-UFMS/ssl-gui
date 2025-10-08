@@ -142,7 +142,7 @@ onMounted(() => {
 
 .sidebar-nav button:hover {
   color: var(--texto-principal);
-  background-color: #4a507a;
+  background-color: var(--fundo-terciario);
 }
 
 .sidebar-nav button.active {
@@ -164,6 +164,7 @@ import RobotCard from './components/robotcard.vue';
 import ConfigTerminal from './components/configterminal.vue';
 import Terminal from './components/terminal.vue';
 import StrategyControl from './components/StrategyControl.vue';
+import PidTuner from './components/PidTuner.vue';
 
 // --- INTERFACE PARA O ESTADO COMPARTILHADO ---
 interface RobotSharedConfig {
@@ -314,11 +315,11 @@ onMounted(() => {
 
 .sidebar-nav button:hover {
   color: var(--texto-principal);
-  background-color: #4a507a;
+  background-color: var(--fundo-terciario);
 }
 
 .sidebar-nav button.active {
-  color: #ffffff;
+  color: var(--texto-principal);
   background-color: var(--cor-destaque);
 }
 </style>

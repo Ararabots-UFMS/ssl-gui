@@ -84,7 +84,7 @@ function sendRefereeCommand() {
 .status-dot.active { background-color: var(--cor-sucesso); }
 .actions-container { display: flex; align-items: center; gap: var(--spacing-2); }
 .command-select { background-color: var(--fundo-terciario); color: var(--texto-principal); border: var(--border-width) solid var(--cor-borda); border-radius: var(--border-radius-sm); padding: var(--spacing-1) var(--spacing-2); font-size: var(--font-size-sm); }
-.send-button { cursor: pointer; padding: var(--spacing-1) var(--spacing-3); color: #ffffff; font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); background-color: var(--cor-destaque); border-radius: var(--border-radius-sm); border: none; transition: all 0.2s ease; }
+.send-button { cursor: pointer; padding: var(--spacing-1) var(--spacing-3); color: var(--texto-principal); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); background-color: var(--cor-destaque); border-radius: var(--border-radius-sm); border: none; transition: all 0.2s ease; }
 .send-button:hover { filter: brightness(1.1); }
 .messages-container { flex-grow: 1; overflow-y: auto; padding: var(--spacing-2); background-color: var(--fundo-principal); }
 .messages { display: flex; flex-direction: column; }

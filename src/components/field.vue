@@ -116,8 +116,15 @@ const changeMode = createToggleHandler(mode, 'fieldMode', 'mode')
 const changeSide = createToggleHandler(side, 'fieldSide', 'side')
 const changeTeamColor = createToggleHandler(teamColor, 'teamColor', 'teamColor')
 const changeTrajectories = () => {
-    showTrajectories.value = !showTrajectories.value
+    // O valor já é atualizado pelo v-model no input;
+    // aqui apenas persistimos e notificamos o backend via socket
     localStorage.setItem('showTrajectories', JSON.stringify(showTrajectories.value))
+    try {
+        socket.emit('showTrajectories', showTrajectories.value)
+    } catch (e) {
+        // se não houver socket conectado, silenciosamente ignoramos
+        // console.warn('socket emit failed', e)
+    }
 }
 
 const changeFieldType = (event: Event) => {
@@ -182,7 +189,7 @@ onBeforeUnmount(() => {
                 <span class="control-label">Trajetórias</span>
                 <p class="toggle-label" :class="{ inactive: !showTrajectories }">{{ showTrajectories ? 'ON' : 'OFF' }}</p>
                 <label class="switch">
-                    <input type="checkbox" :checked="showTrajectories" @click="changeTrajectories" />
+                    <input type="checkbox" v-model="showTrajectories" @change="changeTrajectories" />
                     <span class="slider trajectories round"></span>
                 </label>
             </div>
@@ -274,15 +281,17 @@ onBeforeUnmount(() => {
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; inset: 0; transition: .4s; border-radius: 28px; border: var(--border-width) solid var(--cor-borda); }
 .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-input:checked + .slider:before { transform: translateX(22px); }
+/* Move o "thumb" quando o input estiver marcado */
+.switch input:checked + .slider:before { transform: translateX(22px); }
+
 .slider.mode { background-color: var(--cor-sucesso); }
 input:checked + .slider.mode { background-color: var(--cor-aviso); }
 .slider.side { background-color: var(--fundo-terciario); }
-input:checked + .slider.side { background-color: #555; }
+input:checked + .slider.side { background-color: var(--fundo-terciario); }
 .slider.team-color { background-color: var(--time-azul); }
 input:checked + .slider.team-color { background-color: var(--time-amarelo); }
-.slider.trajectories { background-color: #888; }
-input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
+.slider.trajectories { background-color: var(--cor-erro); }
+input:checked + .slider.trajectories { background-color: var(--cor-sucesso); }
 .select-field { background-color: var(--fundo-terciario); color: var(--texto-principal); border: var(--border-width) solid var(--cor-borda); border-radius: var(--border-radius-sm); padding: var(--spacing-1) var(--spacing-2); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); cursor: pointer; }
 .select-field:focus { outline: 2px solid var(--cor-destaque); outline-offset: 2px; }
 
@@ -352,9 +361,9 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
 }
 
 .trajectory.unknown {
-    stroke: #ff6b6b;
-    opacity: 0.8;
-    filter: drop-shadow(0 0 3px rgba(255, 107, 107, 0.6));
+    stroke: var(--cor-destaque);
+    opacity: 0.9;
+    filter: drop-shadow(0 0 3px rgba(255, 45, 45, 0.6));
 }
 
 .trajectory-point {
@@ -370,7 +379,7 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
 }
 
 .trajectory-point.unknown {
-    fill: #ff6b6b;
+    fill: var(--cor-destaque);
 }
 
 .trajectory-start {
@@ -389,7 +398,7 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
 }
 
 .trajectory-start.unknown {
-    fill: #ff6b6b;
+    fill: var(--cor-destaque);
     stroke: rgba(0, 0, 0, 0.3);
 }
 
