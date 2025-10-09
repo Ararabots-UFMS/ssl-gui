@@ -1,45 +1,41 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { socket } from '@/socket'
+import { ref, watch } from 'vue';
+import { socket } from '@/socket';
 
-// --- INTERFACE ---
+// --- INTERFACE E PROPRIEDADES ---
 interface RobotInfo {
   id: number;
   name: string;
 }
-
-// --- PROPRIEDADES ---
 const props = defineProps({
   robots: {
     type: Array as () => RobotInfo[],
     required: true,
     default: () => []
+  },
+  roles: {
+    type: Object as () => { [key: number]: string },
+    required: true,
+    default: () => ({})
   }
 });
 
-const selectedRoles = ref<string[]>([]);
+const emit = defineEmits(['roles-updated']);
 
-function updateRobotRole(robotId: number, role: string) {
-  // As funções de 'role' são salvas no localStorage e emitidas para o backend
-  // A configuração principal do robô (nome, etc) vem do RobotCard.vue
-  const rolesToSave = { ...JSON.parse(localStorage.getItem('selectedRobotRoles') || '{}'), [robotId]: role };
-  localStorage.setItem('selectedRobotRoles', JSON.stringify(rolesToSave));
-  
-  socket.emit('updateRobotRole', { id: robotId, role: role });
-}
+const localRoles = ref<{ [key: number]: string }>({});
 
-// Observa a propriedade 'robots' para ajustar a lista de funções selecionadas
-watch(() => props.robots, (newRobots) => {
-  if (!newRobots) return;
-  const storedRoles = JSON.parse(localStorage.getItem('selectedRobotRoles') || '{}');
-  const newSelectedRoles: string[] = [];
-  
-  newRobots.forEach(robot => {
-    newSelectedRoles[robot.id] = storedRoles[robot.id] || "0";
-  });
-  
-  selectedRoles.value = newSelectedRoles;
+watch(() => props.roles, (newRoles) => {
+  localRoles.value = { ...newRoles };
 }, { immediate: true, deep: true });
+
+function updateRobotRole(robotId: number) {
+  const newRole = localRoles.value[robotId];
+  socket.emit('updateRobotRole', { id: robotId, role: newRole });
+  
+  localStorage.setItem('selectedRobotRoles', JSON.stringify(localRoles.value));
+  
+  emit('roles-updated', localRoles.value);
+}
 </script>
 
 <template>
@@ -49,16 +45,14 @@ watch(() => props.robots, (newRobots) => {
       <div class="card-icon">
         <h2>{{ robot.id }}</h2>
       </div>
-      
       <div class="card-name">
         <h2>{{ robot.name || `Robô ${robot.id}` }}</h2>
       </div>
-
       <div class="card-role-selector">
         <select 
           class="dropdown-role" 
-          v-model="selectedRoles[robot.id]" 
-          @change="updateRobotRole(robot.id, selectedRoles[robot.id])"
+          v-model="localRoles[robot.id]" 
+          @change="updateRobotRole(robot.id)"
         >
           <option value="0">Função...</option>
           <option value="1">Atacante</option>
@@ -67,7 +61,7 @@ watch(() => props.robots, (newRobots) => {
         </select>
       </div>      
     </div>
-     <p v-if="!robots || robots.length === 0" class="no-robots-message">Nenhum robô configurado.</p>
+    <p v-if="!robots || robots.length === 0" class="no-robots-message">Nenhum robô configurado.</p>
   </div>
 </template>
 
@@ -127,22 +121,20 @@ watch(() => props.robots, (newRobots) => {
 .card-name {
   flex-grow: 1;
   margin-left: var(--spacing-2);
-  min-width: 0; /* Permite que o nome encolha se necessário */
+  min-width: 0; 
 }
 
 .card-role-selector {
   margin-left: auto;
-  position: relative; /* Necessário para posicionar a seta customizada */
+  position: relative; 
 }
 
 /* --- AQUI ESTÁ A ESTILIZAÇÃO DO DROPDOWN --- */
 .dropdown-role {
-  /* 1. Remove a aparência padrão do navegador */
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
   
-  /* 2. Aplica os estilos do nosso Design System */
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   border: var(--border-width) solid var(--cor-borda);

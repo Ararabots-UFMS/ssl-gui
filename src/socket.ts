@@ -12,6 +12,8 @@ export const blueRobots = reactive<Robot[]>([]);
 export const balls = reactive<Ball[]>([]);
 
 export const trajectories = reactive<{ [key: number]: TrajectoryPoint[] }>({});
+export const activeTheme = ref(localStorage.getItem('app-theme') || 'theme-default');
+
 
 export const systemStatus = reactive({ guiConnected: false, visionNode: false, strategyService: false, pidService: false });
 

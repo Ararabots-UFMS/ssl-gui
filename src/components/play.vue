@@ -42,6 +42,7 @@ function playButton() {
   border: none;
   min-width: 200px; 
   
+  
   background-color: var(--cor-sucesso);
   transition: background-color 0.2s ease, transform 0.1s ease, filter 0.2s ease;
 }

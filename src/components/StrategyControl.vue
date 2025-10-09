@@ -13,11 +13,7 @@ const velocityX = ref(0.0);
 const velocityY = ref(0.0);
 const orientation = ref(0.0); // Orientação em graus (-180 a 180)
 
-// Controle PID
-const pidKp = ref(3.0);
-const pidKi = ref(0.2);
-const pidKd = ref(1.0);
-const kpAngular = ref(2.5);
+// (PID moved to PidTuner.vue)
 
 // Controle de Obstáculos
 const obstacles = ref({
@@ -108,23 +104,7 @@ socket.on('strategy_response', (data) => {
   if (responses.value.length > 20) responses.value.pop();
 });
 
-socket.on('pid_response', (data) => {
-  const time = new Date().toLocaleTimeString();
-  const message = data.success 
-    ? `[${time}] SUCESSO: PID atualizado.`
-    : `[${time}] FALHA: ${data.message || 'Falha ao atualizar PID.'}`;
-  responses.value.unshift(message);
-  if (responses.value.length > 20) responses.value.pop();
-});
-
-socket.on('kp_angular_response', (data) => {
-  const time = new Date().toLocaleTimeString();
-  const message = data.success 
-    ? `[${time}] SUCESSO: Kp Angular atualizado.`
-    : `[${time}] FALHA: ${data.message || 'Falha ao atualizar Kp Angular.'}`;
-  responses.value.unshift(message);
-  if (responses.value.length > 20) responses.value.pop();
-});
+// PID listeners moved to PidTuner.vue
 
 socket.on('orientation_response', (data) => {
   const time = new Date().toLocaleTimeString();
@@ -179,16 +159,6 @@ const presets = {
   bottomRight: { x: 2250, y: -1500 }
 };
 
-// Presets de PID
-const pidPresets = {
-  conservative: { kp: 1.5, ki: 0.1, kd: 0.5 },
-  default: { kp: 3.0, ki: 0.2, kd: 1.0 },
-  aggressive: { kp: 5.0, ki: 0.5, kd: 1.5 },
-  highPrecision: { kp: 4.0, ki: 0.3, kd: 2.0 },
-  fastResponse: { kp: 6.0, ki: 0.1, kd: 0.8 },
-  smooth: { kp: 2.0, ki: 0.4, kd: 1.2 }
-};
-
 function sendStrategyCommand() {
   if (selectedRobotId.value === null) {
     alert('Por favor, selecione um robô para comandar.');
@@ -213,40 +183,7 @@ function sendStrategyCommand() {
   responses.value.unshift(`[${time}] Enviando comando de estratégia para robô ${payload.robot_id}...`);
 }
 
-function updatePID() {
-  if (selectedRobotId.value === null) {
-    alert('Por favor, selecione um robô.');
-    return;
-  }
-  
-  if (!servicesStatus.value.pid) {
-    alert('Serviço de PID não está disponível.');
-    return;
-  }
 
-  const payload = {
-    robot_id: selectedRobotId.value,
-    kp: pidKp.value,
-    ki: pidKi.value,
-    kd: pidKd.value
-  };
-  
-  socket.emit('updatePID', payload);
-  const time = new Date().toLocaleTimeString();
-  responses.value.unshift(`[${time}] Atualizando PID para robô ${payload.robot_id}...`);
-}
-
-function updateKpAngular() {
-  if (!servicesStatus.value.kp_angular) {
-    alert('Serviço de Kp Angular não está disponível.');
-    return;
-  }
-
-  const payload = { kp: kpAngular.value };
-  socket.emit('updateKpAngular', payload);
-  const time = new Date().toLocaleTimeString();
-  responses.value.unshift(`[${time}] Atualizando Kp Angular...`);
-}
 
 function setRobotOrientation() {
   if (selectedRobotId.value === null) {
@@ -323,12 +260,7 @@ function setOrientation(degrees: number) {
   orientation.value = degrees;
 }
 
-function setPIDPreset(preset: keyof typeof pidPresets) {
-  const values = pidPresets[preset];
-  pidKp.value = values.kp;
-  pidKi.value = values.ki;
-  pidKd.value = values.kd;
-}
+// setPIDPreset moved to PidTuner.vue
 
 // Campanhas automáticas
 function startCampaign() {
@@ -511,50 +443,7 @@ checkServicesStatus();
       </div>
     </div>
 
-    <!-- Controle PID -->
-    <div class="form-section">
-      <span class="section-label">4. Controle PID</span>
-      <div class="inputs-grid">
-        <label class="input-wrapper">
-          <span class="input-label">Kp (Proporcional)</span>
-          <input type="number" step="0.1" v-model.number="pidKp" />
-        </label>
-        <label class="input-wrapper">
-          <span class="input-label">Ki (Integral)</span>
-          <input type="number" step="0.01" v-model.number="pidKi" />
-        </label>
-        <label class="input-wrapper">
-          <span class="input-label">Kd (Derivativo)</span>
-          <input type="number" step="0.1" v-model.number="pidKd" />
-        </label>
-        <label class="input-wrapper">
-          <span class="input-label">Kp Angular</span>
-          <input type="number" step="0.1" v-model.number="kpAngular" />
-        </label>
-      </div>
-      
-      <!-- Presets de PID -->
-      <div class="presets-section">
-        <span class="preset-label">Presets PID:</span>
-        <div class="presets-grid">
-          <button @click="setPIDPreset('conservative')">Conservador</button>
-          <button @click="setPIDPreset('default')">Padrão</button>
-          <button @click="setPIDPreset('aggressive')">Agressivo</button>
-          <button @click="setPIDPreset('highPrecision')">Alta Precisão</button>
-          <button @click="setPIDPreset('fastResponse')">Resposta Rápida</button>
-          <button @click="setPIDPreset('smooth')">Suave</button>
-        </div>
-      </div>
-      
-      <div class="action-buttons">
-        <button class="action-button" @click="updatePID" :disabled="!servicesStatus.pid">
-          ⚙️ Atualizar PID
-        </button>
-        <button class="action-button" @click="updateKpAngular" :disabled="!servicesStatus.kp_angular">
-          🔄 Atualizar Kp Angular
-        </button>
-      </div>
-    </div>
+    <!-- Controle PID moved to PidTuner.vue (aba Ajuste PID) -->
 
     <!-- Controle de Obstáculos -->
     <div class="form-section">
@@ -743,10 +632,11 @@ input[type="number"]:focus, input[type="text"]:focus {
   box-shadow: none;
 }
 .action-button.primary {
-  background: linear-gradient(45deg, var(--cor-sucesso), #28a745);
+  background: linear-gradient(45deg, var(--cor-sucesso), var(--cor-sucesso));
+  color: var(--texto-principal);
 }
 .action-button.danger {
-  background: linear-gradient(45deg, var(--cor-erro), #dc3545);
+  background: linear-gradient(45deg, var(--cor-erro), var(--cor-erro));
 }
 
 /* Obstáculos */

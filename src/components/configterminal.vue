@@ -10,11 +10,10 @@ interface CardConfig {
 }
 
 // --- ESTADO REATIVO ---
-// Define a estrutura dos cards. Usamos ref para o array principal.
 const cards = ref<CardConfig[]>([
   { id: '0', port: '0' },
   { id: '0', port: '0', num_cams: '0' },
-  { id: '0' }, // O terceiro card não tem 'port' por padrão
+  { id: '0' }, 
 ]);
 
 const icons = [
@@ -98,12 +97,11 @@ if (storedData) {
 <style scoped>
 .config-container {
   width: 100%;
-  max-width: 600px; /* Define uma largura máxima para melhor legibilidade */
-  margin: var(--spacing-5) auto; /* Centraliza e adiciona margem no topo/baixo */
+  max-width: 600px;
+  margin: var(--spacing-5) auto; 
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3); /* Espaçamento consistente entre os cards */
-}
+  gap: var(--spacing-3);}
 
 .card-config {
   background-color: var(--fundo-secundario);
@@ -117,22 +115,21 @@ if (storedData) {
 }
 
 .card-icon {
-  width: 32px; /* Tamanho fixo para o ícone */
-  height: 32px;
+  width: 32px; 
   filter: invert(90%) sepia(10%) saturate(150%) hue-rotate(190deg) brightness(100%) contrast(90%);
 }
 
 .card-inputs {
   display: flex;
   flex-grow: 1;
-  gap: var(--spacing-3); /* Espaçamento entre os inputs */
+  gap: var(--spacing-3); 
 }
 
 .input-wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-1); /* Espaço entre o label e o input */
-  flex: 1; /* Faz com que os inputs dividam o espaço igualmente */
+  gap: var(--spacing-1); 
+  flex: 1; 
 }
 
 .input-label {
@@ -159,7 +156,7 @@ input[type="text"]:focus {
 
 .save-action {
   display: flex;
-  justify-content: flex-end; /* Alinha o botão à direita */
+  justify-content: flex-end; 
   margin-top: var(--spacing-2);
 }
 
