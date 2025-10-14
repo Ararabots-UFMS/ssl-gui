@@ -3,14 +3,52 @@ import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick } from 'v
 import { yellowRobots, blueRobots, balls, trajectories, socket, systemStatus } from '@/socket';
 import ThemeSwitcher from './ThemeSwitcher.vue';
 
+// Em src/components/Field.vue -> <script setup>
 
+// // NOVO: Guarda a entidade selecionada para posicionamento no modo de treino
+// const entityToPlace = ref<string | null>(null); // Ex: 'ball', 'yellow-0', 'blue-1'
+// // Em src/components/Field.vue -> <script setup>
+
+// function selectEntityForPlacement(entityId: string) {
+//     if (entityToPlace.value === entityId) {
+//         entityToPlace.value = null; // Clicar de novo deseleciona
+//     } else {
+//         entityToPlace.value = entityId;
+//     }
+// }
+// // Em src/components/Field.vue -> <script setup>
+
+// const onFieldClick = (event: MouseEvent) => {
+//     if (!fieldEl.value) return;
+//     const rect = fieldEl.value.getBoundingClientRect();
+//     const clickX_px = event.clientX - rect.left;
+//     const clickY_px = event.clientY - rect.top;
+//     const dims = FIELD_DIMENSIONS[fieldType.value];
+//     const targetX_mm = (clickX_px / scaleFactors.value.x) - (dims.fieldW / 2);
+//     const targetY_mm = (dims.fieldH / 2) - (clickY_px / scaleFactors.value.y);
+
+//     // Lógica condicional para o Modo de Posicionamento
+//     if (fieldType.value === 'treino' && entityToPlace.value) {
+//         const payload = {
+//             entity: entityToPlace.value,
+//             x: targetX_mm,
+//             y: targetY_mm,
+//             orientation: 0
+//         };
+//         socket.emit('place_entity', payload);
+//         console.log('Enviando comando de posicionamento:', payload);
+//     } else {
+//         // Comportamento padrão de "Click-to-Move" para os outros modos
+//         emit('target-updated', { x: targetX_mm, y: targetY_mm });
+//     }
+// };
 const FIELD_DIMENSIONS = {
     'SSL-EL': { fieldW: 5500, fieldH: 4000 },
     'SSL': { fieldW: 10400, fieldH: 7400 },
     'treino': { fieldW: 1530, fieldH: 1330 },
 } as const
+type FieldType = keyof typeof FIELD_DIMENSIONS;
 
-type FieldType = keyof typeof FIELD_DIMENSIONS
 type Robot = { id: number; position_x: number; position_y: number; orientation: number }
 type Ball = { id: number; position_x: number; position_y: number }
 
@@ -150,7 +188,56 @@ onBeforeUnmount(() => {
 <template>
     <div class="field-container" :style="{ '--line-thickness': `${lineThickness}px` }">
         <div class="control-bar">
-            <div class="control-group">
+<!--           <div v-if="fieldType === 'treino'" class="placement-toolbar">
+            <div class="entity-group">
+                    <button 
+                        class="entity-button ball" 
+                        :class="{ active: entityToPlace === 'ball' }"
+                        @click="selectEntityForPlacement('ball')"
+                        title="Posicionar Bola"
+                    >
+                        <svg viewBox="0 0 50 50">
+                            <circle cx="25" cy="25" r="20"/>
+                        </svg>
+                    </button>
+                </div>
+              
+                <div class="entity-group">
+                    <span class="team-label yellow">Y</span>
+                    <button 
+                        v-for="robot in yellowRobots" 
+                        :key="`y-${robot.id}`"
+                        class="entity-button robot"
+                        :class="{ active: entityToPlace === `yellow-${robot.id}` }"
+                        @click="selectEntityForPlacement(`yellow-${robot.id}`)"
+                        :title="`Posicionar Robô Amarelo ${robot.id}`"
+                    >
+                        <svg viewBox="0 0 50 50">
+                            <circle class="body yellow" cx="25" cy="25" r="24"/>
+                            <text class="id-text" x="50%" y="50%">{{ robot.id }}</text>
+                        </svg>
+                    </button>
+                </div>
+              
+                <div class="entity-group">
+                    <span class="team-label blue">B</span>
+                    <button 
+                        v-for="robot in blueRobots" 
+                        :key="`b-${robot.id}`"
+                        class="entity-button robot"
+                        :class="{ active: entityToPlace === `blue-${robot.id}` }"
+                        @click="selectEntityForPlacement(`blue-${robot.id}`)"
+                        :title="`Posicionar Robô Azul ${robot.id}`"
+                    >
+                        <svg viewBox="0 0 50 50">
+                            <circle class="body blue" cx="25" cy="25" r="24"/>
+                            <text class="id-text" x="50%" y="50%">{{ robot.id }}</text>
+                        </svg>
+                    </button>
+                </div>
+                <p v-if="yellowRobots.length === 0 && blueRobots.length === 0" class="no-robots-msg">Aguardando dados dos robôs...</p>
+            </div>     -->    
+    <!--         <div class="control-group">
                 <span class="control-label">Modo</span>
                 <p class="toggle-label" :class="{ inactive: mode }">Simu</p>
                 <label class="switch">
@@ -174,7 +261,7 @@ onBeforeUnmount(() => {
                     <input type="checkbox" :checked="teamColor" @click="changeTeamColor" />
                     <span class="slider team-color round"></span>
                 </label>
-            </div>
+            </div> -->
             <div class="control-group">
                 <label for="field-select" class="control-label">Campo</label>
                 <select id="field-select" :value="fieldType" @change="changeFieldType" class="select-field">
@@ -405,11 +492,12 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
 /* ==========================================================================
  * ELEMENTOS DO CAMPO
  * ========================================================================== */
+
 .robot, .ball {
   position: absolute;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .robot {
@@ -418,34 +506,37 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(0, 0, 0, 0.5);
   transition: transform 0.1s linear; 
+    background: radial-gradient(circle at 70% 30%, #2C2C2C, #000000);
+    border: 3px solid var(--robot-border-color, var(--cor-borda));
+    box-shadow: 0 0 8px var(--robot-border-color), 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .robot::before {
   content: '';
   position: absolute;
-  top: 10%; /* Posiciona na parte superior do robô */
-  width: 50%;
-  height: 50%;
-  background: rgb(233, 233, 233);
+  top: 15%; 
+  width: 20%;
+  height: 30%;
+  
+  background: white;
   border-radius: 50%;
-  opacity: 0.6;
-  box-shadow: 0 0 5px white;
+  opacity: 0.4;
+  box-shadow: 0 0 5px 2px white; 
 }
 
 .robot.yellow {
-  background: radial-gradient(circle at 70% 30%, #fff700, #ffc107);
+  --robot-border-color: var(--time-amarelo);
 }
 .robot.blue {
-  background: radial-gradient(circle at 70% 30%, #0b52b6, #0d6efd);
+  --robot-border-color: var(--time-azul);
 }
 
 .robot-id {
-  font-size: 11px;
-  font-weight: bold;
-  color: rgb(46, 2, 2);
-  text-shadow: 0px 0px 3px rgb(255, 33, 33);
+  font-size: 15px;
+  font-weight: 900;
+  color: white;
+  text-shadow: 0px 0px 4px rgba(0, 0, 0, 1);
   z-index: 1; 
 }
 
@@ -520,58 +611,55 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
 }
 
 /* --- 2. SSL-EL (azul escuro com linhas brancas) --- */
-.field.SSL-EL {
-  position: relative;
-  aspect-ratio: 1.405;
-  background: radial-gradient(circle at center, #0a0f24 0%, #050a1a 80%);
-  border: calc(var(--line-thickness) * 2) solid #ffffff;
-  border-radius: 1.5%;
-  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05),
-              inset 0 0 60px rgba(0, 0, 0, 0.6);
-  overflow: hidden;
-  --field-line-color: #ffffff;
-  --goal-color: rgba(255, 255, 255, 0.7);
-  --ret-ext-w: 92%;
-  --ret-ext-h: 82%;
-  --ret-ext-t: 9%;
-  --ret-ext-l: 4%;
-  --linha-v-h: 82%;
-  --linha-v-t: 9%;
-  --gol-w: 2.8%;
-  --gol-h: 18%;
-  --gol-l: 1.2%;
-  --gol-r: 1.2%;
-  --circulo-w: 13%;
-  --circulo-h: 17%;
-  --area-w: 9%;
-  --area-h: 26%;
-  --area-l: 4%;
-  --area-r: 4%;
-  --corner-size: 8%;
+.field.SSL-EL { 
+    --field-line-color: #ffffff98;
+    --goal-color: #ffffff6e; 
+
+    position: relative;
+    aspect-ratio: 1.405;
+    background: radial-gradient(circle at center, #222e5c 0%, #050a1a 80%);
+    border: calc(var(--line-thickness) * 2) solid #ffffff;
+    border-radius: 1.5%;
+    box-shadow: inset 0 0 20px rgba(59, 1, 1, 0.05),
+                inset 0 0 60px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+
+    --ret-ext-w: 81.82%; 
+    --ret-ext-h: 75%;
+    --ret-ext-t: 12.5%;
+    --ret-ext-l: 9.09%;
+    --linha-v-h: 75%;
+    --linha-v-t: 12.5%;
+    --gol-w: 5.82%;
+    --gol-h: 20%;
+    --gol-l: 3.55%; 
+    --circulo-w: 15%;
+    --circulo-h: 25%;
+    --area-w: 8.44%;
+    --area-h: 36.38%;
+    --area-l: 9.10%; 
+    --area-r: 9.10%;
+    --corner-size: 8%;
 }
 
 .field.SSL-EL::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(255, 255, 255, 0.04) 0px,
-    rgba(255, 255, 255, 0.04) 1px,
-    transparent 1px,
-    transparent 40px
-  );
-  pointer-events: none;
-  opacity: 0.4;
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
 }
-
 /* --- 3. Treino/Debug --- */
 .field.treino {
   position: relative;
   aspect-ratio: 1.15037593;
   background: var(--fundo-terciario);
   border: calc(var(--line-thickness) * 2) solid var(--cor-aviso);
-  box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+  box-shadow: inset 0 0 15px rgba(114, 30, 30, 0.5);
   --field-line-color: var(--cor-aviso);
   --goal-color: var(--cor-borda);
   --ret-ext-w: 70%;
@@ -589,6 +677,7 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   --area-h: 25%;
   --area-l: 15%;
 }
+
 
 /* ==========================================================================
  * LINHAS DO CAMPO
@@ -609,7 +698,6 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   top: 50%;
   left: var(--ret-ext-l);
   transform: translateY(-50%);
-  background-color: var(--field-line-color);
 }
 
 .linha-centro.vertical {
@@ -618,7 +706,6 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   left: 50%;
   top: var(--linha-v-t);
   transform: translateX(-50%);
-  background-color: var(--field-line-color);
 }
 
 /* === Retângulo e áreas === */
@@ -755,4 +842,82 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   padding-left: var(--spacing-3);
   border-left: 1px solid var(--cor-borda);
 }
+
+/* Em src/components/Field.vue -> <style scoped> */
+
+/* --- NOVOS ESTILOS PARA A BARRA DE POSICIONAMENTO --- */
+/* .placement-toolbar {
+  width: 100%;
+  background-color: var(--fundo-secundario);
+  padding: var(--spacing-2);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--cor-borda);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-4);
+  animation: fadeInSlideDown 0.3s ease-out;
+}
+
+@keyframes fadeInSlideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.entity-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: 0 var(--spacing-2);
+}
+
+.team-label {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-lg);
+}
+.team-label.yellow { color: var(--time-amarelo); }
+.team-label.blue { color: var(--time-azul); }
+
+.entity-button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.entity-button:hover {
+  transform: scale(1.1);
+}
+
+.entity-button.active {
+  border-color: var(--cor-destaque);
+  box-shadow: var(--glow-effect-destaque);
+}
+
+.entity-button.ball svg circle {
+  fill: var(--cor-aviso);
+}
+
+.entity-button.robot svg .body {
+  stroke-width: 3;
+  fill: var(--fundo-terciario);
+}
+.entity-button.robot svg .body.yellow { stroke: var(--time-amarelo); }
+.entity-button.robot svg .body.blue { stroke: var(--time-azul); }
+.entity-button.robot svg .id-text {
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  fill: var(--texto-secundario);
+  dominant-baseline: central;
+  text-anchor: middle;
+}
+.no-robots-msg {
+  font-size: var(--font-size-sm);
+  color: var(--texto-secundario);
+}
+ */
 </style>

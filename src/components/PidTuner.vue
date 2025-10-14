@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { socket } from '@/socket';
 
-// --- ESTADO REATIVO (Apenas para PID) ---
+// --- ESTADO REATIVO ---
 const selectedRobotId = ref(0);
 const pidKp = ref(3.0);
 const pidKi = ref(0.2);
@@ -27,8 +27,8 @@ socket.on('pid_response', (data) => {
   responses.value.unshift(data.success ? `[${time}] SUCESSO: PID atualizado.` : `[${time}] FALHA: PID não atualizado.`);
 });
 socket.on('kp_angular_response', (data) => {
-    const time = new Date().toLocaleTimeString();
-    responses.value.unshift(data.success ? `[${time}] SUCESSO: Kp Angular atualizado.` : `[${time}] FALHA: Kp Angular não atualizado.`);
+  const time = new Date().toLocaleTimeString();
+  responses.value.unshift(data.success ? `[${time}] SUCESSO: Kp Angular atualizado.` : `[${time}] FALHA: Kp Angular não atualizado.`);
 });
 socket.on('services_status', (status) => {
   if (status.pid !== undefined) servicesStatus.value.pid = status.pid;
@@ -38,12 +38,12 @@ socket.on('services_status', (status) => {
 // --- FUNÇÕES ---
 function updatePID() {
   const payload = { robot_id: selectedRobotId.value, kp: pidKp.value, ki: pidKi.value, kd: pidKd.value };
-  socket.emit('updatePID', payload);
+  socket.emit('update_pid', payload);
   responses.value.unshift(`[${new Date().toLocaleTimeString()}] Atualizando PID para R${payload.robot_id}...`);
 }
 function updateKpAngular() {
-  const payload = { robot_id: selectedRobotId.value, kp: kpAngular.value }; // Assumindo que o serviço espera 'kp'
-  socket.emit('updateKpAngular', payload);
+  const payload = { robot_id: selectedRobotId.value, kp_angular: kpAngular.value };
+  socket.emit('update_kp_angular', payload);
   responses.value.unshift(`[${new Date().toLocaleTimeString()}] Atualizando Kp Angular para R${payload.robot_id}...`);
 }
 function setPIDPreset(presetKey: keyof typeof pidPresets) {
@@ -57,66 +57,58 @@ function setPIDPreset(presetKey: keyof typeof pidPresets) {
 <template>
   <div class="control-container">
     <div class="form-section">
-      <span class="section-label">Status dos Serviços de Ajuste</span>
-       <div class="services-status">
-        <div class="service-item" :class="{ active: servicesStatus.pid }"><span>PID</span><div class="status-indicator" :class="{ online: servicesStatus.pid }"></div></div>
-        <div class="service-item" :class="{ active: servicesStatus.kp_angular }"><span>Kp Angular</span><div class="status-indicator" :class="{ online: servicesStatus.kp_angular }"></div></div>
+      <div class="section-header">
+        <span class="section-label">Calibração de PID</span>
+        <div class="services-status">
+          <div class="service-item" title="Serviço de PID Linear">
+            <span>Linear</span>
+            <div class="status-indicator" :class="{ online: servicesStatus.pid }"></div>
+          </div>
+          <div class="service-item" title="Serviço de PID Angular">
+            <span>Angular</span>
+            <div class="status-indicator" :class="{ online: servicesStatus.kp_angular }"></div>
+          </div>
+        </div>
       </div>
-    </div>
-    
-    <div class="form-section">
-      <span class="section-label">4. Controle PID</span>
+
       <label class="input-wrapper">
-        <span class="input-label">ID do Robô (0-15)</span>
+        <span class="input-label">Robô Alvo</span>
         <select v-model.number="selectedRobotId" class="robot-id-select">
           <option v-for="n in 16" :key="n-1" :value="n-1">{{ n-1 }}</option>
         </select>
       </label>
+
+      <hr class="separator" />
+
+      <span class="subsection-label">PID Linear</span>
       <div class="inputs-grid">
-         <label class="input-wrapper">
-          <span class="input-label">Kp (Proporcional)</span>
-          <input type="number" step="0.1" v-model.number="pidKp" />
-        </label>
-        <label class="input-wrapper">
-          <span class="input-label">Ki (Integral)</span>
-          <input type="number" step="0.01" v-model.number="pidKi" />
-        </label>
-        <label class="input-wrapper">
-          <span class="input-label">Kd (Derivativo)</span>
-          <input type="number" step="0.1" v-model.number="pidKd" />
-        </label>
+        <label class="input-wrapper"><span class="input-label">Kp</span><input type="number" step="0.1" v-model.number="pidKp" /></label>
+        <label class="input-wrapper"><span class="input-label">Ki</span><input type="number" step="0.01" v-model.number="pidKi" /></label>
+        <label class="input-wrapper"><span class="input-label">Kd</span><input type="number" step="0.1" v-model.number="pidKd" /></label>
       </div>
-      <div class="action-buttons">
-        <button class="action-button" @click="updatePID" :disabled="!servicesStatus.pid">
-          ⚙️ Atualizar PID
+      <div class="presets-grid">
+        <button v-for="(preset, key) in pidPresets" :key="key" @click="setPIDPreset(key as keyof typeof pidPresets)">
+          {{ key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1') }}
         </button>
       </div>
-    </div>
-    
-    <div class="form-section">
-        <span class="section-label">Kp Angular</span>
-        <label class="input-wrapper">
-            <span class="input-label">Valor: {{ kpAngular.toFixed(1) }}</span>
-            <input type="range" min="0" max="10" step="0.1" v-model.number="kpAngular" class="slider-input" />
-        </label>
-        <div class="action-buttons">
-            <button class="action-button" @click="updateKpAngular" :disabled="!servicesStatus.kp_angular">
-                🔄 Atualizar Kp Angular
-            </button>
-        </div>
-    </div>
+      <div class="main-actions">
+        <button class="action-button" @click="updatePID" :disabled="!servicesStatus.pid">Atualizar PID Linear</button>
+      </div>
 
-    <div class="form-section">
-        <span class="section-label">Presets PID</span>
-        <div class="presets-grid">
-            <button v-for="(preset, key) in pidPresets" :key="key" @click="setPIDPreset(key as keyof typeof pidPresets)">
-                {{ key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1') }}
-            </button>
-        </div>
+      <hr class="separator" />
+
+      <span class="subsection-label">PID Angular</span>
+      <label class="input-wrapper">
+        <span class="input-label">Kp Angular: {{ kpAngular.toFixed(1) }}</span>
+        <input type="range" min="0" max="10" step="0.1" v-model.number="kpAngular" class="slider-input" />
+      </label>
+      <div class="main-actions">
+        <button class="action-button" @click="updateKpAngular" :disabled="!servicesStatus.kp_angular">Atualizar Kp Angular</button>
+      </div>
     </div>
 
     <div class="response-log-section">
-       <span class="section-label">Log de Respostas PID</span>
+      <span class="section-label">Log de Respostas</span>
       <div class="response-log">
         <p v-for="(msg, index) in responses" :key="index" :class="{ success: msg.includes('SUCESSO'), fail: msg.includes('FALHA') }">{{ msg }}</p>
       </div>
@@ -131,55 +123,29 @@ function setPIDPreset(presetKey: keyof typeof pidPresets) {
 .form-section { display: flex; flex-direction: column; gap: var(--spacing-3); background: rgba(0,0,0,0.2); padding: var(--spacing-3); border-radius: var(--border-radius-md); border: 1px solid var(--cor-borda); }
 .section-header { display: flex; justify-content: space-between; align-items: center; }
 .section-label { font-size: var(--font-size-base); color: var(--texto-principal); font-weight: var(--font-weight-bold); }
+.subsection-label { font-size: var(--font-size-sm); color: var(--texto-secundario); font-weight: var(--font-weight-bold); text-transform: uppercase; }
 
+.services-status { display: flex; gap: var(--spacing-3); }
+.service-item { display: flex; align-items: center; gap: var(--spacing-2); }
+.service-item span { font-size: var(--font-size-sm); color: var(--texto-secundario); }
 .status-indicator { width: 10px; height: 10px; border-radius: 50%; background: var(--cor-erro); transition: background-color 0.3s ease; }
 .status-indicator.online { background: var(--cor-sucesso); box-shadow: 0 0 5px var(--cor-sucesso); }
 
-.inputs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-2); }
+.separator { border: none; height: 1px; background-color: var(--cor-borda); margin: var(--spacing-2) 0; }
+
+.inputs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-3); }
 .input-wrapper { display: flex; flex-direction: column; gap: var(--spacing-1); }
-.input-label { font-size: var(--font-size-sm); color: var(--texto-secundario); }
-
-input[type="number"], .robot-id-select {
-  border: none;
-  border-bottom: 2px solid var(--cor-borda);
-  background-color: transparent;
-  padding: var(--spacing-2) 0;
-  border-radius: 0;
-  color: var(--texto-principal);
-  font-size: var(--font-size-base);
-  transition: border-color 0.3s ease;
-}
+input[type="number"], .robot-id-select { border: none; border-bottom: 2px solid var(--cor-borda); background-color: transparent; padding: var(--spacing-2) 0; border-radius: 0; color: var(--texto-principal); font-size: var(--font-size-base); transition: border-color 0.3s ease; }
 input[type="number"]:focus, .robot-id-select:focus { outline: none; border-color: var(--cor-destaque); }
-
 .slider-input { width: 100%; cursor: pointer; }
 
 .main-actions { display: flex; justify-content: flex-end; }
-.action-button {
-  cursor: pointer;
-  padding: var(--spacing-2) var(--spacing-3);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  border-radius: var(--border-radius-sm);
-  border: none;
-  background-color: var(--cor-destaque);
-  color: white;
-  transition: all 0.2s ease;
-}
+.action-button { cursor: pointer; padding: var(--spacing-2) var(--spacing-3); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); border-radius: var(--border-radius-sm); border: none; background-color: var(--cor-destaque); color: white; transition: all 0.2s ease; }
 .action-button:hover:not(:disabled) { filter: brightness(1.1); }
 .action-button:disabled { background-color: var(--fundo-terciario); color: var(--texto-secundario); cursor: not-allowed; }
 
 .presets-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: var(--spacing-2); }
-.presets-grid button {
-  background-color: var(--fundo-terciario);
-  color: var(--texto-secundario);
-  border: var(--border-width) solid var(--cor-borda);
-  padding: var(--spacing-2);
-  border-radius: var(--border-radius-sm);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-}
+.presets-grid button { background-color: var(--fundo-terciario); color: var(--texto-secundario); border: var(--border-width) solid var(--cor-borda); padding: var(--spacing-2); border-radius: var(--border-radius-sm); cursor: pointer; transition: all 0.2s ease; font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); }
 .presets-grid button:hover { background-color: var(--cor-destaque); color: white; }
 
 .response-log-section { margin-top: var(--spacing-3); }

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { defineProps } from 'vue';
-// import ararabotsLogo from '@/assets/logo-gui.png';
 import ararabotsLogo from '@/assets/logo-arara-vermelha-borda-branca.png'; 
 
 defineProps({
