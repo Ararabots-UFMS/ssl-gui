@@ -10,13 +10,15 @@ interface RobotConfig {
   kp: string;
   ki: string;
   kd: string;
+  Kp_angular: string;
 }
 const MAX_ROBOTS = 6;
 const MAX_ROBOT_NUMBER = 15;
+
 const pidPresets = {
-  default: { kp: '3.0', ki: '0.2', kd: '1.0' },
-  aggressive: { kp: '5.0', ki: '0.5', kd: '1.5' },
-  conservative: { kp: '1.5', ki: '0.1', kd: '0.5' },
+  default: { kp: '3.0', ki: '0.2', kd: '1.0', Kp_angular: '2.5' },
+  aggressive: { kp: '5.0', ki: '0.5', kd: '1.5', Kp_angular: '3.0' },
+  conservative: { kp: '1.5', ki: '0.1', kd: '0.5', Kp_angular: '2.0' },
 };
 
 const emit = defineEmits(['configs-updated']);
@@ -68,6 +70,7 @@ const createEmptyCard = (): RobotConfig => ({
   kp: '3.0',
   ki: '0.2',
   kd: '1.0',
+  Kp_angular: '2.5'
 });
 
 const autoAssignNumbers = () => {
@@ -90,6 +93,7 @@ function applyPreset(card: RobotConfig, presetKey: string) {
     card.kp = preset.kp;
     card.ki = preset.ki;
     card.kd = preset.kd;
+    card.Kp_angular = preset.Kp_angular;
     onCardChange();
   }
 }
@@ -134,6 +138,7 @@ initializeCards();
     <div class="card-list">
       <div class="form-section" v-for="(card, index) in filteredCards" :key="index">
         <span class="section-label">Robô {{ index }}</span>
+        
         <div class="card-info">
           <div class="row">
             <label class="input-wrapper">
@@ -145,6 +150,7 @@ initializeCards();
               <input type="text" v-model="card.address" placeholder="0,0,0,0,0" @input="onCardChange" />
             </label>
           </div>
+          
           <div class="row">
             <label class="input-wrapper">
               <span class="input-label">KP</span>
@@ -158,18 +164,31 @@ initializeCards();
               <span class="input-label">KD</span>
               <input type="text" v-model="card.kd" @input="onCardChange" />
             </label>
-          </div>
-          <div class="row preset-row">
-             <label class="input-wrapper">
-              <span class="input-label">Presets PID</span>
-              <select class="dropdown" @change="applyPreset(card, ($event.target as HTMLSelectElement).value)">
-                <option value="">Selecione um preset...</option>
-                <option v-for="(preset, key) in pidPresets" :key="key" :value="key">
-                  {{ key.charAt(0).toUpperCase() + key.slice(1) }}
-                </option>
-              </select>
+            <label class="input-wrapper">
+              <span class="input-label">Kp Angular</span>
+              <input type="text" v-model="card.Kp_angular" @input="onCardChange" />
             </label>
           </div>
+         
+
+          <div class="row preset-row">
+            <div class="input-wrapper">
+              <span class="input-label">Presets PID</span>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button
+                  v-for="(preset, key) in pidPresets"
+                  :key="key"
+                  type="button"
+                  class="action-button"
+                  style="padding: 4px 12px; font-size: 0.9em;"
+                  @click="applyPreset(card, key)"
+                >
+                  {{ key.charAt(0).toUpperCase() + key.slice(1) }}
+                </button>
+              </div>
+            </div>
+          </div>
+        
         </div>
       </div>
     </div>
@@ -188,14 +207,46 @@ initializeCards();
 .dropdown { font-size: var(--font-size-base); border: var(--border-width) solid var(--cor-borda); border-radius: var(--border-radius-sm); background-color: var(--fundo-terciario); color: var(--texto-principal); padding: var(--spacing-1) var(--spacing-2); cursor: pointer; }
 .card-list { display: flex; flex-direction: column; gap: var(--spacing-3); }
 .card-info { display: flex; flex-direction: column; flex-grow: 1; gap: var(--spacing-3); }
-.row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-3); }
+.row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-3); }
 .row:has(input[placeholder*="Atacante"]) { grid-template-columns: 2fr 1fr; }
 .preset-row { margin-top: var(--spacing-2); }
+.preset-row .input-wrapper > div {
+  display: flex;
+  flex-direction: row;
+  gap: var(--spacing-2);
+  flex-wrap: nowrap;
+  width: 100%;
+}
+.preset-row .action-button {
+  border-radius: 6px;
+  padding: 8px 16px;
+  min-width: 80px;
+  min-height: 36px;
+  font-size: 1em;
+  background-color: var(--fundo-terciario);
+  color: var(--texto-principal);
+  border: 2px solid var(--cor-borda);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+}
+.preset-row .action-button:hover {
+  background-color: var(--cor-destaque);
+  color: #fff;
+  border-color: var(--cor-destaque);
+}
+.preset-row .input-wrapper > div {
+  /* Removido para evitar sobrescrita e garantir flexbox horizontal sem quebra */
+}
 .input-wrapper { display: flex; flex-direction: column; gap: var(--spacing-1); }
 .input-label { font-size: var(--font-size-sm); color: var(--texto-secundario); font-weight: var(--font-weight-bold); }
 input[type="text"] { width: 100%; padding: var(--spacing-2); border: none; border-bottom: 2px solid var(--cor-borda); background: transparent; color: var(--texto-principal); font-size: var(--font-size-base); transition: border-color 0.3s ease; }
 input[type="text"]:focus { outline: none; border-color: var(--cor-destaque); }
-.save-action { display: flex; justify-content: flex-end; margin-top: var(--spacing-2); }
+.save-action { display: table-row; justify-content: flex-end; margin-top: var(--spacing-2); }
 .action-button { cursor: pointer; padding: var(--spacing-2) var(--spacing-4); color: white; font-size: var(--font-size-base); font-weight: var(--font-weight-bold); background-color: var(--cor-sucesso); border-radius: var(--border-radius-md); border: none; transition: all 0.2s ease; }
 .action-button:hover { filter: brightness(1.1); }
+
 </style>

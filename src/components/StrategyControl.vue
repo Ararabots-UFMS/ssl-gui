@@ -3,7 +3,7 @@ import { ref, computed, onBeforeUnmount } from 'vue';
 import { socket, yellowRobots, blueRobots } from '@/socket';
 
 // --- ESTADO REATIVO ---
-const openSection = ref<'manual' | 'campaigns' | 'advanced'>('manual'); // Controla o acordeão
+const openSection = ref<'manual' | 'campaigns' | 'advanced'>('manual');
 
 const selectedTeam = ref<'yellow' | 'blue'>('yellow');
 const selectedRobotId = ref<number | null>(null);
@@ -68,9 +68,9 @@ checkServicesStatus();
 
     <div class="accordion">
       <div class="accordion-item">
-        <div class="accordion-header" @click="openSection = openSection === 'manual' ? '' : 'manual'">
+        <div class="accordion-header" @click="openSection = openSection === 'manual' ? null : 'manual'">
           <span class="section-label">Controle Manual</span>
-          <span class="accordion-icon">{{ openSection === 'manual' ? '−' : '+' }}</span>
+          <span class="accordion-icon">{{ openSection === 'manual' ? null : '+' }}</span>
         </div>
         <div v-if="openSection === 'manual'" class="accordion-content">
           
@@ -110,18 +110,18 @@ checkServicesStatus();
       </div>
 
       <div class="accordion-item">
-        <div class="accordion-header" @click="openSection = openSection === 'campaigns' ? '' : 'campaigns'">
+        <div class="accordion-header" @click="openSection = openSection === 'campaigns' ? null : 'campaigns'">
           <span class="section-label">Campanhas Automáticas</span>
-           <span class="accordion-icon">{{ openSection === 'campaigns' ? '−' : '+' }}</span>
+           <span class="accordion-icon">{{ openSection === 'campaigns' ? null : '+' }}</span>
         </div>
         <div v-if="openSection === 'campaigns'" class="accordion-content">
           </div>
       </div>
 
       <div class="accordion-item">
-        <div class="accordion-header" @click="openSection = openSection === 'advanced' ? '' : 'advanced'">
+        <div class="accordion-header" @click="openSection = openSection === 'advanced' ? null : 'advanced'">
           <span class="section-label">Configurações Avançadas</span>
-           <span class="accordion-icon">{{ openSection === 'advanced' ? '−' : '+' }}</span>
+           <span class="accordion-icon">{{ openSection === 'advanced' ? null : '+' }}</span>
         </div>
         <div v-if="openSection === 'advanced'" class="accordion-content">
           <span class="subsection-label">Configuração de Obstáculos</span>
@@ -142,7 +142,6 @@ checkServicesStatus();
 </template>
 
 <style scoped>
-/* Estilos completos e refinados para o componente */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .control-container { display: flex; flex-direction: column; gap: var(--spacing-4); width: 100%; animation: fadeIn 0.5s ease-out; }
 .status-header { display: flex; flex-wrap: wrap; gap: var(--spacing-3); align-items: center; background: rgba(0,0,0,0.2); padding: var(--spacing-2); border-radius: var(--border-radius-sm); border: 1px solid var(--cor-borda);}
@@ -173,7 +172,5 @@ input:focus { outline: none; border-color: var(--cor-destaque); }
 .response-log { background-color: rgba(0,0,0,0.3); border-radius: var(--border-radius-sm); padding: var(--spacing-2); height: 150px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: var(--font-size-sm); border: 1px solid var(--cor-borda); }
 .response-log p.success { color: var(--cor-sucesso); }
 .response-log p.fail { color: var(--cor-erro); }
-
-
 
 </style>

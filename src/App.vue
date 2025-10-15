@@ -11,7 +11,7 @@ import RobotCard from './components/robotcard.vue';
 import ConfigTerminal from './components/configterminal.vue';
 import Terminal from './components/terminal.vue';
 import StrategyControl from './components/StrategyControl.vue';
-import PidTuner from './components/PidTuner.vue';
+/* import PidTuner from './components/PidTuner.vue'; */
 import ThemeSwitcher from './components/ThemeSwitcher.vue';
 
 // --- ESTADO CENTRALIZADO ---
@@ -76,13 +76,13 @@ onBeforeUnmount(() => {
       <aside class="sidebar sidebar-right">
         <div class="sidebar-nav">
           <button :class="{ active: activeSidebarComponent === 'robots' }" @click="activeSidebarComponent = 'robots'">Robots</button>
-          <button :class="{ active: activeSidebarComponent === 'pid' }" @click="activeSidebarComponent = 'pid'">Ajuste PID</button>
+          <!-- <button :class="{ active: activeSidebarComponent === 'pid' }" @click="activeSidebarComponent = 'pid'">Ajuste PID</button> -->
           <button :class="{ active: activeSidebarComponent === 'commands' }" @click="activeSidebarComponent = 'commands'">Comandos</button>
           <button :class="{ active: activeSidebarComponent === 'config' }" @click="activeSidebarComponent = 'config'">Config GPIO</button>
         </div>
         
         <RobotCard v-if="activeSidebarComponent === 'robots'" @configs-updated="handleConfigsUpdate" />
-        <PidTuner v-if="activeSidebarComponent === 'pid'" />
+        <!-- <PidTuner v-if="activeSidebarComponent === 'pid'" /> -->
         <StrategyControl v-if="activeSidebarComponent === 'commands'" :roles="robotRoles" />
         <ConfigTerminal v-if="activeSidebarComponent === 'config'" />
       </aside>
