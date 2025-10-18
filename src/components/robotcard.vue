@@ -211,7 +211,7 @@ initializeCards();
 .row:has(input[placeholder*="Atacante"]) { grid-template-columns: 2fr 1fr; }
 .preset-row { margin-top: var(--spacing-2); }
 .preset-row .input-wrapper > div {
-  display: flex;
+  display: flex;  
   flex-direction: row;
   gap: var(--spacing-2);
   flex-wrap: nowrap;
@@ -239,7 +239,6 @@ initializeCards();
   border-color: var(--cor-destaque);
 }
 .preset-row .input-wrapper > div {
-  /* Removido para evitar sobrescrita e garantir flexbox horizontal sem quebra */
 }
 .input-wrapper { display: flex; flex-direction: column; gap: var(--spacing-1); }
 .input-label { font-size: var(--font-size-sm); color: var(--texto-secundario); font-weight: var(--font-weight-bold); }

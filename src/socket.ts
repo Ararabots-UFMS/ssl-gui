@@ -21,7 +21,7 @@ export const refereeLog = ref<string[]>(['Terminal do Juiz inicializado.']);
 export const visionLog = ref<string[]>(['Terminal da Visão inicializado.']);
 export const communicationLog = ref<string[]>(['Terminal de Comunicação inicializado.']);
 
-const URL = "http://localhost:5000";
+const URL = "http://localhost:8765";
 export const socket = io(URL);
 
 // Track last seen referee command to avoid spamming the UI with unchanged updates

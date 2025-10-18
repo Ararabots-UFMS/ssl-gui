@@ -3,45 +3,6 @@ import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick } from 'v
 import { yellowRobots, blueRobots, balls, trajectories, socket, systemStatus } from '@/socket';
 import ThemeSwitcher from './ThemeSwitcher.vue';
 
-// Em src/components/Field.vue -> <script setup>
-
-// // NOVO: Guarda a entidade selecionada para posicionamento no modo de treino
-// const entityToPlace = ref<string | null>(null); // Ex: 'ball', 'yellow-0', 'blue-1'
-// // Em src/components/Field.vue -> <script setup>
-
-// function selectEntityForPlacement(entityId: string) {
-//     if (entityToPlace.value === entityId) {
-//         entityToPlace.value = null; // Clicar de novo deseleciona
-//     } else {
-//         entityToPlace.value = entityId;
-//     }
-// }
-// // Em src/components/Field.vue -> <script setup>
-
-// const onFieldClick = (event: MouseEvent) => {
-//     if (!fieldEl.value) return;
-//     const rect = fieldEl.value.getBoundingClientRect();
-//     const clickX_px = event.clientX - rect.left;
-//     const clickY_px = event.clientY - rect.top;
-//     const dims = FIELD_DIMENSIONS[fieldType.value];
-//     const targetX_mm = (clickX_px / scaleFactors.value.x) - (dims.fieldW / 2);
-//     const targetY_mm = (dims.fieldH / 2) - (clickY_px / scaleFactors.value.y);
-
-//     // Lógica condicional para o Modo de Posicionamento
-//     if (fieldType.value === 'treino' && entityToPlace.value) {
-//         const payload = {
-//             entity: entityToPlace.value,
-//             x: targetX_mm,
-//             y: targetY_mm,
-//             orientation: 0
-//         };
-//         socket.emit('place_entity', payload);
-//         console.log('Enviando comando de posicionamento:', payload);
-//     } else {
-//         // Comportamento padrão de "Click-to-Move" para os outros modos
-//         emit('target-updated', { x: targetX_mm, y: targetY_mm });
-//     }
-// };
 const FIELD_DIMENSIONS = {
     'SSL-EL': { fieldW: 5500, fieldH: 4000 },
     'SSL': { fieldW: 10400, fieldH: 7400 },
@@ -188,80 +149,6 @@ onBeforeUnmount(() => {
 <template>
     <div class="field-container" :style="{ '--line-thickness': `${lineThickness}px` }">
         <div class="control-bar">
-<!--           <div v-if="fieldType === 'treino'" class="placement-toolbar">
-            <div class="entity-group">
-                    <button 
-                        class="entity-button ball" 
-                        :class="{ active: entityToPlace === 'ball' }"
-                        @click="selectEntityForPlacement('ball')"
-                        title="Posicionar Bola"
-                    >
-                        <svg viewBox="0 0 50 50">
-                            <circle cx="25" cy="25" r="20"/>
-                        </svg>
-                    </button>
-                </div>
-              
-                <div class="entity-group">
-                    <span class="team-label yellow">Y</span>
-                    <button 
-                        v-for="robot in yellowRobots" 
-                        :key="`y-${robot.id}`"
-                        class="entity-button robot"
-                        :class="{ active: entityToPlace === `yellow-${robot.id}` }"
-                        @click="selectEntityForPlacement(`yellow-${robot.id}`)"
-                        :title="`Posicionar Robô Amarelo ${robot.id}`"
-                    >
-                        <svg viewBox="0 0 50 50">
-                            <circle class="body yellow" cx="25" cy="25" r="24"/>
-                            <text class="id-text" x="50%" y="50%">{{ robot.id }}</text>
-                        </svg>
-                    </button>
-                </div>
-              
-                <div class="entity-group">
-                    <span class="team-label blue">B</span>
-                    <button 
-                        v-for="robot in blueRobots" 
-                        :key="`b-${robot.id}`"
-                        class="entity-button robot"
-                        :class="{ active: entityToPlace === `blue-${robot.id}` }"
-                        @click="selectEntityForPlacement(`blue-${robot.id}`)"
-                        :title="`Posicionar Robô Azul ${robot.id}`"
-                    >
-                        <svg viewBox="0 0 50 50">
-                            <circle class="body blue" cx="25" cy="25" r="24"/>
-                            <text class="id-text" x="50%" y="50%">{{ robot.id }}</text>
-                        </svg>
-                    </button>
-                </div>
-                <p v-if="yellowRobots.length === 0 && blueRobots.length === 0" class="no-robots-msg">Aguardando dados dos robôs...</p>
-            </div>     -->    
-    <!--         <div class="control-group">
-                <span class="control-label">Modo</span>
-                <p class="toggle-label" :class="{ inactive: mode }">Simu</p>
-                <label class="switch">
-                    <input type="checkbox" :checked="mode" @click="changeMode" />
-                    <span class="slider mode round"></span>
-                </label>
-                <p class="toggle-label" :class="{ inactive: !mode }">Real</p>
-            </div>
-            <div class="control-group">
-                <span class="control-label">Lado</span>
-                <p class="toggle-label" :class="{ inactive: side }">E</p>
-                <label class="switch">
-                    <input type="checkbox" :checked="side" @click="changeSide" />
-                    <span class="slider side round"></span>
-                </label>
-                <p class="toggle-label" :class="{ inactive: !side }">D</p>
-            </div>  
-            <div class="control-group">
-                <span class="control-label">Cor</span>
-                <label class="switch">
-                    <input type="checkbox" :checked="teamColor" @click="changeTeamColor" />
-                    <span class="slider team-color round"></span>
-                </label>
-            </div> -->
             <div class="control-group">
                 <label for="field-select" class="control-label">Campo</label>
                 <select id="field-select" :value="fieldType" @change="changeFieldType" class="select-field">
@@ -462,12 +349,12 @@ input:checked + .slider:before { transform: translateX(22px); }
 input:checked + .slider.mode { background-color: var(--cor-aviso); }
 
 .slider.side { background-color: var(--fundo-terciario); }
-input:checked + .slider.side { background-color: #555; }
+input:checked + .slider.side { background-color: #e62a2aff; }
 
 .slider.team-color { background-color: var(--time-azul); }
 input:checked + .slider.team-color { background-color: var(--time-amarelo); }
 
-.slider.trajectories { background-color: #888; }
+.slider.trajectories { background-color: #ce3131ff; }
 input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
 
 /* ==========================================================================
@@ -842,82 +729,4 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   padding-left: var(--spacing-3);
   border-left: 1px solid var(--cor-borda);
 }
-
-/* Em src/components/Field.vue -> <style scoped> */
-
-/* --- NOVOS ESTILOS PARA A BARRA DE POSICIONAMENTO --- */
-/* .placement-toolbar {
-  width: 100%;
-  background-color: var(--fundo-secundario);
-  padding: var(--spacing-2);
-  border-radius: var(--border-radius-md);
-  border: 1px solid var(--cor-borda);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-4);
-  animation: fadeInSlideDown 0.3s ease-out;
-}
-
-@keyframes fadeInSlideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.entity-group {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  padding: 0 var(--spacing-2);
-}
-
-.team-label {
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-lg);
-}
-.team-label.yellow { color: var(--time-amarelo); }
-.team-label.blue { color: var(--time-azul); }
-
-.entity-button {
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: 2px solid transparent;
-  border-radius: 50%;
-  background: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.entity-button:hover {
-  transform: scale(1.1);
-}
-
-.entity-button.active {
-  border-color: var(--cor-destaque);
-  box-shadow: var(--glow-effect-destaque);
-}
-
-.entity-button.ball svg circle {
-  fill: var(--cor-aviso);
-}
-
-.entity-button.robot svg .body {
-  stroke-width: 3;
-  fill: var(--fundo-terciario);
-}
-.entity-button.robot svg .body.yellow { stroke: var(--time-amarelo); }
-.entity-button.robot svg .body.blue { stroke: var(--time-azul); }
-.entity-button.robot svg .id-text {
-  font-size: 24px;
-  font-weight: var(--font-weight-bold);
-  fill: var(--texto-secundario);
-  dominant-baseline: central;
-  text-anchor: middle;
-}
-.no-robots-msg {
-  font-size: var(--font-size-sm);
-  color: var(--texto-secundario);
-}
- */
 </style>

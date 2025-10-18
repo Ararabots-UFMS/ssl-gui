@@ -1,95 +1,96 @@
-<script setup lang="ts">
-import { ref, watch, nextTick, onUpdated } from 'vue';
-import { socket, systemStatus, refereeLog, visionLog, communicationLog } from '@/socket';
-
-type TabName = 'juiz' | 'visao' | 'comunicacao';
-const refereeCommands = [
-  { name: 'Parar (STOP)', value: 'STOP' },
-  { name: 'Iniciar (START)', value: 'START' },
-  { name: 'Forçar Início (FORCE_START)', value: 'FORCE_START' },
-  // ... (outros comandos)
-];
-const selectedTab = ref<TabName>('juiz');
-const selectedCommand = ref<string>(refereeCommands[0].value);
-const messagesContainer = ref<HTMLElement | null>(null);
-
-function sendRefereeCommand() {
-  if (!selectedCommand.value) return;
-  socket.emit('refereeCommand', selectedCommand.value);
-  refereeLog.value.unshift(`[COMANDO ENVIADO]: ${selectedCommand.value}`);
-}
-
-// Garante que o scroll fique sempre no topo ao receber novas mensagens
-onUpdated(() => {
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = 0;
-  }
-});
-</script>
-
 <template>
-  <div class="terminal">
-    <div class="terminal-header">
-      <div class="tabs-container">
-        <div class="tab" :class="{ 'is-active': selectedTab === 'juiz' }" @click="selectedTab = 'juiz'">
-          <span class="status-dot" :class="{ active: systemStatus.strategyService }"></span>
-          Juiz
-        </div>
-        <div class="tab" :class="{ 'is-active': selectedTab === 'visao' }" @click="selectedTab = 'visao'">
-          <span class="status-dot" :class="{ active: systemStatus.visionNode }"></span>
-          Visão
-        </div>
-        <div class="tab" :class="{ 'is-active': selectedTab === 'comunicacao' }" @click="selectedTab = 'comunicacao'">
-          <span class="status-dot" :class="{ active: systemStatus.guiConnected }"></span>
-          Comunicação
-        </div>
-      </div>
+  <div class="terminal-container card">
+    <div class="terminal-tabs">
+      <button :class="{ active: activeTab === 'logs' }" @click="activeTab = 'logs'">Logs Gerais</button>
+      <button :class="{ active: activeTab === 'referee' }" @click="activeTab = 'referee'">
+        Referee
+        <span v-if="refereeLogs.length > 0" class="log-count">{{ refereeLogs.length }}</span>
+      </button>
+    </div>
 
-      <div v-if="selectedTab === 'juiz'" class="actions-container">
-        <select class="command-select" v-model="selectedCommand" :disabled="!systemStatus.strategyService">
-          <option v-for="cmd in refereeCommands" :key="cmd.value" :value="cmd.value">
-            {{ cmd.name }}
-          </option>
-        </select>
-        <button class="send-button" @click="sendRefereeCommand" :disabled="!systemStatus.strategyService">Enviar</button>
+    <div v-show="activeTab === 'logs'" class="terminal-log-area" ref="generalLogAreaRef">
+      <div v-for="(log, index) in generalLogs" :key="index" class="log-entry">
+        <span class="timestamp">{{ formatTimestamp(log.timestamp) }}</span>
+        <span :class="['log-message', log.type]">{{ log.message }}</span>
       </div>
     </div>
 
-    <div class="messages-container" ref="messagesContainer">
-      <div class="messages" v-show="selectedTab === 'juiz'">
-        <p v-for="(msg, index) in refereeLog" :key="index" class="line" :class="{ command: msg.includes('COMANDO') }">{{ msg }}</p>
-      </div>
-      <div class="messages" v-show="selectedTab === 'visao'">
-        <p v-for="(msg, index) in visionLog" :key="index" class="line">{{ msg }}</p>
-      </div>
-      <div class="messages" v-show="selectedTab === 'comunicacao'">
-        <p v-for="(msg, index) in communicationLog" :key="index" class="line" :class="{ success: msg.includes('✅'), fail: msg.includes('❌') }">{{ msg }}</p>
+    <div v-show="activeTab === 'referee'" class="terminal-log-area" ref="refereeLogAreaRef">
+       <div v-if="refereeLogs.length === 0" class="empty-state">Nenhum comando do juiz enviado nesta sessão.</div>
+       <div v-for="(log, index) in refereeLogs" :key="index" class="log-entry">
+        <span class="timestamp">{{ formatTimestamp(log.timestamp) }}</span>
+        <span :class="['log-message', log.type]">{{ log.message }}</span>
       </div>
     </div>
   </div>
 </template>
 
-<style scoped>
-.terminal { background-color: var(--fundo-secundario); border-radius: var(--border-radius-md); width: 100%; height: 100%; min-height: 200px; display: flex; flex-direction: column; overflow: hidden; border: var(--border-width) solid var(--cor-borda); }
-.terminal-header { display: flex; justify-content: space-between; align-items: center; padding: 0 var(--spacing-3); background-color: var(--fundo-principal); border-bottom: var(--border-width) solid var(--cor-borda); flex-shrink: 0; height: 50px; }
-.tabs-container { display: flex; height: 100%; }
-.tab { display: flex; align-items: center; padding: 0 var(--spacing-3); cursor: pointer; color: var(--texto-secundario); border-bottom: 2px solid transparent; font-weight: var(--font-weight-bold); transition: color 0.2s ease, border-color 0.2s ease; height: 100%; }
-.tab:hover { color: var(--texto-principal); }
-.tab.is-active { color: var(--texto-principal); border-bottom-color: var(--cor-destaque); }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--cor-erro); margin-right: var(--spacing-2); transition: background-color 0.3s ease; }
-.status-dot.active { background-color: var(--cor-sucesso); box-shadow: 0 0 5px var(--cor-sucesso); }
-.actions-container { display: flex; align-items: center; gap: var(--spacing-2); }
-.command-select { background-color: var(--fundo-terciario); color: var(--texto-principal); border: var(--border-width) solid var(--cor-borda); border-radius: var(--border-radius-sm); padding: var(--spacing-1) var(--spacing-2); font-size: var(--font-size-sm); }
-.send-button { cursor: pointer; padding: var(--spacing-1) var(--spacing-3); color: #ffffff; font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); background-color: var(--cor-destaque); border-radius: var(--border-radius-sm); border: none; transition: all 0.2s ease; }
-.send-button:hover:not(:disabled) { filter: brightness(1.1); }
-.send-button:disabled, .command-select:disabled { background-color: var(--fundo-terciario); color: var(--texto-secundario); cursor: not-allowed; opacity: 0.5; }
+<script setup lang="ts">
+import { ref, watch, nextTick, onMounted } from 'vue';
 
-.messages-container { flex-grow: 1; overflow-y: auto; padding: var(--spacing-2); background-color: var(--fundo-principal); }
-.messages { display: flex; flex-direction: column; }
-.line { color: var(--texto-secundario); white-space: pre-wrap; font-family: 'Courier New', Courier, monospace; font-size: var(--font-size-sm); padding: 2px 4px; border-radius: var(--border-radius-sm); }
-.line:first-child { background-color: rgba(0,0,0,0.2); }
-/* Estilos semânticos para as linhas de log */
-.line.command { color: var(--cor-destaque); font-weight: var(--font-weight-bold); }
-.line.success { color: var(--cor-sucesso); }
-.line.fail { color: var(--cor-erro); }
+const props = defineProps<{
+  latestCommand: { command: string; timestamp: Date } | null
+}>();
+
+// --- ESTADO INTERNO COM ABAS ---
+const activeTab = ref<'logs' | 'referee'>('logs');
+const generalLogs = ref<{ message: string; timestamp: Date; type: 'info' | 'error' }[]>([]);
+const refereeLogs = ref<{ message: string; timestamp: Date; type: 'referee' }[]>([]);
+
+// Refs para as áreas de scroll
+const generalLogAreaRef = ref<HTMLElement | null>(null);
+const refereeLogAreaRef = ref<HTMLElement | null>(null);
+
+// --- LÓGICA DE LOGS ---
+const addGeneralLog = (message: string, type: 'info' | 'error' = 'info') => {
+  generalLogs.value.push({ message, timestamp: new Date(), type });
+  scrollToBottom(generalLogAreaRef);
+};
+
+const addRefereeLog = (message: string, timestamp: Date) => {
+  refereeLogs.value.push({ message: `[REFEREE] Issued: ${message}`, timestamp, type: 'referee' });
+  scrollToBottom(refereeLogAreaRef);
+};
+
+// Observa o comando vindo do App.vue e adiciona APENAS na lista do referee
+watch(() => props.latestCommand, (newCommand) => {
+  if (newCommand) {
+    addRefereeLog(newCommand.command, newCommand.timestamp);
+  }
+});
+
+// Expondo a função para que o componente pai (App.vue) possa chamar
+defineExpose({ addGeneralLog });
+
+// --- FUNÇÕES AUXILIARES ---
+const scrollToBottom = (areaRef: typeof generalLogAreaRef) => {
+  nextTick(() => {
+    if (areaRef.value) {
+      areaRef.value.scrollTop = areaRef.value.scrollHeight;
+    }
+  });
+};
+
+const formatTimestamp = (date: Date) => {
+  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+};
+
+onMounted(() => {
+  addGeneralLog('Terminal inicializado. Aguardando logs...');
+});
+</script>
+
+<style scoped>
+.terminal-container { display: flex; flex-direction: column; height: 100%; padding: 0; overflow: hidden; }
+.terminal-tabs { display: flex; gap: var(--spacing-1); padding: var(--spacing-1); border-bottom: var(--border-width) solid var(--cor-borda); flex-shrink: 0; }
+.terminal-tabs button { padding: var(--spacing-2) var(--spacing-3); background-color: transparent; color: var(--texto-secundario); border: none; border-radius: var(--border-radius-sm); font-weight: var(--font-weight-bold); cursor: pointer; transition: all 0.2s ease; position: relative; }
+.terminal-tabs button:hover { color: var(--texto-principal); background-color: var(--fundo-terciario); }
+.terminal-tabs button.active { color: var(--texto-principal); background-color: var(--fundo-terciario); }
+.log-count { background-color: var(--cor-destaque); color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7em; position: absolute; top: 4px; right: 4px; }
+.terminal-log-area { flex-grow: 1; overflow-y: auto; font-family: 'Fira Code', Courier, monospace; font-size: 0.9em; padding: var(--spacing-2); }
+.log-entry { display: flex; gap: var(--spacing-2); line-height: 1.5; }
+.timestamp { color: var(--texto-secundario); }
+.log-message.referee { color: var(--cor-aviso); font-weight: var(--font-weight-bold); }
+.log-message.error { color: var(--cor-erro); }
+.empty-state { color: var(--texto-secundario); font-style: italic; text-align: center; margin-top: var(--spacing-4); }
 </style>
