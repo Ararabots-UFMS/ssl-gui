@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { socket } from '@/socket';
+
+import { useRobotData } from '@/socket/socket';
+
+const { socket } = useRobotData();
 
 // --- INTERFACES E CONSTANTES ---
 interface RobotConfig {
-  number: number | null; 
+  number: number | null;
   name: string;
   address: string;
   kp: string;
@@ -51,7 +54,7 @@ function updateCardList() {
 
 function saveButton() {
   const dataToSave = filteredCards.value.map(card => ({
-    id: card.number, 
+    id: card.number,
     name: card.name,
     address: card.address,
     kp: card.kp,
@@ -75,7 +78,7 @@ const createEmptyCard = (): RobotConfig => ({
 
 const autoAssignNumbers = () => {
   const usedNumbers = new Set<number>();
-  cards.value.forEach(card => card.number = null); 
+  cards.value.forEach(card => card.number = null);
   cards.value.forEach(card => {
     for (let i = 0; i <= MAX_ROBOT_NUMBER; i++) {
       if (!usedNumbers.has(i)) {
@@ -103,14 +106,14 @@ const initializeCards = () => {
   const savedOption = localStorage.getItem('selectedOption') || '3';
   selectedOption.value = savedOption;
   const initialCount = parseInt(savedOption, 10);
-  
+
   const savedCardsData = localStorage.getItem('cardData');
   let initialCards: RobotConfig[] = [];
-  
+
   if (savedCardsData) {
     initialCards = JSON.parse(savedCardsData);
   }
-  
+
   while (initialCards.length < initialCount) {
     initialCards.push(createEmptyCard());
   }
@@ -138,7 +141,7 @@ initializeCards();
     <div class="card-list">
       <div class="form-section" v-for="(card, index) in filteredCards" :key="index">
         <span class="section-label">Robô {{ index }}</span>
-        
+
         <div class="card-info">
           <div class="row">
             <label class="input-wrapper">
@@ -150,7 +153,7 @@ initializeCards();
               <input type="text" v-model="card.address" placeholder="0,0,0,0,0" @input="onCardChange" />
             </label>
           </div>
-          
+
           <div class="row">
             <label class="input-wrapper">
               <span class="input-label">KP</span>
@@ -169,26 +172,20 @@ initializeCards();
               <input type="text" v-model="card.Kp_angular" @input="onCardChange" />
             </label>
           </div>
-         
+
 
           <div class="row preset-row">
             <div class="input-wrapper">
               <span class="input-label">Presets PID</span>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button
-                  v-for="(preset, key) in pidPresets"
-                  :key="key"
-                  type="button"
-                  class="action-button"
-                  style="padding: 4px 12px; font-size: 0.9em;"
-                  @click="applyPreset(card, key)"
-                >
+                <button v-for="(preset, key) in pidPresets" :key="key" type="button" class="action-button"
+                  style="padding: 4px 12px; font-size: 0.9em;" @click="applyPreset(card, key)">
                   {{ key.charAt(0).toUpperCase() + key.slice(1) }}
                 </button>
               </div>
             </div>
           </div>
-        
+
         </div>
       </div>
     </div>
@@ -200,23 +197,87 @@ initializeCards();
 </template>
 
 <style scoped>
-.control-container { width: 100%; display: flex; flex-direction: column; gap: var(--spacing-4); animation: fadeInSlideUp 0.5s ease-out forwards; }
-@keyframes fadeInSlideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.form-section { display: flex; flex-direction: column; gap: var(--spacing-3); background: rgba(0,0,0,0.2); padding: var(--spacing-3); border-radius: var(--border-radius-md); border: 1px solid var(--cor-borda); }
-.section-label { font-size: var(--font-size-base); color: var(--texto-principal); font-weight: var(--font-weight-bold); }
-.dropdown { font-size: var(--font-size-base); border: var(--border-width) solid var(--cor-borda); border-radius: var(--border-radius-sm); background-color: var(--fundo-terciario); color: var(--texto-principal); padding: var(--spacing-1) var(--spacing-2); cursor: pointer; }
-.card-list { display: flex; flex-direction: column; gap: var(--spacing-3); }
-.card-info { display: flex; flex-direction: column; flex-grow: 1; gap: var(--spacing-3); }
-.row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-3); }
-.row:has(input[placeholder*="Atacante"]) { grid-template-columns: 2fr 1fr; }
-.preset-row { margin-top: var(--spacing-2); }
-.preset-row .input-wrapper > div {
-  display: flex;  
+.control-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  animation: fadeInSlideUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeInSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  background: rgba(0, 0, 0, 0.2);
+  padding: var(--spacing-3);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--cor-borda);
+}
+
+.section-label {
+  font-size: var(--font-size-base);
+  color: var(--texto-principal);
+  font-weight: var(--font-weight-bold);
+}
+
+.dropdown {
+  font-size: var(--font-size-base);
+  border: var(--border-width) solid var(--cor-borda);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--fundo-terciario);
+  color: var(--texto-principal);
+  padding: var(--spacing-1) var(--spacing-2);
+  cursor: pointer;
+}
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: var(--spacing-3);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-3);
+}
+
+.row:has(input[placeholder*="Atacante"]) {
+  grid-template-columns: 2fr 1fr;
+}
+
+.preset-row {
+  margin-top: var(--spacing-2);
+}
+
+.preset-row .input-wrapper>div {
+  display: flex;
   flex-direction: row;
   gap: var(--spacing-2);
   flex-wrap: nowrap;
   width: 100%;
 }
+
 .preset-row .action-button {
   border-radius: 6px;
   padding: 8px 16px;
@@ -233,19 +294,62 @@ initializeCards();
   margin-right: var(--spacing-2);
   margin-bottom: var(--spacing-2);
 }
+
 .preset-row .action-button:hover {
   background-color: var(--cor-destaque);
   color: #fff;
   border-color: var(--cor-destaque);
 }
-.preset-row .input-wrapper > div {
-}
-.input-wrapper { display: flex; flex-direction: column; gap: var(--spacing-1); }
-.input-label { font-size: var(--font-size-sm); color: var(--texto-secundario); font-weight: var(--font-weight-bold); }
-input[type="text"] { width: 100%; padding: var(--spacing-2); border: none; border-bottom: 2px solid var(--cor-borda); background: transparent; color: var(--texto-principal); font-size: var(--font-size-base); transition: border-color 0.3s ease; }
-input[type="text"]:focus { outline: none; border-color: var(--cor-destaque); }
-.save-action { display: table-row; justify-content: flex-end; margin-top: var(--spacing-2); }
-.action-button { cursor: pointer; padding: var(--spacing-2) var(--spacing-4); color: white; font-size: var(--font-size-base); font-weight: var(--font-weight-bold); background-color: var(--cor-sucesso); border-radius: var(--border-radius-md); border: none; transition: all 0.2s ease; }
-.action-button:hover { filter: brightness(1.1); }
 
+.preset-row .input-wrapper>div {}
+
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.input-label {
+  font-size: var(--font-size-sm);
+  color: var(--texto-secundario);
+  font-weight: var(--font-weight-bold);
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: var(--spacing-2);
+  border: none;
+  border-bottom: 2px solid var(--cor-borda);
+  background: transparent;
+  color: var(--texto-principal);
+  font-size: var(--font-size-base);
+  transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--cor-destaque);
+}
+
+.save-action {
+  display: table-row;
+  justify-content: flex-end;
+  margin-top: var(--spacing-2);
+}
+
+.action-button {
+  cursor: pointer;
+  padding: var(--spacing-2) var(--spacing-4);
+  color: white;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  background-color: var(--cor-sucesso);
+  border-radius: var(--border-radius-md);
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.action-button:hover {
+  filter: brightness(1.1);
+}
 </style>

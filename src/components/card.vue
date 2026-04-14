@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { socket } from '@/socket';
+
+import { useRobotData } from '@/socket/socket';
+
+const { socket } = useRobotData();
 
 // --- INTERFACE E PROPRIEDADES ---
 interface RobotInfo {
@@ -31,9 +34,9 @@ watch(() => props.roles, (newRoles) => {
 function updateRobotRole(robotId: number) {
   const newRole = localRoles.value[robotId];
   socket.emit('updateRobotRole', { id: robotId, role: newRole });
-  
+
   localStorage.setItem('selectedRobotRoles', JSON.stringify(localRoles.value));
-  
+
   emit('roles-updated', localRoles.value);
 }
 </script>
@@ -49,17 +52,13 @@ function updateRobotRole(robotId: number) {
         <h2>{{ robot.name || `Robô ${robot.id}` }}</h2>
       </div>
       <div class="card-role-selector">
-        <select 
-          class="dropdown-role" 
-          v-model="localRoles[robot.id]" 
-          @change="updateRobotRole(robot.id)"
-        >
+        <select class="dropdown-role" v-model="localRoles[robot.id]" @change="updateRobotRole(robot.id)">
           <option value="0">Função...</option>
           <option value="1">Atacante</option>
           <option value="2">Goleiro</option>
           <option value="3">Zagueiro</option>
         </select>
-      </div>      
+      </div>
     </div>
     <p v-if="!robots || robots.length === 0" class="no-robots-message">Nenhum robô configurado.</p>
   </div>
@@ -108,7 +107,8 @@ function updateRobotRole(robotId: number) {
   border-right: var(--border-width) solid var(--cor-borda);
 }
 
-.card-icon h2, .card-name h2 {
+.card-icon h2,
+.card-name h2 {
   font-size: var(--font-size-md);
   margin: 0;
   color: var(--texto-secundario);
@@ -121,12 +121,12 @@ function updateRobotRole(robotId: number) {
 .card-name {
   flex-grow: 1;
   margin-left: var(--spacing-2);
-  min-width: 0; 
+  min-width: 0;
 }
 
 .card-role-selector {
   margin-left: auto;
-  position: relative; 
+  position: relative;
 }
 
 /* --- AQUI ESTÁ A ESTILIZAÇÃO DO DROPDOWN --- */
@@ -134,7 +134,7 @@ function updateRobotRole(robotId: number) {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  
+
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   border: var(--border-width) solid var(--cor-borda);

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount } from 'vue';
-import { socket, yellowRobots, blueRobots } from '@/socket';
+import { useRobotData } from '@/socket/socket';
 
+const { socket, yellowRobots, blueRobots } = useRobotData();
 // --- ESTADO REATIVO ---
 const selectedTeam = ref<'yellow' | 'blue'>('yellow');
 const selectedRobotId = ref<number | null>(null);
@@ -86,18 +87,18 @@ onBeforeUnmount(() => {
 
 // --- PROPRIEDADES COMPUTADAS E LISTENERS ---
 const activeTeamRobots = computed(() => {
-    const team = selectedTeam.value === 'yellow' ? yellowRobots : blueRobots;
-    // Garante que o primeiro robô da lista seja selecionado se nenhum estiver ou se o selecionado não existir mais
-    if ((selectedRobotId.value === null || !team.some(r => r.id === selectedRobotId.value)) && team.length > 0) {
-        selectedRobotId.value = team[0].id;
-    }
-    return team;
+  const team = selectedTeam.value === 'yellow' ? yellowRobots : blueRobots;
+  // Garante que o primeiro robô da lista seja selecionado se nenhum estiver ou se o selecionado não existir mais
+  if ((selectedRobotId.value === null || !team.some(r => r.id === selectedRobotId.value)) && team.length > 0) {
+    selectedRobotId.value = team[0].id;
+  }
+  return team;
 });
 
 // --- LISTENERS DE EVENTOS ---
 socket.on('strategy_response', (data) => {
   const time = new Date().toLocaleTimeString();
-  const message = data.success 
+  const message = data.success
     ? `[${time}] SUCESSO: Comando de estratégia executado.`
     : `[${time}] FALHA: ${data.message || 'Comando de estratégia falhou.'}`;
   responses.value.unshift(message);
@@ -108,7 +109,7 @@ socket.on('strategy_response', (data) => {
 
 socket.on('orientation_response', (data) => {
   const time = new Date().toLocaleTimeString();
-  const message = data.success 
+  const message = data.success
     ? `[${time}] SUCESSO: Orientação definida.`
     : `[${time}] FALHA: ${data.message || 'Falha ao definir orientação.'}`;
   responses.value.unshift(message);
@@ -117,7 +118,7 @@ socket.on('orientation_response', (data) => {
 
 socket.on('obstacles_response', (data) => {
   const time = new Date().toLocaleTimeString();
-  const message = data.success 
+  const message = data.success
     ? `[${time}] SUCESSO: Obstáculos atualizados.`
     : `[${time}] FALHA: ${data.message || 'Falha ao atualizar obstáculos.'}`;
   responses.value.unshift(message);
@@ -126,7 +127,7 @@ socket.on('obstacles_response', (data) => {
 
 socket.on('team_color_response', (data) => {
   const time = new Date().toLocaleTimeString();
-  const message = data.success 
+  const message = data.success
     ? `[${time}] SUCESSO: Cor do time alterada.`
     : `[${time}] FALHA: ${data.message || 'Falha ao alterar cor do time.'}`;
   responses.value.unshift(message);
@@ -164,7 +165,7 @@ function sendStrategyCommand() {
     alert('Por favor, selecione um robô para comandar.');
     return;
   }
-  
+
   if (!servicesStatus.value.strategy) {
     alert('Serviço de estratégia não está disponível.');
     return;
@@ -177,7 +178,7 @@ function sendStrategyCommand() {
     velocity_x: velocityX.value,
     velocity_y: velocityY.value
   };
-  
+
   socket.emit('strategyCommand', payload);
   const time = new Date().toLocaleTimeString();
   responses.value.unshift(`[${time}] Enviando comando de estratégia para robô ${payload.robot_id}...`);
@@ -190,7 +191,7 @@ function setRobotOrientation() {
     alert('Por favor, selecione um robô.');
     return;
   }
-  
+
   if (!servicesStatus.value.orientation) {
     alert('Serviço de orientação não está disponível.');
     return;
@@ -201,7 +202,7 @@ function setRobotOrientation() {
     robot_id: selectedRobotId.value,
     orientation: orientationInRadians
   };
-  
+
   socket.emit('setOrientation', payload);
   const time = new Date().toLocaleTimeString();
   responses.value.unshift(`[${time}] Definindo orientação para robô ${payload.robot_id}...`);
@@ -212,7 +213,7 @@ function updateObstacles() {
     alert('Por favor, selecione um robô.');
     return;
   }
-  
+
   if (!servicesStatus.value.obstacles) {
     alert('Serviço de obstáculos não está disponível.');
     return;
@@ -227,7 +228,7 @@ function updateObstacles() {
     enemy_ids: obstacles.value.enemyIds,
     ally_ids: obstacles.value.allyIds
   };
-  
+
   socket.emit('updateObstacles', payload);
   const time = new Date().toLocaleTimeString();
   responses.value.unshift(`[${time}] Atualizando obstáculos para robô ${payload.robot_id}...`);
@@ -268,7 +269,7 @@ function startCampaign() {
     alert('Por favor, selecione um robô.');
     return;
   }
-  
+
   if (campaignRunning.value) {
     stopCampaign();
     return;
@@ -276,14 +277,14 @@ function startCampaign() {
 
   campaignRunning.value = true;
   let targetToggle = false;
-  
-  const targets = campaignType.value === 'horizontal' ? 
+
+  const targets = campaignType.value === 'horizontal' ?
     [presets.ourGoal, presets.enemyGoal] :
     [{ x: 0, y: -1500 }, { x: 0, y: 1500 }];
 
   campaignInterval = setInterval(() => {
     const target = targetToggle ? targets[1] : targets[0];
-    
+
     const payload = {
       robot_id: selectedRobotId.value,
       position_x: target.x,
@@ -291,7 +292,7 @@ function startCampaign() {
       velocity_x: 0,
       velocity_y: 0
     };
-    
+
     socket.emit('strategyCommand', payload);
     targetToggle = !targetToggle;
   }, 5000);
@@ -306,7 +307,7 @@ function stopCampaign() {
     campaignInterval = null;
   }
   campaignRunning.value = false;
-  
+
   const time = new Date().toLocaleTimeString();
   responses.value.unshift(`[${time}] Campanha interrompida.`);
 }
@@ -358,13 +359,8 @@ checkServicesStatus();
         </label>
       </div>
       <div class="robot-selector">
-        <div 
-          v-for="robot in activeTeamRobots" 
-          :key="robot.id"
-          class="robot-card"
-          :class="{ active: selectedRobotId === robot.id }"
-          @click="selectRobot(robot.id)"
-        >
+        <div v-for="robot in activeTeamRobots" :key="robot.id" class="robot-card"
+          :class="{ active: selectedRobotId === robot.id }" @click="selectRobot(robot.id)">
           {{ robot.id }}
         </div>
         <p v-if="activeTeamRobots.length === 0" class="no-robots-msg">Aguardando dados dos robôs...</p>
@@ -392,7 +388,7 @@ checkServicesStatus();
           <input type="number" step="100" v-model.number="velocityY" />
         </label>
       </div>
-      
+
       <!-- Presets de Posição -->
       <div class="presets-section">
         <span class="preset-label">Posições Pré-definidas:</span>
@@ -407,7 +403,7 @@ checkServicesStatus();
           <button @click="setPreset(presets.bottomRight.x, presets.bottomRight.y)">Inferior Dir.</button>
         </div>
       </div>
-      
+
       <div class="action-buttons">
         <button class="action-button primary" @click="sendStrategyCommand" :disabled="!servicesStatus.strategy">
           📍 Enviar Comando
@@ -467,19 +463,21 @@ checkServicesStatus();
             <span>Bola</span>
           </label>
         </div>
-        
+
         <div class="robot-ids-section">
           <label class="input-wrapper">
             <span class="input-label">IDs Robôs Inimigos (separados por vírgula)</span>
-            <input type="text" :value="obstacles.enemyIds.join(',')" @input="obstacles.enemyIds = ($event.target as HTMLInputElement).value.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))" />
+            <input type="text" :value="obstacles.enemyIds.join(',')"
+              @input="obstacles.enemyIds = ($event.target as HTMLInputElement).value.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))" />
           </label>
           <label class="input-wrapper">
             <span class="input-label">IDs Robôs Aliados (separados por vírgula)</span>
-            <input type="text" :value="obstacles.allyIds.join(',')" @input="obstacles.allyIds = ($event.target as HTMLInputElement).value.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))" />
+            <input type="text" :value="obstacles.allyIds.join(',')"
+              @input="obstacles.allyIds = ($event.target as HTMLInputElement).value.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))" />
           </label>
         </div>
       </div>
-      
+
       <div class="action-buttons">
         <button class="action-button" @click="updateObstacles" :disabled="!servicesStatus.obstacles">
           🚧 Atualizar Obstáculos
@@ -501,14 +499,10 @@ checkServicesStatus();
             <span>Vertical (Cima/Baixo)</span>
           </label>
         </div>
-        
+
         <div class="action-buttons">
-          <button 
-            class="action-button" 
-            :class="{ danger: campaignRunning }" 
-            @click="startCampaign"
-            :disabled="!servicesStatus.strategy"
-          >
+          <button class="action-button" :class="{ danger: campaignRunning }" @click="startCampaign"
+            :disabled="!servicesStatus.strategy">
             {{ campaignRunning ? '⏹️ Parar Campanha' : '▶️ Iniciar Campanha' }}
           </button>
         </div>
@@ -529,12 +523,13 @@ checkServicesStatus();
         </div>
       </div>
     </div>
-    
+
     <!-- Log de Respostas -->
     <div class="response-log-section">
       <span class="section-label">Log de Respostas</span>
       <div class="response-log">
-        <p v-for="(msg, index) in responses" :key="index" :class="{ success: msg.includes('SUCESSO'), fail: msg.includes('FALHA') }">{{ msg }}</p>
+        <p v-for="(msg, index) in responses" :key="index"
+          :class="{ success: msg.includes('SUCESSO'), fail: msg.includes('FALHA') }">{{ msg }}</p>
       </div>
     </div>
   </div>
@@ -542,41 +537,178 @@ checkServicesStatus();
 
 <style scoped>
 :root {
-    --input-bg: rgba(0,0,0,0.2);
-    --input-border: var(--cor-borda);
-    --input-border-focus: var(--cor-destaque);
+  --input-bg: rgba(0, 0, 0, 0.2);
+  --input-border: var(--cor-borda);
+  --input-border-focus: var(--cor-destaque);
 }
 
-.control-container { display: flex; flex-direction: column; gap: var(--spacing-4); width: 100%; }
-.form-section { display: flex; flex-direction: column; gap: var(--spacing-3); }
-.section-label { font-size: var(--font-size-base); color: var(--texto-principal); font-weight: var(--font-weight-bold); border-bottom: 1px solid var(--cor-borda); padding-bottom: var(--spacing-2); margin-bottom: var(--spacing-2); }
+.control-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  width: 100%;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.section-label {
+  font-size: var(--font-size-base);
+  color: var(--texto-principal);
+  font-weight: var(--font-weight-bold);
+  border-bottom: 1px solid var(--cor-borda);
+  padding-bottom: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+}
 
 /* Status dos Serviços */
-.services-status { display: flex; flex-wrap: wrap; gap: var(--spacing-2); align-items: center; }
-.service-item { display: flex; align-items: center; gap: var(--spacing-1); padding: var(--spacing-1) var(--spacing-2); border: 1px solid var(--cor-borda); border-radius: var(--border-radius-sm); background: var(--fundo-terciario); }
-.service-item.active { border-color: var(--cor-sucesso); }
-.service-item span { font-size: var(--font-size-sm); color: var(--texto-secundario); }
-.status-indicator { width: 8px; height: 8px; border-radius: 50%; background: var(--cor-erro); }
-.status-indicator.online { background: var(--cor-sucesso); }
-.refresh-button { padding: var(--spacing-1) var(--spacing-2); border: 1px solid var(--cor-borda); background: var(--fundo-secundario); color: var(--texto-secundario); border-radius: var(--border-radius-sm); cursor: pointer; font-size: var(--font-size-sm); transition: all 0.2s ease; }
-.refresh-button:hover { background: var(--cor-destaque); color: white; }
+.services-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  align-items: center;
+}
 
-.selection-header { display: flex; align-items: flex-end; gap: var(--spacing-3); }
-.team-selector { display: flex; gap: var(--spacing-2); }
-.team-selector button { padding: var(--spacing-1) var(--spacing-3); border: 1px solid var(--cor-borda); background: transparent; color: var(--texto-secundario); border-radius: var(--border-radius-md); cursor: pointer; font-weight: var(--font-weight-bold); transition: all 0.2s ease; }
-.team-selector button.active { background-color: var(--cor-destaque); color: white; border-color: var(--cor-destaque); box-shadow: var(--glow-effect-destaque); }
-.id-input { max-width: 140px; }
+.service-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--border-radius-sm);
+  background: var(--fundo-terciario);
+}
 
-.robot-selector { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
-.robot-card { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background-color: transparent; border: 2px solid var(--cor-borda); border-radius: var(--border-radius-md); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); cursor: pointer; transition: all 0.2s ease; }
-.robot-card:hover { border-color: var(--cor-destaque-hover); color: var(--cor-destaque-hover); }
-.robot-card.active { background-color: var(--cor-destaque); border-color: var(--cor-destaque); color: white; transform: scale(1.05); box-shadow: var(--glow-effect-destaque); }
-.no-robots-msg { color: var(--texto-secundario); }
+.service-item.active {
+  border-color: var(--cor-sucesso);
+}
 
-.inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-3); }
-.input-wrapper { display: flex; flex-direction: column; gap: var(--spacing-1); position: relative; }
-.input-label { font-size: var(--font-size-sm); color: var(--texto-secundario); }
-input[type="number"], input[type="text"] {
+.service-item span {
+  font-size: var(--font-size-sm);
+  color: var(--texto-secundario);
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cor-erro);
+}
+
+.status-indicator.online {
+  background: var(--cor-sucesso);
+}
+
+.refresh-button {
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--cor-borda);
+  background: var(--fundo-secundario);
+  color: var(--texto-secundario);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  transition: all 0.2s ease;
+}
+
+.refresh-button:hover {
+  background: var(--cor-destaque);
+  color: white;
+}
+
+.selection-header {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-3);
+}
+
+.team-selector {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.team-selector button {
+  padding: var(--spacing-1) var(--spacing-3);
+  border: 1px solid var(--cor-borda);
+  background: transparent;
+  color: var(--texto-secundario);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  font-weight: var(--font-weight-bold);
+  transition: all 0.2s ease;
+}
+
+.team-selector button.active {
+  background-color: var(--cor-destaque);
+  color: white;
+  border-color: var(--cor-destaque);
+  box-shadow: var(--glow-effect-destaque);
+}
+
+.id-input {
+  max-width: 140px;
+}
+
+.robot-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.robot-card {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: 2px solid var(--cor-borda);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.robot-card:hover {
+  border-color: var(--cor-destaque-hover);
+  color: var(--cor-destaque-hover);
+}
+
+.robot-card.active {
+  background-color: var(--cor-destaque);
+  border-color: var(--cor-destaque);
+  color: white;
+  transform: scale(1.05);
+  box-shadow: var(--glow-effect-destaque);
+}
+
+.no-robots-msg {
+  color: var(--texto-secundario);
+}
+
+.inputs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-3);
+}
+
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  position: relative;
+}
+
+.input-label {
+  font-size: var(--font-size-sm);
+  color: var(--texto-secundario);
+}
+
+input[type="number"],
+input[type="text"] {
   border: none;
   border-bottom: 2px solid var(--input-border);
   background-color: var(--input-bg);
@@ -586,44 +718,150 @@ input[type="number"], input[type="text"] {
   font-size: var(--font-size-base);
   transition: border-color 0.3s ease;
 }
-input[type="number"]:focus, input[type="text"]:focus {
+
+input[type="number"]:focus,
+input[type="text"]:focus {
   outline: none;
   border-color: var(--input-border-focus);
 }
 
 /* Presets */
-.presets-section { margin-top: var(--spacing-3); }
-.preset-label { font-size: var(--font-size-sm); color: var(--texto-secundario); margin-bottom: var(--spacing-2); display: block; }
-.presets-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--spacing-2); }
-.presets-grid button { background-color: var(--fundo-terciario); color: var(--texto-secundario); border: var(--border-width) solid var(--cor-borda); padding: var(--spacing-2); border-radius: var(--border-radius-sm); cursor: pointer; transition: all 0.2s ease; font-size: var(--font-size-sm); }
-.presets-grid button:hover { background-color: var(--cor-destaque); color: white; }
+.presets-section {
+  margin-top: var(--spacing-3);
+}
 
-.orientation-control-wrapper { display: flex; align-items: center; gap: var(--spacing-4); }
-.orientation-dial { position: relative; width: 150px; height: 150px; cursor: grab; flex-shrink: 0; }
-.orientation-dial:active { cursor: grabbing; }
-.orientation-dial svg { width: 100%; height: 100%; }
-.dial-bg { fill: var(--fundo-principal); stroke: var(--cor-borda); stroke-width: 2; }
-.robot-body { fill: var(--fundo-secundario); stroke: var(--cor-destaque); stroke-width: 3; filter: drop-shadow(var(--glow-effect-destaque)); }
-.robot-front { fill: var(--cor-destaque); }
-.orientation-value { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); color: var(--texto-principal); pointer-events: none; text-shadow: 0 0 5px rgba(0,0,0,0.5); }
+.preset-label {
+  font-size: var(--font-size-sm);
+  color: var(--texto-secundario);
+  margin-bottom: var(--spacing-2);
+  display: block;
+}
 
-.presets-grid-orientation { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-2); width: 100%; }
-.presets-grid-orientation button { background-color: var(--fundo-terciario); color: var(--texto-secundario); border: var(--border-width) solid var(--cor-borda); padding: var(--spacing-2); border-radius: var(--border-radius-sm); cursor: pointer; transition: all 0.2s ease; font-size: var(--font-size-sm); }
-.presets-grid-orientation button:hover { background-color: var(--cor-destaque); color: white; }
+.presets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing-2);
+}
+
+.presets-grid button {
+  background-color: var(--fundo-terciario);
+  color: var(--texto-secundario);
+  border: var(--border-width) solid var(--cor-borda);
+  padding: var(--spacing-2);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: var(--font-size-sm);
+}
+
+.presets-grid button:hover {
+  background-color: var(--cor-destaque);
+  color: white;
+}
+
+.orientation-control-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.orientation-dial {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.orientation-dial:active {
+  cursor: grabbing;
+}
+
+.orientation-dial svg {
+  width: 100%;
+  height: 100%;
+}
+
+.dial-bg {
+  fill: var(--fundo-principal);
+  stroke: var(--cor-borda);
+  stroke-width: 2;
+}
+
+.robot-body {
+  fill: var(--fundo-secundario);
+  stroke: var(--cor-destaque);
+  stroke-width: 3;
+  filter: drop-shadow(var(--glow-effect-destaque));
+}
+
+.robot-front {
+  fill: var(--cor-destaque);
+}
+
+.orientation-value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--texto-principal);
+  pointer-events: none;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.presets-grid-orientation {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-2);
+  width: 100%;
+}
+
+.presets-grid-orientation button {
+  background-color: var(--fundo-terciario);
+  color: var(--texto-secundario);
+  border: var(--border-width) solid var(--cor-borda);
+  padding: var(--spacing-2);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: var(--font-size-sm);
+}
+
+.presets-grid-orientation button:hover {
+  background-color: var(--cor-destaque);
+  color: white;
+}
 
 /* Botões de Ação */
-.action-buttons { display: flex; gap: var(--spacing-2); margin-top: var(--spacing-3); flex-wrap: wrap; }
-.action-button { 
-  flex: 1; min-width: 200px; cursor: pointer; padding: var(--spacing-3); font-size: var(--font-size-md); font-weight: var(--font-weight-bold); border-radius: var(--border-radius-md); border: none;
-  background: linear-gradient(45deg, var(--cor-destaque), var(--cor-destaque-hover));
-  color: white; 
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+.action-buttons {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-3);
+  flex-wrap: wrap;
 }
+
+.action-button {
+  flex: 1;
+  min-width: 200px;
+  cursor: pointer;
+  padding: var(--spacing-3);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--border-radius-md);
+  border: none;
+  background: linear-gradient(45deg, var(--cor-destaque), var(--cor-destaque-hover));
+  color: white;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
 .action-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.3), var(--glow-effect-destaque);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), var(--glow-effect-destaque);
 }
+
 .action-button:disabled {
   background: var(--fundo-terciario);
   color: var(--texto-secundario);
@@ -631,42 +869,129 @@ input[type="number"]:focus, input[type="text"]:focus {
   transform: none;
   box-shadow: none;
 }
+
 .action-button.primary {
   background: linear-gradient(45deg, var(--cor-sucesso), var(--cor-sucesso));
   color: var(--texto-principal);
 }
+
 .action-button.danger {
   background: linear-gradient(45deg, var(--cor-erro), var(--cor-erro));
 }
 
 /* Obstáculos */
-.obstacles-config { display: flex; flex-direction: column; gap: var(--spacing-3); }
-.checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-2); }
-.checkbox-wrapper { display: flex; align-items: center; gap: var(--spacing-2); cursor: pointer; }
-.checkbox-wrapper input[type="checkbox"] { width: 18px; height: 18px; }
-.checkbox-wrapper span { color: var(--texto-secundario); font-size: var(--font-size-sm); }
+.obstacles-config {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
 
-.robot-ids-section { display: flex; flex-direction: column; gap: var(--spacing-2); }
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-2);
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  cursor: pointer;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.checkbox-wrapper span {
+  color: var(--texto-secundario);
+  font-size: var(--font-size-sm);
+}
+
+.robot-ids-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
 
 /* Campanhas */
-.campaign-controls { display: flex; flex-direction: column; gap: var(--spacing-3); }
-.campaign-type { display: flex; flex-direction: column; gap: var(--spacing-2); }
-.radio-wrapper { display: flex; align-items: center; gap: var(--spacing-2); cursor: pointer; }
-.radio-wrapper input[type="radio"] { width: 18px; height: 18px; }
-.radio-wrapper span { color: var(--texto-secundario); font-size: var(--font-size-sm); }
+.campaign-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
 
-.response-log-section { margin-top: var(--spacing-3); }
-.response-log { background-color: rgba(0,0,0,0.3); border-radius: var(--border-radius-sm); padding: var(--spacing-2); height: 150px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: var(--font-size-sm); border: 1px solid var(--cor-borda); }
-.response-log p.success { color: var(--cor-sucesso); }
-.response-log p.fail { color: var(--cor-erro); }
+.campaign-type {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.radio-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  cursor: pointer;
+}
+
+.radio-wrapper input[type="radio"] {
+  width: 18px;
+  height: 18px;
+}
+
+.radio-wrapper span {
+  color: var(--texto-secundario);
+  font-size: var(--font-size-sm);
+}
+
+.response-log-section {
+  margin-top: var(--spacing-3);
+}
+
+.response-log {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-2);
+  height: 150px;
+  overflow-y: auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--cor-borda);
+}
+
+.response-log p.success {
+  color: var(--cor-sucesso);
+}
+
+.response-log p.fail {
+  color: var(--cor-erro);
+}
 
 /* Responsividade */
 @media (max-width: 768px) {
-  .inputs-grid { grid-template-columns: 1fr; }
-  .checkbox-grid { grid-template-columns: 1fr; }
-  .presets-grid { grid-template-columns: 1fr 1fr; }
-  .orientation-control-wrapper { flex-direction: column; }
-  .action-buttons { flex-direction: column; }
-  .action-button { min-width: auto; }
+  .inputs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .checkbox-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .presets-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .orientation-control-wrapper {
+    flex-direction: column;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .action-button {
+    min-width: auto;
+  }
 }
 </style>

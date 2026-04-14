@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { socket } from '@/socket';
+
+import { useRobotData } from '@/socket/socket';
+
+const { socket } = useRobotData();
 
 // --- INTERFACES E TIPOS ---
 interface CardConfig {
@@ -13,7 +16,7 @@ interface CardConfig {
 const cards = ref<CardConfig[]>([
   { id: '0', port: '0' },
   { id: '0', port: '0', num_cams: '0' },
-  { id: '0' }, 
+  { id: '0' },
 ]);
 
 const icons = [
@@ -57,32 +60,17 @@ if (storedData) {
         <div class="card-inputs">
           <label class="input-wrapper">
             <span class="input-label">ID</span>
-            <input
-              type="text"
-              v-model="card.id"
-              placeholder="0"
-              @input="onCardChange"
-            />
+            <input type="text" v-model="card.id" placeholder="0" @input="onCardChange" />
           </label>
 
           <label class="input-wrapper" v-if="'port' in card">
             <span class="input-label">Porta</span>
-            <input
-              type="text"
-              v-model="card.port"
-              placeholder="0"
-              @input="onCardChange"
-            />
+            <input type="text" v-model="card.port" placeholder="0" @input="onCardChange" />
           </label>
 
           <label class="input-wrapper" v-if="'num_cams' in card">
             <span class="input-label">N° Cams</span>
-            <input
-              type="text"
-              v-model="card.num_cams"
-              placeholder="0"
-              @input="onCardChange"
-            />
+            <input type="text" v-model="card.num_cams" placeholder="0" @input="onCardChange" />
           </label>
         </div>
       </div>
@@ -98,10 +86,11 @@ if (storedData) {
 .config-container {
   width: 100%;
   max-width: 600px;
-  margin: var(--spacing-5) auto; 
+  margin: var(--spacing-5) auto;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);}
+  gap: var(--spacing-3);
+}
 
 .card-config {
   background-color: var(--fundo-secundario);
@@ -115,21 +104,21 @@ if (storedData) {
 }
 
 .card-icon {
-  width: 32px; 
+  width: 32px;
   filter: invert(90%) sepia(10%) saturate(150%) hue-rotate(190deg) brightness(100%) contrast(90%);
 }
 
 .card-inputs {
   display: flex;
   flex-grow: 1;
-  gap: var(--spacing-3); 
+  gap: var(--spacing-3);
 }
 
 .input-wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-1); 
-  flex: 1; 
+  gap: var(--spacing-1);
+  flex: 1;
 }
 
 .input-label {
@@ -156,7 +145,7 @@ input[type="text"]:focus {
 
 .save-action {
   display: flex;
-  justify-content: flex-end; 
+  justify-content: flex-end;
   margin-top: var(--spacing-2);
 }
 
