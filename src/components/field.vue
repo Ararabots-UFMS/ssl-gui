@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick } from 'vue';
-import { yellowRobots, blueRobots, balls, trajectories, socket, systemStatus } from '@/socket';
 import ThemeSwitcher from './ThemeSwitcher.vue';
+import { useRobotData } from '@/socket/socket';
+import type { Ball, Robot } from '@/types/robotData';
 
 const FIELD_DIMENSIONS = {
-    'SSL-EL': { fieldW: 5500, fieldH: 4000 },
-    'SSL': { fieldW: 10400, fieldH: 7400 },
-    'treino': { fieldW: 1530, fieldH: 1330 },
+  'SSL-EL': { fieldW: 5500, fieldH: 4000 },
+  'SSL': { fieldW: 10400, fieldH: 7400 },
+  'treino': { fieldW: 1530, fieldH: 1330 },
 } as const
 type FieldType = keyof typeof FIELD_DIMENSIONS;
 
-type Robot = { id: number; position_x: number; position_y: number; orientation: number }
-type Ball = { id: number; position_x: number; position_y: number }
+const { balls, blueRobots, yellowRobots, trajectories, socket } = useRobotData();
 
 const fieldEl = ref<HTMLElement | null>(null)
 const lineThickness = ref(2)
@@ -24,26 +24,26 @@ const showTrajectories = ref<boolean>(JSON.parse(localStorage.getItem('showTraje
 const fieldSize = reactive({ width: 1, height: 1 })
 
 const scaleFactors = computed(() => {
-    if (!fieldSize.width) return { x: 1, y: 1 }
-    const dims = FIELD_DIMENSIONS[fieldType.value]
-    return {
-        x: fieldSize.width / dims.fieldW,
-        y: fieldSize.height / dims.fieldH,
-    }
+  if (!fieldSize.width) return { x: 1, y: 1 }
+  const dims = FIELD_DIMENSIONS[fieldType.value]
+  return {
+    x: fieldSize.width / dims.fieldW,
+    y: fieldSize.height / dims.fieldH,
+  }
 })
 
 const getStyledEntities = (entities: Robot[] | Ball[]) => computed(() =>
-    entities.map(entity => {
-        const dims = FIELD_DIMENSIONS[fieldType.value]
-        const centerX = dims.fieldW / 2
-        const centerY = dims.fieldH / 2
-        const left = `${(centerX + entity.position_x) * scaleFactors.value.x}px`
-        const top = `${(centerY - entity.position_y) * scaleFactors.value.y}px`
-        const transform = 'orientation' in entity
-            ? `translate(-50%, -50%) rotate(${entity.orientation}rad)`
-            : `translate(-50%, -50%)`
-        return { ...entity, style: { top, left, transform } }
-    })
+  entities.map(entity => {
+    const dims = FIELD_DIMENSIONS[fieldType.value]
+    const centerX = dims.fieldW / 2
+    const centerY = dims.fieldH / 2
+    const left = `${(centerX + entity.position_x) * scaleFactors.value.x}px`
+    const top = `${(centerY - entity.position_y) * scaleFactors.value.y}px`
+    const transform = 'orientation' in entity
+      ? `translate(-50%, -50%) rotate(${entity.orientation}rad)`
+      : `translate(-50%, -50%)`
+    return { ...entity, style: { top, left, transform } }
+  })
 )
 
 const styledYellowRobots = getStyledEntities(yellowRobots)
@@ -51,190 +51,164 @@ const styledBlueRobots = getStyledEntities(blueRobots)
 const styledBalls = getStyledEntities(balls)
 
 const styledTrajectories = computed(() => {
-    const result: { [key: number]: { x: number, y: number }[] } = {}
-    
-    Object.entries(trajectories).forEach(([robotId, points]) => {
-        const dims = FIELD_DIMENSIONS[fieldType.value]
-        const centerX = dims.fieldW / 2
-        const centerY = dims.fieldH / 2
-        
-        result[parseInt(robotId)] = points.map(point => {
-            const xMm = point.x * 1000
-            const yMm = point.y * 1000
-            
-            const xPixels = (centerX + xMm) * scaleFactors.value.x
-            const yPixels = (centerY - yMm) * scaleFactors.value.y
-            
-            return { x: xPixels, y: yPixels }
-        })
+  const result: Record<number, { x: number, y: number }[]> = {}
+
+  Object.entries(trajectories).forEach(([robotId, points]) => {
+    const dims = FIELD_DIMENSIONS[fieldType.value]
+    const centerX = dims.fieldW / 2
+    const centerY = dims.fieldH / 2
+
+    result[parseInt(robotId)] = points.map(point => {
+      const xMm = point.x * 1000
+      const yMm = point.y * 1000
+
+      const xPixels = (centerX + xMm) * scaleFactors.value.x
+      const yPixels = (centerY - yMm) * scaleFactors.value.y
+
+      return { x: xPixels, y: yPixels }
     })
-    
-    return result
+  })
+
+  return result
 })
 const generatePathString = (points: { x: number, y: number }[]) => {
-    if (points.length === 0) return ''
-    if (points.length === 1) return `M ${points[0].x} ${points[0].y}`
-    
-    let path = `M ${points[0].x} ${points[0].y}`
-    
-    for (let i = 1; i < points.length; i++) {
-        if (!isNaN(points[i].x) && !isNaN(points[i].y)) {
-            path += ` L ${points[i].x} ${points[i].y}`
-        }
+  if (points.length === 0) return ''
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`
+
+  let path = `M ${points[0].x} ${points[0].y}`
+
+  for (let i = 1; i < points.length; i++) {
+    if (!isNaN(points[i].x) && !isNaN(points[i].y)) {
+      path += ` L ${points[i].x} ${points[i].y}`
     }
-    
-    return path
+  }
+
+  return path
 }
 
-const getRobotColor = (robotId: number) => {
-    const yellowRobot = yellowRobots.find(r => r.id === robotId)
-    const blueRobot = blueRobots.find(r => r.id === robotId)
-    
-    if (yellowRobot) return 'yellow'
-    if (blueRobot) return 'blue'
-    return 'unknown'
+const getRobotColor = (robotId: number | string) => {
+  const id = Number(robotId)
+  const yellowRobot = yellowRobots.find(r => r.id === id)
+  const blueRobot = blueRobots.find(r => r.id === id)
+
+  if (yellowRobot) return 'yellow'
+  if (blueRobot) return 'blue'
+  return 'unknown'
 }
 
 const updateScale = () => {
-    if (fieldEl.value) {
-        const { width, height } = fieldEl.value.getBoundingClientRect()
-        fieldSize.width = width
-        fieldSize.height = height
-        lineThickness.value = Math.max(1.5, width * 0.002)
-    }
+  if (fieldEl.value) {
+    const { width, height } = fieldEl.value.getBoundingClientRect()
+    fieldSize.width = width
+    fieldSize.height = height
+    lineThickness.value = Math.max(1.5, width * 0.002)
+  }
 }
 
-const createToggleHandler = (stateRef: typeof side, eventName: string, storageKey: string) => () => {
-    stateRef.value = !stateRef.value
-    socket.emit(eventName, stateRef.value)
-    localStorage.setItem(storageKey, JSON.stringify(stateRef.value))
-}
+// TODO: (Luiz) definir se é necessário
+// const createToggleHandler = (stateRef: typeof side, eventName: string, storageKey: string) => () => {
+//   stateRef.value = !stateRef.value
+//   socket.emit(eventName, stateRef.value)
+//   localStorage.setItem(storageKey, JSON.stringify(stateRef.value))
+// }
 
-const changeMode = createToggleHandler(mode, 'fieldMode', 'mode')
-const changeSide = createToggleHandler(side, 'fieldSide', 'side')
-const changeTeamColor = createToggleHandler(teamColor, 'teamColor', 'teamColor')
+// const changeMode = createToggleHandler(mode, 'fieldMode', 'mode')
+// const changeSide = createToggleHandler(side, 'fieldSide', 'side')
+// const changeTeamColor = createToggleHandler(teamColor, 'teamColor', 'teamColor')
 const changeTrajectories = () => {
- 
-    localStorage.setItem('showTrajectories', JSON.stringify(showTrajectories.value))
-    try {
-        socket.emit('showTrajectories', showTrajectories.value)
-    } catch (e) {
-   
-    }
+  localStorage.setItem('showTrajectories', JSON.stringify(showTrajectories.value))
+  try {
+    socket.emit('showTrajectories', showTrajectories.value)
+  } catch (e) {
+
+  }
 }
 
 const changeFieldType = (event: Event) => {
-    const newType = (event.target as HTMLSelectElement).value as FieldType
-    fieldType.value = newType
-    socket.emit('fieldType', newType)
-    localStorage.setItem('fieldType', newType)
-    nextTick(updateScale)
+  const newType = (event.target as HTMLSelectElement).value as FieldType
+  fieldType.value = newType
+  socket.emit('fieldType', newType)
+  localStorage.setItem('fieldType', newType)
+  nextTick(updateScale)
 }
 
 onMounted(() => {
-    socket.emit('fieldMode', mode.value)
-    socket.emit('fieldSide', side.value)
-    socket.emit('teamColor', teamColor.value)
-    socket.emit('fieldType', fieldType.value)
-    nextTick(updateScale)
-    window.addEventListener('resize', updateScale)
+  socket.emit('fieldMode', mode.value)
+  socket.emit('fieldSide', side.value)
+  socket.emit('teamColor', teamColor.value)
+  socket.emit('fieldType', fieldType.value)
+  nextTick(updateScale)
+  window.addEventListener('resize', updateScale)
 })
 
 onBeforeUnmount(() => {
-    window.removeEventListener('resize', updateScale)
+  window.removeEventListener('resize', updateScale)
 })
 </script>
 
- 
+
 <template>
-    <div class="field-container" :style="{ '--line-thickness': `${lineThickness}px` }">
-        <div class="control-bar">
-            <div class="control-group">
-                <label for="field-select" class="control-label">Campo</label>
-                <select id="field-select" :value="fieldType" @change="changeFieldType" class="select-field">
-                    <option v-for="key in Object.keys(FIELD_DIMENSIONS)" :key="key" :value="key">
-                        {{ key }}
-                    </option>
-                </select>
-            </div>
+  <div class="field-container" :style="{ '--line-thickness': `${lineThickness}px` }">
+    <div class="control-bar">
+      <div class="control-group">
+        <label for="field-select" class="control-label">Campo</label>
+        <select id="field-select" :value="fieldType" @change="changeFieldType" class="select-field">
+          <option v-for="key in Object.keys(FIELD_DIMENSIONS)" :key="key" :value="key">
+            {{ key }}
+          </option>
+        </select>
+      </div>
 
-            <div class="control-group theme-group">
-                <span class="control-label">Tema</span>
-                <ThemeSwitcher />
-            </div>
-            <div class="control-group">
-                <span class="control-label">Trajetórias</span>
-                <p class="toggle-label" :class="{ inactive: !showTrajectories }">{{ showTrajectories ? 'ON' : 'OFF' }}</p>
-                <label class="switch">
-                    <input type="checkbox" v-model="showTrajectories" @change="changeTrajectories" />
-                    <span class="slider trajectories round"></span>
-                </label>
-            </div>
-           
-        </div>
+      <div class="control-group theme-group">
+        <span class="control-label">Tema</span>
+        <ThemeSwitcher />
+      </div>
+      <div class="control-group">
+        <span class="control-label">Trajetórias</span>
+        <p class="toggle-label" :class="{ inactive: !showTrajectories }">{{ showTrajectories ? 'ON' : 'OFF' }}</p>
+        <label class="switch">
+          <input type="checkbox" v-model="showTrajectories" @change="changeTrajectories" />
+          <span class="slider trajectories round"></span>
+        </label>
+      </div>
 
-     <div class="field-wrapper">
-            <div :class="['field', fieldType]" ref="fieldEl">
-                <!-- Trajetórias dos robôs -->
-                <svg v-if="showTrajectories && Object.keys(styledTrajectories).length > 0" class="trajectories-overlay" :width="fieldSize.width" :height="fieldSize.height">
-                    <g v-for="(points, robotId) in styledTrajectories" :key="`trajectory-${robotId}`">
-
-                        <path 
-                            v-if="points.length > 1"
-                            :d="generatePathString(points)" 
-                            :class="['trajectory', getRobotColor(robotId)]"
-                            fill="none"
-                            stroke-width="3"
-                            stroke-dasharray="8,4"
-                        />
-                    
-                        <circle 
-                            v-for="(point, index) in points" 
-                            :key="`point-${robotId}-${index}`"
-                            :cx="point.x" 
-                            :cy="point.y" 
-                            r="3"
-                            :class="['trajectory-point', getRobotColor(robotId)]"
-                        />
-                    
-                        <circle 
-                            v-if="points.length > 0"
-                            :cx="points[0].x" 
-                            :cy="points[0].y" 
-                            r="5"
-                            :class="['trajectory-start', getRobotColor(robotId)]"
-                        />
-                    </g>
-                </svg>
-
-                <!-- Robôs -->
-                <div v-for="r in styledYellowRobots" :key="`yellow-${r.id}`" class="robot yellow" :style="r.style">
-                    <span class="robot-id">{{ r.id }}</span>
-                </div>
-                <div v-for="r in styledBlueRobots" :key="`blue-${r.id}`" class="robot blue" :style="r.style">
-                    <span class="robot-id">{{ r.id }}</span>
-                </div>
-                <div v-for="b in styledBalls" :key="`ball-${b.id}`" class="ball" :style="b.style" />
-
-                <!-- Elementos do campo -->
-                <div class="ret-ext"></div>
-                <div class="linha-centro horizontal"></div>
-                <div class="linha-centro vertical"></div>
-                <div class="gol-esquerdo"></div>
-                <div class="gol-direito"></div>
-                <div class="circulo-central"></div>
-                <div class="area-esquerda"></div>
-                <div class="area-direita"></div>
-            </div>
-        </div>
     </div>
+
+    <div class="field-wrapper">
+      <div :class="['field', fieldType]" ref="fieldEl">
+        <svg v-if="showTrajectories && Object.keys(styledTrajectories).length > 0" class="trajectories-overlay"
+          :width="fieldSize.width" :height="fieldSize.height">
+          <g v-for="(points, robotId) in styledTrajectories" :key="`trajectory-${robotId}`">
+
+
+            <path v-if="points.length > 1" :d="generatePathString(points)"
+              :class="['trajectory', getRobotColor(robotId)]" fill="none" stroke-width="3" stroke-dasharray="8,4" />
+          </g>
+        </svg>
+
+        <div v-for="r in styledYellowRobots" :key="`yellow-${r.id}`" class="robot yellow" :style="r.style">
+          <span class="robot-id">{{ r.id }}</span>
+        </div>
+        <div v-for="r in styledBlueRobots" :key="`blue-${r.id}`" class="robot blue" :style="r.style">
+          <span class="robot-id">{{ r.id }}</span>
+        </div>
+        <div v-for="b in styledBalls" :key="`ball-${b.id}`" class="ball" :style="b.style" />
+
+        <div class="ret-ext"></div>
+        <div class="linha-centro horizontal"></div>
+        <div class="linha-centro vertical"></div>
+        <div class="gol-esquerdo"></div>
+        <div class="gol-direito"></div>
+        <div class="circulo-central"></div>
+        <div class="area-esquerda"></div>
+        <div class="area-direita"></div>
+      </div>
+    </div>
+  </div>
 </template>
 
 
 <style scoped>
-/* ==========================================================================
- * CONTAINERS PRINCIPAIS
- * ========================================================================== */
 .field-container {
   display: flex;
   flex-direction: column;
@@ -263,9 +237,6 @@ onBeforeUnmount(() => {
   background-color: var(--fundo-principal);
 }
 
-/* ==========================================================================
- * BARRA DE CONTROLE
- * ========================================================================== */
 .control-bar {
   width: 100%;
   flex-shrink: 0;
@@ -305,9 +276,6 @@ onBeforeUnmount(() => {
   font-weight: var(--font-weight-regular);
 }
 
-/* ==========================================================================
- * SWITCHES
- * ========================================================================== */
 .switch {
   position: relative;
   display: inline-block;
@@ -343,23 +311,42 @@ onBeforeUnmount(() => {
 }
 
 /* --- Tipos de slider --- */
-input:checked + .slider:before { transform: translateX(22px); }
+input:checked+.slider:before {
+  transform: translateX(22px);
+}
 
-.slider.mode { background-color: var(--cor-sucesso); }
-input:checked + .slider.mode { background-color: var(--cor-aviso); }
+.slider.mode {
+  background-color: var(--cor-sucesso);
+}
 
-.slider.side { background-color: var(--fundo-terciario); }
-input:checked + .slider.side { background-color: #e62a2aff; }
+input:checked+.slider.mode {
+  background-color: var(--cor-aviso);
+}
 
-.slider.team-color { background-color: var(--time-azul); }
-input:checked + .slider.team-color { background-color: var(--time-amarelo); }
+.slider.side {
+  background-color: var(--fundo-terciario);
+}
 
-.slider.trajectories { background-color: #ce3131ff; }
-input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
+input:checked+.slider.side {
+  background-color: #e62a2aff;
+}
 
-/* ==========================================================================
- * CAMPOS DE SELEÇÃO
- * ========================================================================== */
+.slider.team-color {
+  background-color: var(--time-azul);
+}
+
+input:checked+.slider.team-color {
+  background-color: var(--time-amarelo);
+}
+
+.slider.trajectories {
+  background-color: #ce3131ff;
+}
+
+input:checked+.slider.trajectories {
+  background-color: var(--cor-destaque);
+}
+
 .select-field {
   background-color: var(--fundo-terciario);
   color: var(--texto-principal);
@@ -376,11 +363,9 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   outline-offset: 2px;
 }
 
-/* ==========================================================================
- * ELEMENTOS DO CAMPO
- * ========================================================================== */
 
-.robot, .ball {
+.robot,
+.ball {
   position: absolute;
   transform: translate(-50%, -50%);
   border-radius: 50%;
@@ -388,33 +373,34 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
 }
 
 .robot {
-  width: 2.8%; 
+  width: 2.8%;
   height: 4.2%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.1s linear; 
-    background: radial-gradient(circle at 70% 30%, #2C2C2C, #000000);
-    border: 3px solid var(--robot-border-color, var(--cor-borda));
-    box-shadow: 0 0 8px var(--robot-border-color), 0 4px 12px rgba(0, 0, 0, 0.5);
+  transition: transform 0.1s linear;
+  background: radial-gradient(circle at 70% 30%, #2C2C2C, #000000);
+  border: 3px solid var(--robot-border-color, var(--cor-borda));
+  box-shadow: 0 0 8px var(--robot-border-color), 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .robot::before {
   content: '';
   position: absolute;
-  top: 15%; 
+  top: 15%;
   width: 20%;
   height: 30%;
-  
+
   background: white;
   border-radius: 50%;
   opacity: 0.4;
-  box-shadow: 0 0 5px 2px white; 
+  box-shadow: 0 0 5px 2px white;
 }
 
 .robot.yellow {
   --robot-border-color: var(--time-amarelo);
 }
+
 .robot.blue {
   --robot-border-color: var(--time-azul);
 }
@@ -424,7 +410,7 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   font-weight: 900;
   color: white;
   text-shadow: 0px 0px 4px rgba(0, 0, 0, 1);
-  z-index: 1; 
+  z-index: 1;
 }
 
 .ball {
@@ -432,9 +418,7 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   height: 2.8%;
   background: radial-gradient(circle at 70% 30%, #ffc107, #e65100);
 }
-/* ==========================================================================
- * TRAJETÓRIAS
- * ========================================================================== */
+
 .trajectories-overlay {
   position: absolute;
   top: 0;
@@ -465,11 +449,7 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   filter: drop-shadow(0 0 3px rgba(229, 255, 0, 0.6));
 }
 
-/* ==========================================================================
- * TEMAS DE CAMPO — SSL, SSL-EL e TREINO
- * ========================================================================== */
 
-/* --- 1. SSL (verde) --- */
 .field.SSL {
   position: relative;
   aspect-ratio: 1.405405405;
@@ -497,50 +477,49 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   --area-r: 6.5%;
 }
 
-/* --- 2. SSL-EL (azul escuro com linhas brancas) --- */
-.field.SSL-EL { 
-    --field-line-color: #ffffff98;
-    --goal-color: #ffffff6e; 
+.field.SSL-EL {
+  --field-line-color: #ffffff98;
+  --goal-color: #ffffff6e;
 
-    position: relative;
-    aspect-ratio: 1.405;
-    background: radial-gradient(circle at center, #222e5c 0%, #050a1a 80%);
-    border: calc(var(--line-thickness) * 2) solid #ffffff;
-    border-radius: 1.5%;
-    box-shadow: inset 0 0 20px rgba(59, 1, 1, 0.05),
-                inset 0 0 60px rgba(0, 0, 0, 0.6);
-    overflow: hidden;
+  position: relative;
+  aspect-ratio: 1.405;
+  background: radial-gradient(circle at center, #222e5c 0%, #050a1a 80%);
+  border: calc(var(--line-thickness) * 2) solid #ffffff;
+  border-radius: 1.5%;
+  box-shadow: inset 0 0 20px rgba(59, 1, 1, 0.05),
+    inset 0 0 60px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
 
-    --ret-ext-w: 81.82%; 
-    --ret-ext-h: 75%;
-    --ret-ext-t: 12.5%;
-    --ret-ext-l: 9.09%;
-    --linha-v-h: 75%;
-    --linha-v-t: 12.5%;
-    --gol-w: 5.82%;
-    --gol-h: 20%;
-    --gol-l: 3.55%; 
-    --circulo-w: 15%;
-    --circulo-h: 25%;
-    --area-w: 8.44%;
-    --area-h: 36.38%;
-    --area-l: 9.10%; 
-    --area-r: 9.10%;
-    --corner-size: 8%;
+  --ret-ext-w: 81.82%;
+  --ret-ext-h: 75%;
+  --ret-ext-t: 12.5%;
+  --ret-ext-l: 9.09%;
+  --linha-v-h: 75%;
+  --linha-v-t: 12.5%;
+  --gol-w: 5.82%;
+  --gol-h: 20%;
+  --gol-l: 3.55%;
+  --circulo-w: 15%;
+  --circulo-h: 25%;
+  --area-w: 8.44%;
+  --area-h: 36.38%;
+  --area-l: 9.10%;
+  --area-r: 9.10%;
+  --corner-size: 8%;
 }
 
 .field.SSL-EL::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
-/* --- 3. Treino/Debug --- */
+
 .field.treino {
   position: relative;
   aspect-ratio: 1.15037593;
@@ -566,11 +545,13 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
 }
 
 
-/* ==========================================================================
- * LINHAS DO CAMPO
- * ========================================================================== */
-.ret-ext, .linha-centro, .gol-esquerdo, .gol-direito,
-.circulo-central, .area-esquerda, .area-direita {
+.ret-ext,
+.linha-centro,
+.gol-esquerdo,
+.gol-direito,
+.circulo-central,
+.area-esquerda,
+.area-direita {
   position: absolute;
   box-sizing: border-box;
   border-style: solid;
@@ -578,7 +559,6 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   border-color: var(--field-line-color);
 }
 
-/* === Linhas centrais === */
 .linha-centro.horizontal {
   height: var(--line-thickness);
   width: var(--ret-ext-w);
@@ -595,7 +575,6 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   transform: translateX(-50%);
 }
 
-/* === Retângulo e áreas === */
 .ret-ext {
   width: var(--ret-ext-w);
   height: var(--ret-ext-h);
@@ -603,7 +582,8 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   left: var(--ret-ext-l);
 }
 
-.gol-esquerdo, .gol-direito {
+.gol-esquerdo,
+.gol-direito {
   width: var(--gol-w);
   height: var(--gol-h);
   top: 50%;
@@ -622,7 +602,6 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   border-left: var(--line-thickness) solid var(--field-line-color);
 }
 
-/* === Círculo central === */
 .circulo-central {
   width: var(--circulo-w);
   height: var(--circulo-h);
@@ -644,18 +623,22 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   transform: translate(-50%, -50%);
 }
 
-/* === Áreas === */
-.area-esquerda, .area-direita {
+.area-esquerda,
+.area-direita {
   width: var(--area-w);
   height: var(--area-h);
   top: 50%;
   transform: translateY(-50%);
 }
 
-.area-esquerda { left: var(--area-l); }
-.area-direita { right: var(--area-r, var(--area-l)); }
+.area-esquerda {
+  left: var(--area-l);
+}
 
-/* === Escanteios === */
+.area-direita {
+  right: var(--area-r, var(--area-l));
+}
+
 .corner {
   position: absolute;
   width: 3%;
@@ -664,14 +647,34 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   border-radius: 50%;
 }
 
-.corner.tl { top: 0; left: 0; border-bottom: none; border-right: none; }
-.corner.tr { top: 0; right: 0; border-bottom: none; border-left: none; }
-.corner.bl { bottom: 0; left: 0; border-top: none; border-right: none; }
-.corner.br { bottom: 0; right: 0; border-top: none; border-left: none; }
+.corner.tl {
+  top: 0;
+  left: 0;
+  border-bottom: none;
+  border-right: none;
+}
 
-/* ==========================================================================
- * STATUS / SERVIÇOS
- * ========================================================================== */
+.corner.tr {
+  top: 0;
+  right: 0;
+  border-bottom: none;
+  border-left: none;
+}
+
+.corner.bl {
+  bottom: 0;
+  left: 0;
+  border-top: none;
+  border-right: none;
+}
+
+.corner.br {
+  bottom: 0;
+  right: 0;
+  border-top: none;
+  border-left: none;
+}
+
 .status-section {
   display: flex;
   gap: var(--spacing-3);
@@ -704,9 +707,6 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   box-shadow: 0 0 8px var(--cor-sucesso);
 }
 
-/* ==========================================================================
- * RESPONSIVIDADE
- * ========================================================================== */
 @media (max-width: 768px) {
   .control-bar {
     display: grid;
@@ -722,9 +722,6 @@ input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
   }
 }
 
-/* ==========================================================================
- * SELETOR DE TEMA
- * ========================================================================== */
 .theme-group {
   padding-left: var(--spacing-3);
   border-left: 1px solid var(--cor-borda);
