@@ -27,56 +27,31 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick, onMounted } from 'vue';
+import { useLogs } from '@/composables/useLogs';
 
-const props = defineProps<{
-  latestCommand: { command: string; timestamp: Date } | null
-}>();
+const { generalLogs, refereeLogs } = useLogs();
 
-// --- ESTADO INTERNO COM ABAS ---
 const activeTab = ref<'logs' | 'referee'>('logs');
-const generalLogs = ref<{ message: string; timestamp: Date; type: 'info' | 'error' }[]>([]);
-const refereeLogs = ref<{ message: string; timestamp: Date; type: 'referee' }[]>([]);
-
-// Refs para as áreas de scroll
 const generalLogAreaRef = ref<HTMLElement | null>(null);
 const refereeLogAreaRef = ref<HTMLElement | null>(null);
 
-// --- LÓGICA DE LOGS ---
-const addGeneralLog = (message: string, type: 'info' | 'error' = 'info') => {
-  generalLogs.value.push({ message, timestamp: new Date(), type });
-  scrollToBottom(generalLogAreaRef);
-};
-
-const addRefereeLog = (message: string, timestamp: Date) => {
-  refereeLogs.value.push({ message: `[REFEREE] Issued: ${message}`, timestamp, type: 'referee' });
-  scrollToBottom(refereeLogAreaRef);
-};
-
-// Observa o comando vindo do App.vue e adiciona APENAS na lista do referee
-watch(() => props.latestCommand, (newCommand) => {
-  if (newCommand) {
-    addRefereeLog(newCommand.command, newCommand.timestamp);
-  }
-});
-
-// Expondo a função para que o componente pai (App.vue) possa chamar
-defineExpose({ addGeneralLog });
-
-// --- FUNÇÕES AUXILIARES ---
 const scrollToBottom = (areaRef: typeof generalLogAreaRef) => {
   nextTick(() => {
-    if (areaRef.value) {
-      areaRef.value.scrollTop = areaRef.value.scrollHeight;
-    }
+    if (areaRef.value) areaRef.value.scrollTop = areaRef.value.scrollHeight;
   });
 };
 
-const formatTimestamp = (date: Date) => {
-  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-};
+watch(generalLogs, () => scrollToBottom(generalLogAreaRef), { deep: true, flush: 'post' });
+watch(refereeLogs, () => scrollToBottom(refereeLogAreaRef), { deep: true, flush: 'post' });
+
+const formatTimestamp = (date: Date) =>
+  date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 onMounted(() => {
-  addGeneralLog('Terminal inicializado. Aguardando logs...');
+  if (generalLogs.value.length === 0) {
+    // Seed only once across the session, not on every remount.
+    useLogs().addGeneralLog('Terminal inicializado. Aguardando logs...');
+  }
 });
 </script>
 
