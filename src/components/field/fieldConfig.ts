@@ -52,12 +52,10 @@ export const FIELD_GEOMETRIES: Record<FieldType, FieldGeometry> = {
   },
 }
 
-// Physical SSL robots are ~180mm diameter; we render slightly larger for
-// visibility/readability (matches the old CSS version's prominence).
-export const ROBOT_RADIUS_MM = 180
-export const ROBOT_RING_WIDTH_MM = 36
-export const ROBOT_LABEL_FONT_MM = 260
-export const ROBOT_LABEL_STROKE_MM = 24
+export const ROBOT_RADIUS_MM = 90
+export const ROBOT_RING_WIDTH_MM = 18
+export const ROBOT_LABEL_FONT_MM = 180
+export const ROBOT_LABEL_STROKE_MM = 12
 export const BALL_RADIUS_MM = 55
 
 export const TRAJECTORY_STYLE = {
