@@ -7,3 +7,30 @@
   padding: 0;
   font-weight: normal;
 }
+
+/* Slim, theme-aware scrollbars. Firefox via scrollbar-* properties,
+   Chromium/WebKit via ::-webkit-scrollbar. The thumb sits on a
+   transparent track so it visually blends into whichever surface it
+   appears on. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--cor-borda) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--cor-borda);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--texto-secundario);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
