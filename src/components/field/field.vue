@@ -3,6 +3,7 @@ import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useTheme } from '@/composables/useTheme'
 import { FIELD_GEOMETRIES, type FieldType } from './fieldConfig'
 import { FieldRenderer } from './fieldRenderer'
+import { liveFieldGeometry } from '@/robotData/fieldGeometry'
 
 const props = defineProps<{
   fieldType: FieldType
@@ -17,7 +18,15 @@ const hostW = ref(0)
 const hostH = ref(0)
 const initError = ref<string | null>(null)
 
-const aspectRatio = computed(() => FIELD_GEOMETRIES[props.fieldType].aspectRatio)
+const aspectRatio = computed(() => {
+  const live = liveFieldGeometry.value
+  if (live && live.field_length && live.field_width) {
+    const w = live.field_length + 2 * live.boundary_width
+    const h = live.field_width + 2 * live.boundary_width
+    return w / h
+  }
+  return FIELD_GEOMETRIES[props.fieldType].aspectRatio
+})
 
 let renderer: FieldRenderer | null = null
 let containerObserver: ResizeObserver | null = null
@@ -38,6 +47,7 @@ const fit = () => {
 
 watch(activeTheme, () => renderer?.reloadTheme())
 watch(aspectRatio, () => requestAnimationFrame(fit))
+watch(liveFieldGeometry, () => requestAnimationFrame(fit), { deep: true })
 watch(() => props.fieldType, (v) => {
   renderer?.setFieldType(v)
   requestAnimationFrame(fit)

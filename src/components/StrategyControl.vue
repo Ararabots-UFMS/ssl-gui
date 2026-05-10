@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount } from 'vue';
 import { useRobotData } from '@/robotData/robotData';
+import { liveFieldGeometry } from '@/robotData/fieldGeometry';
 
 const { socket, yellowIds, blueIds } = useRobotData();
 // --- ESTADO REATIVO ---
@@ -147,17 +148,30 @@ function selectRobot(id: number) {
   selectedRobotId.value = id;
 }
 
-// Presets de posição (em mm)
-const presets = {
-  center: { x: 0, y: 0 },
-  ourGoal: { x: -2250, y: 0 },
-  enemyGoal: { x: 2250, y: 0 },
-  ourPenalty: { x: -1250, y: 0 },
-  topLeft: { x: -2250, y: 1500 },
-  topRight: { x: 2250, y: 1500 },
-  bottomLeft: { x: -2250, y: -1500 },
-  bottomRight: { x: 2250, y: -1500 }
-};
+// Presets de posição (mm) — derivados da geometria publicada pelo nó
+// de visão. Quando a geometria ainda não chegou, caímos num campo de
+// 4500×3000 mm como aproximação razoável (SSL Division B). Usar margens
+// de ~250 mm para que o robô não fique encostado na linha.
+const PRESET_MARGIN_MM = 250;
+const presets = computed(() => {
+  const live = liveFieldGeometry.value;
+  const halfX = (live?.field_length ?? 4500) / 2;
+  const halfY = (live?.field_width  ?? 3000) / 2;
+  // Distância do gol ao centro do penalty mark (~500mm dentro da linha).
+  const penaltyOffset = (live?.field_length ?? 4500) * 0.275;
+  const px = halfX - PRESET_MARGIN_MM;
+  const py = halfY - PRESET_MARGIN_MM;
+  return {
+    center:      { x: 0, y: 0 },
+    ourGoal:     { x: -px, y: 0 },
+    enemyGoal:   { x:  px, y: 0 },
+    ourPenalty:  { x: -(halfX - penaltyOffset), y: 0 },
+    topLeft:     { x: -px, y:  py },
+    topRight:    { x:  px, y:  py },
+    bottomLeft:  { x: -px, y: -py },
+    bottomRight: { x:  px, y: -py },
+  };
+});
 
 function sendStrategyCommand() {
   if (selectedRobotId.value === null) {
@@ -277,9 +291,11 @@ function startCampaign() {
   campaignRunning.value = true;
   let targetToggle = false;
 
+  const p = presets.value;
   const targets = campaignType.value === 'horizontal' ?
-    [presets.ourGoal, presets.enemyGoal] :
-    [{ x: 0, y: -1500 }, { x: 0, y: 1500 }];
+    [p.ourGoal, p.enemyGoal] :
+    [{ x: 0, y: -((liveFieldGeometry.value?.field_width ?? 3000) / 2 - PRESET_MARGIN_MM) },
+     { x: 0, y:  ((liveFieldGeometry.value?.field_width ?? 3000) / 2 - PRESET_MARGIN_MM) }];
 
   campaignInterval = setInterval(() => {
     const target = targetToggle ? targets[1] : targets[0];

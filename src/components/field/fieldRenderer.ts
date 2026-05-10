@@ -7,7 +7,9 @@ import {
   TELEPORT_SNAP_DIST_M, TELEPORT_SNAP_ROT_RAD,
   type FieldType, type FieldPalette,
 } from './fieldConfig'
-import { drawField } from './fieldGraphics'
+import { drawField, drawFieldFromLive } from './fieldGraphics'
+import { liveFieldGeometry, type LiveFieldGeometry } from '@/robotData/fieldGeometry'
+import { watch, type WatchStopHandle } from 'vue'
 
 interface RobotSprite {
   container: Container
@@ -60,6 +62,8 @@ export class FieldRenderer {
   private lastTrajectoryVersion = -1
   private lastTrajectoryDrawTs = 0
   private resizeObserver?: ResizeObserver
+  private liveGeo: LiveFieldGeometry | null = null
+  private liveGeoStopWatch?: WatchStopHandle
 
   constructor(host: HTMLElement, fieldType: FieldType, showTrajectories: boolean) {
     this.host = host
@@ -85,6 +89,14 @@ export class FieldRenderer {
     this.root.addChild(this.ballLayer)
     this.root.addChild(this.robotLayer)
     this.trajectoryLayer.visible = this.showTrajectories
+
+    this.liveGeo = liveFieldGeometry.value
+    this.liveGeoStopWatch = watch(liveFieldGeometry, (g) => {
+      this.liveGeo = g
+      if (!this.ready) return
+      this.redrawField()
+      this.resize()
+    }, { deep: true })
 
     this.redrawField()
     this.resize()
@@ -122,6 +134,7 @@ export class FieldRenderer {
 
   destroy(): void {
     this.resizeObserver?.disconnect()
+    this.liveGeoStopWatch?.()
     if (this.ready) {
       this.app.ticker.remove(this.tick)
       this.app.destroy(true, { children: true, texture: true })
@@ -129,12 +142,27 @@ export class FieldRenderer {
   }
 
   private redrawField(): void {
-    drawField(this.fieldLayer, FIELD_GEOMETRIES[this.fieldType], this.palette)
+    if (this.liveGeo) {
+      drawFieldFromLive(this.fieldLayer, this.liveGeo, this.palette)
+    } else {
+      drawField(this.fieldLayer, FIELD_GEOMETRIES[this.fieldType], this.palette)
+    }
+  }
+
+  /** Total drawable extents (mm) — prefers live geometry when available. */
+  private fieldExtents(): { w: number; h: number } {
+    if (this.liveGeo) {
+      return {
+        w: this.liveGeo.field_length + 2 * this.liveGeo.boundary_width,
+        h: this.liveGeo.field_width  + 2 * this.liveGeo.boundary_width,
+      }
+    }
+    const geo = FIELD_GEOMETRIES[this.fieldType]
+    return { w: geo.fieldW, h: geo.fieldH }
   }
 
   resize(): void {
     if (!this.ready) return
-    const geo = FIELD_GEOMETRIES[this.fieldType]
     const w = this.host.clientWidth
     const h = this.host.clientHeight
     if (w === 0 || h === 0) return
@@ -142,7 +170,8 @@ export class FieldRenderer {
     // so we must drive the renderer ourselves when the host reflows
     // (e.g. side panel toggle or grid-template changes).
     this.app.renderer.resize(w, h)
-    const scale = Math.min(w / geo.fieldW, h / geo.fieldH)
+    const ext = this.fieldExtents()
+    const scale = Math.min(w / ext.w, h / ext.h)
     this.root.scale.set(scale, -scale)
     this.root.position.set(w / 2, h / 2)
   }
