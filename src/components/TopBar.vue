@@ -2,24 +2,18 @@
 import ThemeSwitcher from './ThemeSwitcher.vue'
 import ModeSwitcher, { type RunMode } from './ModeSwitcher.vue'
 import PlayButton from './play.vue'
-import { FIELD_GEOMETRIES, type FieldType } from './field/fieldConfig'
 import ararabotsLogo from '@/assets/logo-arara-vermelha-borda-branca.png'
 
 defineProps<{
-  fieldType: FieldType
   showTrajectories: boolean
   mode: RunMode
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:fieldType', v: FieldType): void
   (e: 'update:showTrajectories', v: boolean): void
   (e: 'mode-changed', v: RunMode): void
 }>()
 
-const onFieldChange = (e: Event) => {
-  emit('update:fieldType', (e.target as HTMLSelectElement).value as FieldType)
-}
 const onTrajToggle = (e: Event) => {
   emit('update:showTrajectories', (e.target as HTMLInputElement).checked)
 }
@@ -33,13 +27,6 @@ const onTrajToggle = (e: Event) => {
     </div>
 
     <div class="top-bar-section controls">
-      <div class="control-group">
-        <label for="field-select" class="control-label">Campo</label>
-        <select id="field-select" :value="fieldType" @change="onFieldChange" class="select-field">
-          <option v-for="key in Object.keys(FIELD_GEOMETRIES)" :key="key" :value="key">{{ key }}</option>
-        </select>
-      </div>
-
       <div class="control-group">
         <span class="control-label">Trajetórias</span>
         <label class="switch">
@@ -113,18 +100,6 @@ const onTrajToggle = (e: Event) => {
   color: var(--texto-secundario);
   font-weight: var(--font-weight-bold);
 }
-
-.select-field {
-  background-color: var(--fundo-terciario);
-  color: var(--texto-principal);
-  border: var(--border-width) solid var(--cor-borda);
-  border-radius: var(--border-radius-sm);
-  padding: var(--spacing-1) var(--spacing-2);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-}
-.select-field:focus { outline: 2px solid var(--cor-destaque); outline-offset: 2px; }
 
 .switch { position: relative; display: inline-block; width: 42px; height: 22px; }
 .switch input { opacity: 0; width: 0; height: 0; }

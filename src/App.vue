@@ -112,8 +112,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="app-container" :class="activeTheme">
-    <TopBar :fieldType="fieldType" :showTrajectories="showTrajectories" :mode="currentRunMode"
-      @update:fieldType="onFieldTypeUpdate" @update:showTrajectories="onTrajectoriesUpdate"
+    <TopBar :showTrajectories="showTrajectories" :mode="currentRunMode"
+      @update:showTrajectories="onTrajectoriesUpdate"
       @mode-changed="handleRunModeChange" />
 
     <main class="workspace" :class="{ 'panel-open': activeTab !== null }">
