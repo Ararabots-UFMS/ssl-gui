@@ -11,6 +11,7 @@
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
+    "pixi.js": "^8",
     "socket.io-client": "^4.7.5",
     "vue": "^3.4.21"
   },

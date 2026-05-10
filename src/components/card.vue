@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 
-import { useRobotData } from '@/socket/socket';
+import { useRobotData } from '@/robotData/robotData';
 
 const { socket } = useRobotData();
 

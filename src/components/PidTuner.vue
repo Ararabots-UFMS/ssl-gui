@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { socket } from '@/socket';
+import { useRobotData } from '@/robotData/robotData';
+
+const { socket } = useRobotData();
 
 // --- ESTADO REATIVO ---
 const selectedRobotId = ref(0);
@@ -74,7 +76,7 @@ function setPIDPreset(presetKey: keyof typeof pidPresets) {
       <label class="input-wrapper">
         <span class="input-label">Robô Alvo</span>
         <select v-model.number="selectedRobotId" class="robot-id-select">
-          <option v-for="n in 16" :key="n-1" :value="n-1">{{ n-1 }}</option>
+          <option v-for="n in 16" :key="n - 1" :value="n - 1">{{ n - 1 }}</option>
         </select>
       </label>
 
@@ -82,9 +84,12 @@ function setPIDPreset(presetKey: keyof typeof pidPresets) {
 
       <span class="subsection-label">PID Linear</span>
       <div class="inputs-grid">
-        <label class="input-wrapper"><span class="input-label">Kp</span><input type="number" step="0.1" v-model.number="pidKp" /></label>
-        <label class="input-wrapper"><span class="input-label">Ki</span><input type="number" step="0.01" v-model.number="pidKi" /></label>
-        <label class="input-wrapper"><span class="input-label">Kd</span><input type="number" step="0.1" v-model.number="pidKd" /></label>
+        <label class="input-wrapper"><span class="input-label">Kp</span><input type="number" step="0.1"
+            v-model.number="pidKp" /></label>
+        <label class="input-wrapper"><span class="input-label">Ki</span><input type="number" step="0.01"
+            v-model.number="pidKi" /></label>
+        <label class="input-wrapper"><span class="input-label">Kd</span><input type="number" step="0.1"
+            v-model.number="pidKd" /></label>
       </div>
       <div class="presets-grid">
         <button v-for="(preset, key) in pidPresets" :key="key" @click="setPIDPreset(key as keyof typeof pidPresets)">
@@ -103,53 +108,212 @@ function setPIDPreset(presetKey: keyof typeof pidPresets) {
         <input type="range" min="0" max="10" step="0.1" v-model.number="kpAngular" class="slider-input" />
       </label>
       <div class="main-actions">
-        <button class="action-button" @click="updateKpAngular" :disabled="!servicesStatus.kp_angular">Atualizar Kp Angular</button>
+        <button class="action-button" @click="updateKpAngular" :disabled="!servicesStatus.kp_angular">Atualizar Kp
+          Angular</button>
       </div>
     </div>
 
     <div class="response-log-section">
       <span class="section-label">Log de Respostas</span>
       <div class="response-log">
-        <p v-for="(msg, index) in responses" :key="index" :class="{ success: msg.includes('SUCESSO'), fail: msg.includes('FALHA') }">{{ msg }}</p>
+        <p v-for="(msg, index) in responses" :key="index"
+          :class="{ success: msg.includes('SUCESSO'), fail: msg.includes('FALHA') }">{{ msg }}</p>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.control-container { display: flex; flex-direction: column; gap: var(--spacing-4); width: 100%; animation: fadeInSlideUp 0.5s ease-out forwards; }
-@keyframes fadeInSlideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.control-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  width: 100%;
+  animation: fadeInSlideUp 0.5s ease-out forwards;
+}
 
-.form-section { display: flex; flex-direction: column; gap: var(--spacing-3); background: rgba(0,0,0,0.2); padding: var(--spacing-3); border-radius: var(--border-radius-md); border: 1px solid var(--cor-borda); }
-.section-header { display: flex; justify-content: space-between; align-items: center; }
-.section-label { font-size: var(--font-size-base); color: var(--texto-principal); font-weight: var(--font-weight-bold); }
-.subsection-label { font-size: var(--font-size-sm); color: var(--texto-secundario); font-weight: var(--font-weight-bold); text-transform: uppercase; }
+@keyframes fadeInSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
 
-.services-status { display: flex; gap: var(--spacing-3); }
-.service-item { display: flex; align-items: center; gap: var(--spacing-2); }
-.service-item span { font-size: var(--font-size-sm); color: var(--texto-secundario); }
-.status-indicator { width: 10px; height: 10px; border-radius: 50%; background: var(--cor-erro); transition: background-color 0.3s ease; }
-.status-indicator.online { background: var(--cor-sucesso); box-shadow: 0 0 5px var(--cor-sucesso); }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-.separator { border: none; height: 1px; background-color: var(--cor-borda); margin: var(--spacing-2) 0; }
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  background: rgba(0, 0, 0, 0.2);
+  padding: var(--spacing-3);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--cor-borda);
+}
 
-.inputs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-3); }
-.input-wrapper { display: flex; flex-direction: column; gap: var(--spacing-1); }
-input[type="number"], .robot-id-select { border: none; border-bottom: 2px solid var(--cor-borda); background-color: transparent; padding: var(--spacing-2) 0; border-radius: 0; color: var(--texto-principal); font-size: var(--font-size-base); transition: border-color 0.3s ease; }
-input[type="number"]:focus, .robot-id-select:focus { outline: none; border-color: var(--cor-destaque); }
-.slider-input { width: 100%; cursor: pointer; }
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-.main-actions { display: flex; justify-content: flex-end; }
-.action-button { cursor: pointer; padding: var(--spacing-2) var(--spacing-3); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); border-radius: var(--border-radius-sm); border: none; background-color: var(--cor-destaque); color: white; transition: all 0.2s ease; }
-.action-button:hover:not(:disabled) { filter: brightness(1.1); }
-.action-button:disabled { background-color: var(--fundo-terciario); color: var(--texto-secundario); cursor: not-allowed; }
+.section-label {
+  font-size: var(--font-size-base);
+  color: var(--texto-principal);
+  font-weight: var(--font-weight-bold);
+}
 
-.presets-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: var(--spacing-2); }
-.presets-grid button { background-color: var(--fundo-terciario); color: var(--texto-secundario); border: var(--border-width) solid var(--cor-borda); padding: var(--spacing-2); border-radius: var(--border-radius-sm); cursor: pointer; transition: all 0.2s ease; font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); }
-.presets-grid button:hover { background-color: var(--cor-destaque); color: white; }
+.subsection-label {
+  font-size: var(--font-size-sm);
+  color: var(--texto-secundario);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
 
-.response-log-section { margin-top: var(--spacing-3); }
-.response-log { background-color: rgba(0,0,0,0.3); border-radius: var(--border-radius-sm); padding: var(--spacing-2); height: 150px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: var(--font-size-sm); border: 1px solid var(--cor-borda); }
-.response-log p.success { color: var(--cor-sucesso); }
-.response-log p.fail { color: var(--cor-erro); }
+.services-status {
+  display: flex;
+  gap: var(--spacing-3);
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.service-item span {
+  font-size: var(--font-size-sm);
+  color: var(--texto-secundario);
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cor-erro);
+  transition: background-color 0.3s ease;
+}
+
+.status-indicator.online {
+  background: var(--cor-sucesso);
+  box-shadow: 0 0 5px var(--cor-sucesso);
+}
+
+.separator {
+  border: none;
+  height: 1px;
+  background-color: var(--cor-borda);
+  margin: var(--spacing-2) 0;
+}
+
+.inputs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-3);
+}
+
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+input[type="number"],
+.robot-id-select {
+  border: none;
+  border-bottom: 2px solid var(--cor-borda);
+  background-color: transparent;
+  padding: var(--spacing-2) 0;
+  border-radius: 0;
+  color: var(--texto-principal);
+  font-size: var(--font-size-base);
+  transition: border-color 0.3s ease;
+}
+
+input[type="number"]:focus,
+.robot-id-select:focus {
+  outline: none;
+  border-color: var(--cor-destaque);
+}
+
+.slider-input {
+  width: 100%;
+  cursor: pointer;
+}
+
+.main-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.action-button {
+  cursor: pointer;
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--border-radius-sm);
+  border: none;
+  background-color: var(--cor-destaque);
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.action-button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.action-button:disabled {
+  background-color: var(--fundo-terciario);
+  color: var(--texto-secundario);
+  cursor: not-allowed;
+}
+
+.presets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--spacing-2);
+}
+
+.presets-grid button {
+  background-color: var(--fundo-terciario);
+  color: var(--texto-secundario);
+  border: var(--border-width) solid var(--cor-borda);
+  padding: var(--spacing-2);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.presets-grid button:hover {
+  background-color: var(--cor-destaque);
+  color: white;
+}
+
+.response-log-section {
+  margin-top: var(--spacing-3);
+}
+
+.response-log {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-2);
+  height: 150px;
+  overflow-y: auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--cor-borda);
+}
+
+.response-log p.success {
+  color: var(--cor-sucesso);
+}
+
+.response-log p.fail {
+  color: var(--cor-erro);
+}
 </style>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { socket } from '@/socket';
+import { useRobotData } from '@/robotData/robotData';
+
+const { socket } = useRobotData();
 
 const isActive = ref(false);
 
@@ -10,7 +12,7 @@ const buttonClass = computed(() => (isActive.value ? 'is-active' : ''));
 
 function playButton() {
   isActive.value = !isActive.value;
-  
+
   console.log('Play button state:', isActive.value);
 }
 </script>
@@ -34,15 +36,15 @@ function playButton() {
 
 .play-button {
   cursor: pointer;
-  padding: var(--spacing-3) var(--spacing-5); 
+  padding: var(--spacing-3) var(--spacing-5);
   color: var(--texto-principal);
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   border-radius: var(--border-radius-md);
   border: none;
-  min-width: 200px; 
-  
-  
+  min-width: 200px;
+
+
   background-color: var(--cor-sucesso);
   transition: background-color 0.2s ease, transform 0.1s ease, filter 0.2s ease;
 }

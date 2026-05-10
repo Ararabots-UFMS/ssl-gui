@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 
-import { useRobotData } from '@/socket/socket';
+import { useRobotData } from '@/robotData/robotData';
 
 const { socket } = useRobotData();
 
-// --- INTERFACES E CONSTANTES ---
 interface RobotConfig {
   number: number | null;
   name: string;
@@ -26,11 +25,9 @@ const pidPresets = {
 
 const emit = defineEmits(['configs-updated']);
 
-// --- ESTADO REATIVO ---
 const selectedOption = ref<string>(localStorage.getItem('selectedOption') || '3');
 const cards = ref<RobotConfig[]>([]);
 
-// --- PROPRIEDADES COMPUTADAS ---
 const filteredCards = computed(() => {
   const count = parseInt(selectedOption.value, 10);
   return cards.value.slice(0, count);
@@ -42,6 +39,7 @@ function onCardChange() {
 }
 
 function updateCardList() {
+  console.log(selectedOption.value);
   localStorage.setItem('selectedOption', selectedOption.value);
   const count = parseInt(selectedOption.value, 10);
   while (cards.value.length < count) {

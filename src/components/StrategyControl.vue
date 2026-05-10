@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount } from 'vue';
-import { useRobotData } from '@/socket/socket';
+import { useRobotData } from '@/robotData/robotData';
 
-const { socket, yellowRobots, blueRobots } = useRobotData();
+const { socket, yellowIds, blueIds } = useRobotData();
 // --- ESTADO REATIVO ---
 const selectedTeam = ref<'yellow' | 'blue'>('yellow');
 const selectedRobotId = ref<number | null>(null);
@@ -87,12 +87,11 @@ onBeforeUnmount(() => {
 
 // --- PROPRIEDADES COMPUTADAS E LISTENERS ---
 const activeTeamRobots = computed(() => {
-  const team = selectedTeam.value === 'yellow' ? yellowRobots : blueRobots;
-  // Garante que o primeiro robô da lista seja selecionado se nenhum estiver ou se o selecionado não existir mais
-  if ((selectedRobotId.value === null || !team.some(r => r.id === selectedRobotId.value)) && team.length > 0) {
-    selectedRobotId.value = team[0].id;
+  const ids = selectedTeam.value === 'yellow' ? yellowIds.value : blueIds.value;
+  if ((selectedRobotId.value === null || !ids.includes(selectedRobotId.value)) && ids.length > 0) {
+    selectedRobotId.value = ids[0];
   }
-  return team;
+  return ids.map(id => ({ id }));
 });
 
 // --- LISTENERS DE EVENTOS ---

@@ -1,15 +1,15 @@
-import { reactive, ref } from 'vue';
+import { reactive, ref, shallowRef } from 'vue';
 import { io } from 'socket.io-client';
 import { formatTime } from '@/utils';
-import type { TrajectoryData, Ball, Robot, RobotTrajectory, TrajectoryPoint } from '@/types/robotData';
+import type { TrajectoryData, Ball, Robot } from '@/types/robotData';
+import { robotBuffers, ballBuffer, trajectoryBuffer, bumpRoster, bumpTrajectory } from './fieldBuffers';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ?? 'http://localhost:5000';
 const VISION_WATCHDOG_MS = Number(import.meta.env.VITE_VISION_WATCHDOG_MS ?? 3000);
 
-export const yellowRobots = reactive<Robot[]>([]);
-export const blueRobots = reactive<Robot[]>([]);
-export const balls = reactive<Ball[]>([]);
-export const trajectories = reactive<Record<number, TrajectoryPoint[]>>({});
+export const yellowIds = shallowRef<number[]>([]);
+export const blueIds = shallowRef<number[]>([]);
+
 export const systemStatus = reactive({
   guiConnected: false,
   visionNode: false,
@@ -22,7 +22,6 @@ export const visionLog = ref<string[]>(['Terminal da Visão inicializado.']);
 export const communicationLog = ref<string[]>(['Terminal de Comunicação inicializado.']);
 
 export const socket = io(SOCKET_URL);
-
 
 let _visionTimer: ReturnType<typeof setTimeout> | null = null;
 let _visionConnected = false;
@@ -43,22 +42,58 @@ function resetVisionWatchdog() {
   }, VISION_WATCHDOG_MS);
 }
 
-let _lastRefereeCommand: string | null = null;
-let _lastRefereeCommandCounter: number | null = null;
+function syncTeamBuffer(
+  incoming: Robot[],
+  buf: Map<number, { x: number; y: number; orientation: number }>,
+  currentIds: number[],
+): { ids: number[]; changed: boolean } {
+  const nextIds: number[] = [];
+  for (const r of incoming) {
+    nextIds.push(r.id);
+    const existing = buf.get(r.id);
+    if (existing) {
+      existing.x = r.position_x;
+      existing.y = r.position_y;
+      existing.orientation = r.orientation;
+    } else {
+      buf.set(r.id, { x: r.position_x, y: r.position_y, orientation: r.orientation });
+    }
+  }
+  for (const id of Array.from(buf.keys())) {
+    if (!nextIds.includes(id)) buf.delete(id);
+  }
+  const changed = nextIds.length !== currentIds.length
+    || nextIds.some((id, i) => id !== currentIds[i]);
+  return { ids: nextIds, changed };
+}
 
 function handleVisionUpdate(payload: { yellow: Robot[]; blue: Robot[]; balls: Ball[] }) {
-  yellowRobots.splice(0, yellowRobots.length, ...payload.yellow);
-  blueRobots.splice(0, blueRobots.length, ...payload.blue);
-  balls.splice(0, balls.length, ...payload.balls);
+  const y = syncTeamBuffer(payload.yellow, robotBuffers.yellow, yellowIds.value);
+  const b = syncTeamBuffer(payload.blue, robotBuffers.blue, blueIds.value);
+
+  ballBuffer.length = 0;
+  for (const ball of payload.balls) {
+    ballBuffer.push({ id: ball.id, x: ball.position_x, y: ball.position_y });
+  }
+
+  let rosterChanged = false;
+  if (y.changed) { yellowIds.value = y.ids; rosterChanged = true; }
+  if (b.changed) { blueIds.value = b.ids; rosterChanged = true; }
+  if (rosterChanged) bumpRoster();
+
   resetVisionWatchdog();
 }
 
 function handleTrajectoryUpdate(payload: TrajectoryData) {
-  Object.keys(trajectories).forEach(key => delete (trajectories as Record<string, TrajectoryPoint[]>)[key]);
-  payload.trajectories.forEach(rt => {
-    trajectories[rt.robot_id] = rt.points;
-  });
+  trajectoryBuffer.clear();
+  for (const rt of payload.trajectories) {
+    trajectoryBuffer.set(rt.robot_id, rt.points.map(p => ({ x: p.x, y: p.y })));
+  }
+  bumpTrajectory();
 }
+
+let _lastRefereeCommand: string | null = null;
+let _lastRefereeCommandCounter: number | null = null;
 
 function handleRefereeUpdate(payload: any) {
   try {
@@ -135,10 +170,8 @@ socket.on('communicationOutput', (event) => { if (event?.line) communicationLog.
 
 export function useRobotData() {
   return {
-    yellowRobots,
-    blueRobots,
-    balls,
-    trajectories,
+    yellowIds,
+    blueIds,
     systemStatus,
     refereeLog,
     visionLog,
