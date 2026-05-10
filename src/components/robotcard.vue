@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 import { useRobotData } from '@/robotData/robotData';
 
@@ -18,28 +18,35 @@ const MAX_ROBOTS = 6;
 const MAX_ROBOT_NUMBER = 15;
 
 const pidPresets = {
-  default: { kp: '3.0', ki: '0.2', kd: '1.0', Kp_angular: '2.5' },
-  aggressive: { kp: '5.0', ki: '0.5', kd: '1.5', Kp_angular: '3.0' },
+  default:      { kp: '3.0', ki: '0.2', kd: '1.0', Kp_angular: '2.5' },
+  aggressive:   { kp: '5.0', ki: '0.5', kd: '1.5', Kp_angular: '3.0' },
   conservative: { kp: '1.5', ki: '0.1', kd: '0.5', Kp_angular: '2.0' },
 };
 
-const emit = defineEmits(['configs-updated']);
+const props = defineProps<{
+  roles?: { [id: number]: string }
+}>();
+
+const emit = defineEmits(['configs-updated', 'roles-updated']);
 
 const selectedOption = ref<string>(localStorage.getItem('selectedOption') || '3');
 const cards = ref<RobotConfig[]>([]);
+const localRoles = ref<{ [id: number]: string }>({});
+
+watch(() => props.roles, (newRoles) => {
+  localRoles.value = { ...(newRoles || {}) };
+}, { immediate: true, deep: true });
 
 const filteredCards = computed(() => {
   const count = parseInt(selectedOption.value, 10);
   return cards.value.slice(0, count);
 });
 
-// --- FUNÇÕES ---
 function onCardChange() {
   localStorage.setItem('cards', JSON.stringify(cards.value));
 }
 
 function updateCardList() {
-  console.log(selectedOption.value);
   localStorage.setItem('selectedOption', selectedOption.value);
   const count = parseInt(selectedOption.value, 10);
   while (cards.value.length < count) {
@@ -62,6 +69,14 @@ function saveButton() {
   socket.emit('configSaveButton', dataToSave);
   localStorage.setItem('cardData', JSON.stringify(dataToSave));
   emit('configs-updated', dataToSave);
+}
+
+function onRoleChange(robotId: number | null) {
+  if (robotId === null) return;
+  const role = localRoles.value[robotId];
+  socket.emit('updateRobotRole', { id: robotId, role });
+  localStorage.setItem('selectedRobotRoles', JSON.stringify(localRoles.value));
+  emit('roles-updated', localRoles.value);
 }
 
 const createEmptyCard = (): RobotConfig => ({
@@ -99,7 +114,6 @@ function applyPreset(card: RobotConfig, presetKey: string) {
   }
 }
 
-// --- LÓGICA DE INICIALIZAÇÃO ---
 const initializeCards = () => {
   const savedOption = localStorage.getItem('selectedOption') || '3';
   selectedOption.value = savedOption;
@@ -127,24 +141,36 @@ initializeCards();
 
 <template>
   <div class="control-container">
-    <div class="form-section">
-      <label class="input-wrapper">
-        <span class="section-label">Quantidade de Robôs</span>
-        <select id="options" class="dropdown" v-model="selectedOption" @change="updateCardList">
-          <option v-for="n in MAX_ROBOTS" :key="n" :value="n">{{ n }}</option>
-        </select>
-      </label>
+    <!-- Quantity selector — pinned to the top of the panel. -->
+    <div class="form-section quantity-section">
+      <span class="section-label">Quantidade de Robôs</span>
+      <select id="options" class="dropdown" v-model="selectedOption" @change="updateCardList">
+        <option v-for="n in MAX_ROBOTS" :key="n" :value="n">{{ n }}</option>
+      </select>
     </div>
 
     <div class="card-list">
-      <div class="form-section" v-for="(card, index) in filteredCards" :key="index">
-        <span class="section-label">Robô {{ index }}</span>
+      <div class="form-section robot-card" v-for="(card, index) in filteredCards" :key="index">
+        <div class="robot-header">
+          <span class="section-label">Robô {{ card.number ?? index }}</span>
+          <select
+            v-if="card.number !== null"
+            class="dropdown role-dropdown"
+            v-model="localRoles[card.number]"
+            @change="onRoleChange(card.number)"
+          >
+            <option value="0">Função…</option>
+            <option value="1">Atacante</option>
+            <option value="2">Goleiro</option>
+            <option value="3">Zagueiro</option>
+          </select>
+        </div>
 
         <div class="card-info">
-          <div class="row">
+          <div class="row two-col">
             <label class="input-wrapper">
               <span class="input-label">Nome</span>
-              <input type="text" v-model="card.name" placeholder="Ex: Robô Atacante" @input="onCardChange" />
+              <input type="text" v-model="card.name" placeholder="Ex: Atacante" @input="onCardChange" />
             </label>
             <label class="input-wrapper">
               <span class="input-label">Endereço</span>
@@ -152,7 +178,7 @@ initializeCards();
             </label>
           </div>
 
-          <div class="row">
+          <div class="row pid-grid">
             <label class="input-wrapper">
               <span class="input-label">KP</span>
               <input type="text" v-model="card.kp" @input="onCardChange" />
@@ -166,24 +192,25 @@ initializeCards();
               <input type="text" v-model="card.kd" @input="onCardChange" />
             </label>
             <label class="input-wrapper">
-              <span class="input-label">Kp Angular</span>
+              <span class="input-label">Kp Ang.</span>
               <input type="text" v-model="card.Kp_angular" @input="onCardChange" />
             </label>
           </div>
 
-
-          <div class="row preset-row">
-            <div class="input-wrapper">
-              <span class="input-label">Presets PID</span>
-              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button v-for="(preset, key) in pidPresets" :key="key" type="button" class="action-button"
-                  style="padding: 4px 12px; font-size: 0.9em;" @click="applyPreset(card, key)">
-                  {{ key.charAt(0).toUpperCase() + key.slice(1) }}
-                </button>
-              </div>
+          <div class="preset-row">
+            <span class="input-label">Presets PID</span>
+            <div class="preset-buttons">
+              <button
+                v-for="(_preset, key) in pidPresets"
+                :key="key"
+                type="button"
+                class="preset-button"
+                @click="applyPreset(card, key)"
+              >
+                {{ key.charAt(0).toUpperCase() + key.slice(1) }}
+              </button>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -199,30 +226,29 @@ initializeCards();
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: var(--spacing-3);
   animation: fadeInSlideUp 0.5s ease-out forwards;
 }
 
 @keyframes fadeInSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .form-section {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);
+  gap: var(--spacing-2);
   background: rgba(0, 0, 0, 0.2);
-  padding: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-3);
   border-radius: var(--border-radius-md);
   border: 1px solid var(--cor-borda);
+}
+
+.quantity-section {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .section-label {
@@ -232,7 +258,7 @@ initializeCards();
 }
 
 .dropdown {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   border: var(--border-width) solid var(--cor-borda);
   border-radius: var(--border-radius-sm);
   background-color: var(--fundo-terciario);
@@ -247,64 +273,52 @@ initializeCards();
   gap: var(--spacing-3);
 }
 
+.robot-card {
+  /* Establish a query container so the PID grid can collapse to 2x2
+     when the panel is narrow. */
+  container-type: inline-size;
+}
+
+.robot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+}
+
+.role-dropdown {
+  font-weight: var(--font-weight-bold);
+  min-width: 110px;
+}
+
 .card-info {
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
-  gap: var(--spacing-3);
+  gap: var(--spacing-2);
 }
 
 .row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--spacing-3);
-}
-
-.row:has(input[placeholder*="Atacante"]) {
-  grid-template-columns: 2fr 1fr;
-}
-
-.preset-row {
-  margin-top: var(--spacing-2);
-}
-
-.preset-row .input-wrapper>div {
-  display: flex;
-  flex-direction: row;
   gap: var(--spacing-2);
-  flex-wrap: nowrap;
-  width: 100%;
 }
 
-.preset-row .action-button {
-  border-radius: 6px;
-  padding: 8px 16px;
-  min-width: 80px;
-  min-height: 36px;
-  font-size: 1em;
-  background-color: var(--fundo-terciario);
-  color: var(--texto-principal);
-  border: 2px solid var(--cor-borda);
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: var(--spacing-2);
-  margin-bottom: var(--spacing-2);
+.two-col {
+  grid-template-columns: 1fr 1fr;
 }
 
-.preset-row .action-button:hover {
-  background-color: var(--cor-destaque);
-  color: #fff;
-  border-color: var(--cor-destaque);
+.pid-grid {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
 }
 
-.preset-row .input-wrapper>div {}
+@container (max-width: 320px) {
+  .pid-grid { grid-template-columns: 1fr 1fr; }
+}
 
 .input-wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-1);
+  gap: 2px;
+  min-width: 0;
 }
 
 .input-label {
@@ -315,13 +329,14 @@ initializeCards();
 
 input[type="text"] {
   width: 100%;
-  padding: var(--spacing-2);
+  padding: 4px 6px;
   border: none;
-  border-bottom: 2px solid var(--cor-borda);
+  border-bottom: 1px solid var(--cor-borda);
   background: transparent;
   color: var(--texto-principal);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   transition: border-color 0.3s ease;
+  min-width: 0;
 }
 
 input[type="text"]:focus {
@@ -329,25 +344,57 @@ input[type="text"]:focus {
   border-color: var(--cor-destaque);
 }
 
+.preset-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preset-buttons {
+  display: flex;
+  gap: var(--spacing-1);
+}
+
+.preset-button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 4px 6px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--fundo-terciario);
+  color: var(--texto-principal);
+  border: 1px solid var(--cor-borda);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.preset-button:hover {
+  background-color: var(--cor-destaque);
+  color: #fff;
+  border-color: var(--cor-destaque);
+}
+
 .save-action {
-  display: table-row;
+  display: flex;
   justify-content: flex-end;
-  margin-top: var(--spacing-2);
 }
 
 .action-button {
   cursor: pointer;
-  padding: var(--spacing-2) var(--spacing-4);
+  padding: var(--spacing-2) var(--spacing-3);
   color: white;
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-bold);
   background-color: var(--cor-sucesso);
   border-radius: var(--border-radius-md);
   border: none;
-  transition: all 0.2s ease;
+  transition: filter 0.2s ease;
+  width: 100%;
 }
 
-.action-button:hover {
-  filter: brightness(1.1);
-}
+.action-button:hover { filter: brightness(1.1); }
 </style>

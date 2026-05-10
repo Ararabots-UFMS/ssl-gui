@@ -101,17 +101,49 @@ const onTrajToggle = (e: Event) => {
   font-weight: var(--font-weight-bold);
 }
 
-.switch { position: relative; display: inline-block; width: 42px; height: 22px; }
-.switch input { opacity: 0; width: 0; height: 0; }
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
 .slider {
-  position: absolute; cursor: pointer; inset: 0; transition: .3s;
-  border-radius: 22px; border: var(--border-width) solid var(--cor-borda);
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  transition: .3s;
+  border-radius: 22px;
+  border: var(--border-width) solid var(--cor-borda);
 }
+
 .slider:before {
-  position: absolute; content: ""; height: 16px; width: 16px; left: 2px;
-  bottom: 2px; background-color: white; transition: .3s; border-radius: 50%;
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
 }
-input:checked + .slider:before { transform: translateX(20px); }
-.slider.trajectories { background-color: #ce3131ff; }
-input:checked + .slider.trajectories { background-color: var(--cor-destaque); }
+
+input:checked+.slider:before {
+  transform: translateX(20px);
+}
+
+.slider.trajectories {
+  background-color: #ce3131ff;
+}
+
+input:checked+.slider.trajectories {
+  background-color: var(--cor-destaque);
+}
 </style>

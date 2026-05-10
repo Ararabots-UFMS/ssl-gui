@@ -2,7 +2,6 @@
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 
 import Field from './components/field/field.vue';
-import Card from './components/card.vue';
 import RobotCard from './components/robotcard.vue';
 import ConfigTerminal from './components/configterminal.vue';
 import Terminal from './components/terminal.vue';
@@ -56,11 +55,6 @@ function handleRefereeCommand(command: string) {
   socket.emit('referee_command', { command });
 }
 
-function onFieldTypeUpdate(v: FieldType) {
-  fieldType.value = v;
-  localStorage.setItem('fieldType', v);
-  try { socket.emit('fieldType', v); } catch { /* ignore */ }
-}
 function onTrajectoriesUpdate(v: boolean) {
   showTrajectories.value = v;
   localStorage.setItem('showTrajectories', JSON.stringify(v));
@@ -112,8 +106,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="app-container" :class="activeTheme">
-    <TopBar :showTrajectories="showTrajectories" :mode="currentRunMode"
-      @update:showTrajectories="onTrajectoriesUpdate"
+    <TopBar :showTrajectories="showTrajectories" :mode="currentRunMode" @update:showTrajectories="onTrajectoriesUpdate"
       @mode-changed="handleRunModeChange" />
 
     <main class="workspace" :class="{ 'panel-open': activeTab !== null }">
@@ -125,10 +118,8 @@ onBeforeUnmount(() => {
           <button class="panel-close" @click="collapseTab" title="Fechar">×</button>
         </header>
         <div class="panel-body">
-          <template v-if="activeTab === 'robots'">
-            <Card :robots="robotConfigs" :roles="robotRoles" @roles-updated="handleRolesUpdate" />
-            <RobotCard @configs-updated="handleConfigsUpdate" />
-          </template>
+          <RobotCard v-if="activeTab === 'robots'" :roles="robotRoles" @configs-updated="handleConfigsUpdate"
+            @roles-updated="handleRolesUpdate" />
           <AIStatusPanel v-else-if="activeTab === 'ai'" :aiState="aiState" />
           <StrategyControl v-else-if="activeTab === 'strategy'" :roles="robotRoles" />
           <RefereePanel v-else-if="activeTab === 'referee'" @sendCommand="handleRefereeCommand" />
@@ -165,7 +156,7 @@ onBeforeUnmount(() => {
 }
 
 .workspace.panel-open {
-  grid-template-columns: auto clamp(240px, 20vw, 340px) 1fr;
+  grid-template-columns: auto clamp(300px, 20vw, 400px) 1fr;
 }
 
 .side-panel {
