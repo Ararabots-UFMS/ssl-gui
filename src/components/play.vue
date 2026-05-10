@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useRobotData } from '@/robotData/robotData';
-
-const { socket } = useRobotData();
 
 const isActive = ref(false);
-
 
 const buttonText = computed(() => (isActive.value ? 'PARAR' : 'JOGAR'));
 const buttonClass = computed(() => (isActive.value ? 'is-active' : ''));
@@ -27,8 +23,6 @@ function playButton() {
 
 <style scoped>
 .play-button-container {
-  width: 100%;
-  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -36,15 +30,15 @@ function playButton() {
 
 .play-button {
   cursor: pointer;
-  padding: var(--spacing-3) var(--spacing-5);
+  padding: 4px 14px;
   color: var(--texto-principal);
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
-  border-radius: var(--border-radius-md);
+  letter-spacing: 0.05em;
+  border-radius: var(--border-radius-sm);
   border: none;
-  min-width: 200px;
-
-
+  height: 28px;
+  line-height: 1;
   background-color: var(--cor-sucesso);
   transition: background-color 0.2s ease, transform 0.1s ease, filter 0.2s ease;
 }

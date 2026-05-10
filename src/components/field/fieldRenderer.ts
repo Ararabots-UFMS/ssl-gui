@@ -138,6 +138,10 @@ export class FieldRenderer {
     const w = this.host.clientWidth
     const h = this.host.clientHeight
     if (w === 0 || h === 0) return
+    // Pixi's `resizeTo: host` listens to window resize, not element resize,
+    // so we must drive the renderer ourselves when the host reflows
+    // (e.g. side panel toggle or grid-template changes).
+    this.app.renderer.resize(w, h)
     const scale = Math.min(w / geo.fieldW, h / geo.fieldH)
     this.root.scale.set(scale, -scale)
     this.root.position.set(w / 2, h / 2)
