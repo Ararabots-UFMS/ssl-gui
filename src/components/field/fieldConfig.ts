@@ -73,6 +73,14 @@ export const TRAJECTORY_STYLE = {
 export const SMOOTH_ALPHA_POS = 0.35
 export const SMOOTH_ALPHA_ROT = 0.4
 
+// If a robot's reported position jumps farther than this between frames
+// (in meters), treat it as a teleport (e.g. user dragging a robot in grSim)
+// and snap instead of lerping. SSL bots cap around 3-4 m/s, so at 60 fps a
+// real motion delta is < ~0.07 m; 0.30 m is a comfortable threshold.
+export const TELEPORT_SNAP_DIST_M = 0.3
+// Same idea for orientation: > ~150° between frames is not physical.
+export const TELEPORT_SNAP_ROT_RAD = Math.PI * 0.85
+
 // Trajectories are planned paths, not live motion — no need to redraw
 // them at 60fps. This caps redraws to every N ms.
 export const TRAJECTORY_REDRAW_INTERVAL_MS = 100

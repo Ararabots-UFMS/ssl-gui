@@ -4,6 +4,7 @@ import {
   FIELD_GEOMETRIES, loadPalette, ROBOT_RADIUS_MM, ROBOT_RING_WIDTH_MM,
   ROBOT_LABEL_FONT_MM, ROBOT_LABEL_STROKE_MM, BALL_RADIUS_MM, TRAJECTORY_STYLE,
   SMOOTH_ALPHA_POS, SMOOTH_ALPHA_ROT, TRAJECTORY_REDRAW_INTERVAL_MS,
+  TELEPORT_SNAP_DIST_M, TELEPORT_SNAP_ROT_RAD,
   type FieldType, type FieldPalette,
 } from './fieldConfig'
 import { drawField } from './fieldGraphics'
@@ -186,9 +187,22 @@ export class FieldRenderer {
     if (!s.hasPose) {
       s.curX = x; s.curY = y; s.curRot = rot; s.hasPose = true
     } else {
-      s.curX += (x - s.curX) * SMOOTH_ALPHA_POS
-      s.curY += (y - s.curY) * SMOOTH_ALPHA_POS
-      s.curRot += angleDiff(rot, s.curRot) * SMOOTH_ALPHA_ROT
+      // Snap on teleport-sized jumps (e.g. user dragging a robot in grSim);
+      // otherwise the lerp would render it as walking to the new pose.
+      // Position is in meters; rotation in radians.
+      const dx = x - s.curX, dy = y - s.curY
+      if (dx * dx + dy * dy > TELEPORT_SNAP_DIST_M * TELEPORT_SNAP_DIST_M) {
+        s.curX = x; s.curY = y
+      } else {
+        s.curX += dx * SMOOTH_ALPHA_POS
+        s.curY += dy * SMOOTH_ALPHA_POS
+      }
+      const dRot = angleDiff(rot, s.curRot)
+      if (Math.abs(dRot) > TELEPORT_SNAP_ROT_RAD) {
+        s.curRot = rot
+      } else {
+        s.curRot += dRot * SMOOTH_ALPHA_ROT
+      }
     }
     s.container.position.set(s.curX, s.curY)
     s.container.rotation = s.curRot
