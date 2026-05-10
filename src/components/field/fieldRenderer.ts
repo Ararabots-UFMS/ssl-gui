@@ -51,7 +51,7 @@ export class FieldRenderer {
   private ballLayer = new Container()
   private robotLayer = new Container()
 
-  private robotSprites = new Map<number, RobotSprite>()
+  private robotSprites = new Map<string, RobotSprite>()
   private ballSprites: BallSprite[] = []
   private trajectoryGraphics = new Map<number, Graphics>()
 
@@ -156,33 +156,30 @@ export class FieldRenderer {
   }
 
   private syncRobots(): void {
-    const seen = new Set<number>()
+    const seen = new Set<string>()
     for (const [id, state] of robotBuffers.yellow) {
-      seen.add(id)
+      seen.add(`yellow:${id}`)
       this.updateRobotSprite(id, 'yellow', state.x, state.y, state.orientation)
     }
     for (const [id, state] of robotBuffers.blue) {
-      seen.add(id)
+      seen.add(`blue:${id}`)
       this.updateRobotSprite(id, 'blue', state.x, state.y, state.orientation)
     }
-    for (const [id, s] of Array.from(this.robotSprites)) {
-      if (!seen.has(id)) {
+    for (const [key, s] of Array.from(this.robotSprites)) {
+      if (!seen.has(key)) {
         this.robotLayer.removeChild(s.container)
         s.container.destroy({ children: true })
-        this.robotSprites.delete(id)
+        this.robotSprites.delete(key)
       }
     }
   }
 
   private updateRobotSprite(id: number, team: 'yellow' | 'blue', x: number, y: number, rot: number): void {
-    let s = this.robotSprites.get(id)
-    if (!s || s.team !== team) {
-      if (s) {
-        this.robotLayer.removeChild(s.container)
-        s.container.destroy({ children: true })
-      }
+    const key = `${team}:${id}`
+    let s = this.robotSprites.get(key)
+    if (!s) {
       s = this.createRobotSprite(team, id)
-      this.robotSprites.set(id, s)
+      this.robotSprites.set(key, s)
       this.robotLayer.addChild(s.container)
     }
     // First observation: snap to target (avoids initial "fly-in" from origin).
