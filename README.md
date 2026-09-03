@@ -42,9 +42,22 @@ A interface estará disponível em: [http://localhost:5173](http://localhost:517
 npm install
 npm run dev
 ```
+With HTTP:
 
 ### Build para Produção
 
+```bash
+npm run build
+```
+
+## Usage
+
+Finally, to run GUI in development mode use the following command:
+```bash
+npm run dev
+```
+
+To compile GUI for deployment use the following command:
 ```bash
 npm run build
 ```
