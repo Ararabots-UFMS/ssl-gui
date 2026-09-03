@@ -132,68 +132,79 @@
 </template>
 
 <style scoped>
-    .terminal-components {           
-        margin-left: 10%;
-        width: 100%;
-        height: 50%;
-    }
-    .terminal-buttons-container {           
+    .terminal-components {
         display: flex;
-        width: 90%;
-        height: 15%;
-        justify-content: space-between;
-        margin-top: 9%;
-        margin-bottom: 2%;
-
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        gap: 10px;
+        margin-top: 20px;
     }
+
+    .terminal-buttons-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
     .terminal-buttons {
-        cursor: pointer;
-        width: 25%;
-        height: 75%;
+        flex: 1 1 30%;
+        min-width: 120px;
+        max-width: 250px;
+        height: 8vw;
+        max-height: 50px;
         background-color: #383f6b;
         color: #d2d1cb;
         border-radius: 10px;
-        display:flex;
+        display: flex;
         flex-direction: row;
+        align-items: center;
     }
     .icon-container {
-        width: 30%;
+        width: 30px;
         display: flex;
         justify-content: center;
         align-items: center;
     }
     .icons {
-        height: 80%;
+        height: 60%;
+        width: 80%;
     }
     .terminal-button-text {
-        width:100%;
+        flex: 1;
         display: flex;
         justify-content: center;
         align-items: center;
         font-weight: bold;
+        font-size: 1.2vw;
     }
-    .status-line{
-        width: 5%; /* Largura da linha */
-        height: 100%; /* Altura igual à dos botões */
+    .status-line {
+        width: 6px;
+        height: 100%;
+        margin-right: 4px;
     }
     .inactive-line-color {
         background-color: #ff0000;
     }
     .active-line-color {
-        background-color: #00ff00; /* Cor da linha */
+        background-color: #00ff00; 
     }
     .terminal {
         background-color: #383f6b;
         border-radius: 10px;
-        width: 90%; 
-        height: 50%; 
+        width: 90%;
+        height: 250px; 
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
     .tabs {
         display: flex;
         justify-content: space-between;
-        background-color: #252838; /* Mesma cor do terminal para continuidade visual */
+        background-color: #252838;
         border-top-left-radius: 10px;
         border-top-right-radius: 10px;
         color: black;
@@ -207,36 +218,43 @@
     }
     .tab {
         cursor: pointer;
-        width: 33%;
-        height: 100%;
         background-color: #D2D1CB;
         color: #252838;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
     .tab-selected {
         background-color: #383f6b;
         color: white;
     }
     .tab:first-child {
-        border-top-left-radius: 10px; /* Apenas o primeiro botão terá a borda arredondada no canto superior esquerdo */
+        border-top-left-radius: 10px;
     }
     .tab:last-child {
-        border-top-right-radius: 10px; /* Apenas o último botão terá a borda arredondada no canto superior direito */
+        border-top-right-radius: 10px; 
     }
     .messages {
         flex: 1;
         display: flex;
-        flex-direction: column-reverse; /* Adiciona novos elementos de baixo para cima */
+        flex-direction: column-reverse;
         overflow-y: auto;
-        margin: 1%; /* Adiciona padding para o conteúdo */
+        margin: 8px; 
     }
     .line {
         color: #D2D1CB;
-        white-space: pre-wrap; /* Mantém espaços e quebras de linha */
+        white-space: pre-wrap; 
         font-weight: bold;
         padding-left: 1%;
     }
     .tab-button{
         cursor: pointer;
         color: #d2d1cb;
+    }
+    @media screen and (max-width: 768px) {
+        .terminal-buttons {
+            width: 80%;
+            height: 50px;
+        }
     }
 </style>

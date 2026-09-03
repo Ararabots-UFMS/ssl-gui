@@ -1,60 +1,53 @@
 <div align="center">
 <a href="https://quackfy.vercel.app/">
 <img height="100" src="https://ararabots-ufms.github.io/img/arara_no_bg.png" alt="Arara">
+</a>
 </div>
 
 <div align="center">
 <img src="https://img.shields.io/badge/build-latest-blue">
 <img src="https://img.shields.io/github/issues/Ararabots-UFMS/ssl-gui">
-
 </div>
 
-<div align="center">
-<img height="200" src="https://i.postimg.cc/wjPMX0DF/1.png"/> <img height="200" src="https://i.postimg.cc/SRyxS5pQ/2.png"/>
-</div>
+# ssl-GUI
 
-## Software Requirements
-- [node](https://nodejs.org/pt/download)
+Este projeto é a interface gráfica (GUI) do sistema ssl-VICE, desenvolvido com Vue 3 e Vite.
 
+## Configuração do Ambiente de Desenvolvimento
 
-## Installing Requirements
+Recomendado utilizar:
 
-### Node
-To install node, use the following commands:
+- [VSCode](https://code.visualstudio.com/)
+
+## Execução com Docker
+
+**Importante:** É necessário clonas o repositório do `ssl-VICE` e seguir os passos do README de lá. Fazendo isso não é necessário rodar mais nada do `ssl-GUI`
+
+Para rodar o projeto com Docker, **entre na pasta do `ssl-VICE`** (onde está o `docker-compose.yml`) e execute:
+
 ```bash
-# Download and install fnm
-curl -o- https://fnm.vercel.app/install | bash
-
-# Download and install npm 22
-fnm install 22
-
-# Check node version
-node -v # should print "v22.15.0".
-
-# Check npm version
-npm -v # Should print "10.9.2".
+docker-compose up --build
 ```
 
-## Setup
----------------------
-First of all, we need to clone the [ssl-gui](https://github.com/Ararabots-UFMS/ssl-gui) repository, using the following commmands:
+Isso criará dois serviços:
+- `ssl-vice`
+- `ssl-gui`
 
-With SSH:
+A interface estará disponível em: [http://localhost:5173](http://localhost:5173)
+
+---
+#### Execução sem o Docker (não recomendado)
 
 ```bash
-git clone git@github.com:Ararabots-UFMS/ssl-gui.git
+npm install
+npm run dev
 ```
 With HTTP:
 
-```bash
-git clone https://github.com/Ararabots-UFMS/ssl-gui.git
-```
+### Build para Produção
 
-
-After cloning the repository, enter the repository folder and install the repository dependences:
 ```bash
-cd ssl-gui/
-npm install # install project dependencies
+npm run build
 ```
 
 ## Usage

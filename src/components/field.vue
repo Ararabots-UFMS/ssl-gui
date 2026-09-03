@@ -1,45 +1,234 @@
 <script lang="ts">
-    import {position} from '@/socket'
-    import {socket} from '@/socket'
+import { yellowRobots, blueRobots, balls, trajectories } from '@/socket'
+import { socket } from '@/socket'
+import { computed } from 'vue'
 
-    export default {
-        name: 'Arena',
-        data() {
-            return {
-                position: position,
-                side: JSON.parse(localStorage.getItem('side') || 'false'),
-                teamColor: JSON.parse(localStorage.getItem('teamColor') || 'false'),
-                mode: JSON.parse(localStorage.getItem('mode') || 'false'),
-            }
-        },
-        methods: {
-            changeMode() {
-                this.mode = !this.mode;
-                socket.emit('fieldMode', this.mode);
-                localStorage.setItem('mode', JSON.stringify(this.mode)); // Salva o estado
-            },
-            changeSide() {
-                this.side = !this.side;
-                socket.emit('fieldSide', this.side);
-                localStorage.setItem('side', JSON.stringify(this.side)); // Salva o estado
-            },
-            changeTeamColor() {
-                this.teamColor = !this.teamColor;
-                socket.emit('teamColor', this.teamColor);
-                localStorage.setItem('teamColor', JSON.stringify(this.teamColor)); // Salva o estado
-            },
-        },
-        mounted() {
-            // Carrega os estados salvos do localStorage
-            this.side = JSON.parse(localStorage.getItem('side') || 'false');
-            this.teamColor = JSON.parse(localStorage.getItem('teamColor') || 'false');
-            this.mode = JSON.parse(localStorage.getItem('mode') || 'false');
-            socket.emit('fieldMode', this.mode);
-            socket.emit('fieldSide', this.side);
-            socket.emit('teamColor', this.teamColor);
-
-        },
+// Definição das dimensões dos campos
+const FIELD_DIMENSIONS = {
+    'SSL-EL': {
+        fieldW: 5500,
+        fieldH: 4000,
+        golW: 320,
+        golH: 800,
+        circleW: 825,
+        circleH: 1000,
+        areaW: 464,
+        areaH: 1455,
+    },
+    'SSL': {
+        fieldW: 10400,
+        fieldH: 7400,
+        golW: 520,
+        golH: 1000,
+        circleW: 1248,
+        circleH: 1480,
+        areaW: 1000,
+        areaH: 2000,
+    },
+    'treino': {
+        fieldW: 1530,
+        fieldH: 1330,
+        golW: 92,
+        golH: 200,
+        circleW: 153,
+        circleH: 200,
+        areaW: 99,
+        areaH: 333,
     }
+} as const
+
+type FieldType = keyof typeof FIELD_DIMENSIONS;
+
+interface ComponentData {
+    fieldType: FieldType;
+    side: boolean;
+    teamColor: boolean;
+    mode: boolean;
+    scaleX: number;
+    scaleY: number;
+    fieldWidth: number;
+    fieldHeight: number;
+    resizeTimeout?: ReturnType<typeof setTimeout>;
+    showTrajectories: boolean;
+}
+
+export default {
+    name: 'Arena',
+    data(): ComponentData {
+        return {
+            fieldType: (localStorage.getItem('fieldType') as FieldType) || 'SSL-EL',
+            side: JSON.parse(localStorage.getItem('side') || 'false'),
+            teamColor: JSON.parse(localStorage.getItem('teamColor') || 'false'),
+            mode: JSON.parse(localStorage.getItem('mode') || 'false'),
+            scaleX: 1,
+            scaleY: 1,
+            fieldWidth: 1,
+            fieldHeight: 1,
+            showTrajectories: JSON.parse(localStorage.getItem('showTrajectories') || 'true'),
+        }
+    },
+    computed: {
+        // Computed properties para os dados reativos
+        yellowRobots() {
+            return yellowRobots;
+        },
+        blueRobots() {
+            return blueRobots;
+        },
+        balls() {
+            return balls;
+        },
+        trajectories() {
+            return trajectories;
+        },
+        // Computed properties para otimizar cálculos de dimensões
+        fieldDimensions() {
+            return FIELD_DIMENSIONS[this.fieldType];
+        },
+        robotWidth() {
+            return this.fieldWidth * 0.026;
+        },
+        robotHeight() {
+            return this.fieldHeight * 0.04;
+        },
+        centerX() {
+            return this.fieldDimensions.fieldW / 2;
+        },
+        centerY() {
+            return this.fieldDimensions.fieldH / 2;
+        }
+    },
+    methods: {
+        mapX(x_mm: number): string {
+            // Usa as computed properties para melhor performance
+            return `${((this.centerX + x_mm) * this.scaleX) - this.robotWidth / 2}px`;
+        },
+        mapY(y_mm: number): string {
+            return `${((this.centerY - y_mm) * this.scaleY) - this.robotHeight / 2}px`;
+        },
+        
+        // Métodos para conversão de coordenadas das trajetórias (metros para pixels)
+        fieldToCanvasX(fieldX: number): number {
+            // Converte de metros para mm e depois para pixels
+            const x_mm = fieldX * 1000;
+            return (this.centerX + x_mm) * this.scaleX;
+        },
+        
+        fieldToCanvasY(fieldY: number): number {
+            // Converte de metros para mm e depois para pixels
+            const y_mm = fieldY * 1000;
+            return (this.centerY - y_mm) * this.scaleY;
+        },
+        
+        toggleTrajectories() {
+            this.showTrajectories = !this.showTrajectories;
+            localStorage.setItem('showTrajectories', JSON.stringify(this.showTrajectories));
+        },
+        
+        generateTrajectoryPath(points: any[]): string {
+            if (points.length < 2) return '';
+            
+            let path = `M ${this.fieldToCanvasX(points[0].x)} ${this.fieldToCanvasY(points[0].y)}`;
+            
+            for (let i = 1; i < points.length; i++) {
+                const x = this.fieldToCanvasX(points[i].x);
+                const y = this.fieldToCanvasY(points[i].y);
+                path += ` L ${x} ${y}`;
+            }
+            
+            return path;
+        },
+        
+        generateVelocityArrow(point: any): string {
+            const canvasX = this.fieldToCanvasX(point.x);
+            const canvasY = this.fieldToCanvasY(point.y);
+            
+            // Calcula direção da velocidade
+            const velocity = Math.sqrt(point.velocity_x ** 2 + point.velocity_y ** 2);
+            if (velocity < 0.1) return ''; // Ignora velocidades muito baixas
+            
+            const angle = Math.atan2(point.velocity_y, point.velocity_x);
+            const arrowLength = Math.min(20, velocity * 10); // Escala a seta baseada na velocidade
+            
+            // Ponta da seta
+            const endX = canvasX + Math.cos(angle) * arrowLength;
+            const endY = canvasY + Math.sin(angle) * arrowLength;
+            
+            // Pontas da seta
+            const arrowHeadLength = 8;
+            const arrowHeadAngle = Math.PI / 6;
+            
+            const leftX = endX - Math.cos(angle - arrowHeadAngle) * arrowHeadLength;
+            const leftY = endY - Math.sin(angle - arrowHeadAngle) * arrowHeadLength;
+            const rightX = endX - Math.cos(angle + arrowHeadAngle) * arrowHeadLength;
+            const rightY = endY - Math.sin(angle + arrowHeadAngle) * arrowHeadLength;
+            
+            return `M ${canvasX} ${canvasY} L ${endX} ${endY} M ${endX} ${endY} L ${leftX} ${leftY} M ${endX} ${endY} L ${rightX} ${rightY}`;
+        },
+        changeMode() {
+            this.mode = !this.mode;
+            socket.emit('fieldMode', this.mode);
+            localStorage.setItem('mode', JSON.stringify(this.mode)); // Salva o estado
+        },
+        changeSide() {
+            this.side = !this.side;
+            socket.emit('fieldSide', this.side);
+            localStorage.setItem('side', JSON.stringify(this.side)); // Salva o estado
+        },
+        changeTeamColor() {
+            this.teamColor = !this.teamColor;
+            socket.emit('teamColor', this.teamColor);
+            localStorage.setItem('teamColor', JSON.stringify(this.teamColor)); // Salva o estado
+        },
+        changeFieldType(event: Event) {
+            const select = event.target as HTMLSelectElement;
+            this.fieldType = select.value as FieldType;
+            socket.emit('fieldType', this.fieldType);
+            localStorage.setItem('fieldType', this.fieldType);
+            // Atualiza a escala após mudança do tipo de campo
+            this.$nextTick(() => this.updateScale());
+        },
+        updateScale() {
+            const fieldEl = (this.$el as HTMLElement).querySelector(".field") as HTMLElement;
+            if (!fieldEl) return;
+            
+            const { width, height } = fieldEl.getBoundingClientRect();
+            this.fieldWidth = width;
+            this.fieldHeight = height;
+
+            this.scaleX = this.fieldWidth / this.fieldDimensions.fieldW;
+            this.scaleY = this.fieldHeight / this.fieldDimensions.fieldH;
+
+            // As dimensões já são calculadas via CSS responsivo
+            // Este método agora só atualiza as escalas para os robôs e bolas
+        },
+        throttledUpdateScale() {
+            // Throttling para evitar muitas chamadas durante redimensionamento
+            if (this.resizeTimeout) {
+                clearTimeout(this.resizeTimeout);
+            }
+            this.resizeTimeout = setTimeout(() => {
+                this.updateScale();
+            }, 16); // ~60fps
+        },
+    },
+    mounted() {
+        // Os valores já são carregados no data(), só precisamos emitir para o socket
+        socket.emit('fieldMode', this.mode);
+        socket.emit('fieldSide', this.side);
+        socket.emit('teamColor', this.teamColor);
+        socket.emit('fieldType', this.fieldType);
+
+        this.$nextTick(() => this.updateScale());
+        window.addEventListener("resize", this.throttledUpdateScale);
+    },
+    beforeUnmount() {
+        window.removeEventListener("resize", this.throttledUpdateScale);
+        if (this.resizeTimeout) {
+            clearTimeout(this.resizeTimeout);
+        }
+    },
+}
 </script>
 
 <template>
@@ -48,7 +237,7 @@
             <div class="button-side">
                 <p class="texto-button">Simu</p>
                 <label class="switch">
-                    <input type="checkbox" :checked="mode" @click="changeMode()">
+                    <input type="checkbox" :checked="mode" @click="changeMode()" />
                     <span class="slider3 round"></span>
                 </label>
                 <p class="texto-button">Real</p>
@@ -56,38 +245,139 @@
             <div class="button-side">
                 <p class="texto-button">E</p>
                 <label class="switch">
-                    <input type="checkbox" :checked="side" @click="changeSide()">
+                    <input type="checkbox" :checked="side" @click="changeSide()" />
                     <span class="slider2 round"></span>
                 </label>
                 <p class="texto-button">D</p>
             </div>
             <div>
                 <label class="switch">
-                    <input type="checkbox" :checked="teamColor" @click="changeTeamColor()">
+                    <input type="checkbox" :checked="teamColor" @click="changeTeamColor()" />
                     <span class="slider1 round"></span>
                 </label>
             </div>
-        </div>
-        <div class="field">
-            <div class="robot" :style="{top: position.y+'px', left: position.x+'px', transform: 'rotate('+position.angle+'rad)'}">
-                <div class="dot">
+            <div class="button-side">
+                <label for="field-select" class="texto-button" style="margin-right: 5px;">Campo:</label>
+                <select id="field-select" :value="fieldType" @change="changeFieldType" class="select-field">
+                    <option value="SSL-EL">SSL-EL</option>
+                    <option value="SSL">SSL</option>
+                    <option value="treino">Treino</option>
+                </select>
+            </div>
+            <div class="button-side">
+                <button @click="toggleTrajectories" class="trajectory-button" :class="{ active: showTrajectories }">
+                    {{ showTrajectories ? 'Ocultar' : 'Mostrar' }} Trajetórias
+                </button>
             </div>
         </div>
-        <div class="ball" :style="{top: '100px', left: '100px', transform: 'rotate(2rad)'}"></div>
-    
-        <!-- <div class="texto">
-            Coordinates: ({{position.x}}, {{position.y}}, {{ position.angle }})
+
+        <div class="field-wrapper">
+            <div :class="['field', fieldType]">
+                <!-- Trajetórias dos robôs -->
+                <svg v-if="showTrajectories" class="trajectory-overlay" 
+                     :width="`${fieldDimensions.fieldW * scaleX}px`" 
+                     :height="`${fieldDimensions.fieldH * scaleY}px`">
+                    <g v-for="[robotId, trajectory] in trajectories" :key="`trajectory-${robotId}`">
+                        <!-- Linha da trajetória -->
+                        <path v-if="trajectory.points.length > 1"
+                              :d="generateTrajectoryPath(trajectory.points)"
+                              :stroke="trajectory.color"
+                              stroke-width="3"
+                              fill="none"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              opacity="0.8" />
+                        
+                        <!-- Setas de velocidade -->
+                        <g v-for="(point, index) in trajectory.points" :key="`arrow-${robotId}-${index}`">
+                            <path v-if="index % Math.max(1, Math.floor(trajectory.points.length / 10)) === 0 && 
+                                       (point.velocity_x * point.velocity_x + point.velocity_y * point.velocity_y) > 0.01"
+                                  :d="generateVelocityArrow(point)"
+                                  :fill="trajectory.color"
+                                  :stroke="trajectory.color"
+                                  stroke-width="2"
+                                  opacity="0.7" />
+                        </g>
+                        
+                        <!-- Ponto de destino -->
+                        <circle v-if="trajectory.points.length > 0"
+                                :cx="fieldToCanvasX(trajectory.points[trajectory.points.length - 1].x)"
+                                :cy="fieldToCanvasY(trajectory.points[trajectory.points.length - 1].y)"
+                                r="8"
+                                :fill="trajectory.color"
+                                opacity="0.9" />
+                        
+                        <!-- Label do robô -->
+                        <text v-if="trajectory.points.length > 0"
+                              :x="fieldToCanvasX(trajectory.points[trajectory.points.length - 1].x) + 12"
+                              :y="fieldToCanvasY(trajectory.points[trajectory.points.length - 1].y) - 8"
+                              fill="#000000"
+                              font-family="Arial"
+                              font-size="12"
+                              font-weight="bold">R{{ robotId }}</text>
+                    </g>
+                </svg>
+                <!-- yellow robots -->
+                <div
+                    v-for="r in yellowRobots"
+                    :key="`yellow-${r.id}`"
+                    class="robot yellow"
+                    :style="{
+                        top: mapY(r.position_y),
+                        left: mapX(r.position_x),
+                        transform: 'rotate(' + r.orientation + 'rad)'
+                    }"
+                />
+
+                <!-- blue robots -->
+                <div
+                    v-for="r in blueRobots"
+                    :key="`blue-${r.id}`"
+                    class="robot blue"
+                    :style="{
+                        top: mapY(r.position_y),
+                        left: mapX(r.position_x),
+                        transform: 'rotate(' + r.orientation + 'rad)'
+                    }"
+                />
+
+                <!-- balls -->
+                <div
+                    v-for="b in balls"  
+                    :key="`ball-${b.id}`"
+                    class="ball"
+                    :style="{
+                        top: mapY(b.position_y),
+                        left: mapX(b.position_x)
+                    }"
+                />
+
+                <div class="ret-ext"></div>
+                <div class="linha-centro horizontal"></div>
+                <div class="linha-centro vertical"></div>
+                <div class="gol-esquerdo"></div>
+                <div class="gol-direito"></div>
+                <div class="circulo-central"></div>
+                <div class="area-esquerda"></div>
+                <div class="area-direita"></div>
+            </div>
         </div>
-    
+
+        <!-- <div class="texto">
+            Coordinates: ({{ position.x }}, {{ position.y }}, {{ position.angle }})
+        </div>
+
         <button @click="sendMessage">Send Message</button> -->
-    </div>
     </div>
 </template>
 
 <style>
     .components-field {
-        width: 100%; /* Largura fixa */
-        height: 55%; /* Altura fixa */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px; /* Reduzido de 16px para 8px, por exemplo */
+        width: 100%;
     }
 
     .switch {
@@ -222,24 +512,6 @@
     .yrobot {
         background-color: white
     }
-
-    .field{
-        display: flex;
-        border: 5px solid grey;
-        border-radius: 5px;
-        /*width: 716px;
-        height: 450px;*/
-        margin-left: 5%;
-        width: 90%; 
-        aspect-ratio: 1.575 / 1; /* Sets height to 50% of width */
-        position: relative;
-        background-image: url('../assets/campo.png');
-        background-size: contain;
-        background-position: center;
-        background-repeat: no-repeat;
-        float:left;
-    }
-
     .robot {
         position: absolute;
         width: 2.6%;
@@ -248,6 +520,8 @@
         border-radius: 50%;
     }
 
+    .robot.yellow { background: yellow; }
+    .robot.blue   { background: blue; } 
     .dot{
         position: absolute;
         width: 40%; /* largura do ponto */
@@ -264,6 +538,203 @@
         height: 2.8%;
         background-color: orange;
         border-radius: 50%;
+    }
+    
+    .field-wrapper {
+        width: 100%;
+        max-width: 1000px;
+        margin: 0 auto;
+        position: relative;
+    }
+    .field {
+        border: 5px solid grey;
+        border-radius: 5px;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1.375; /* 5500 / 4000 */
+        position: relative;
+        background-color: #008000; /* Cor padrão */
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+        transition: background-color 0.3s ease, 
+        background-image 0.3s ease;
+    }
+    .field.SSL-EL {
+        background-color: #008000;
+        background-image: none;
+        aspect-ratio: 1.375;
+    }
+
+    .field.SSL {
+        background-color: #008000;
+        background-size: cover;
+        aspect-ratio: 1.405405405;
+    }
+
+    .field.treino {
+        background-color: #535353;
+        background-size: cover;
+        aspect-ratio: 1.15037593;
+    }
+    .linha-centro.horizontal {
+        position: absolute;
+        height: 2px;
+        width: 81.82%; /* 4500 / 5500 */
+        background-color: white;
+        top: 50%;
+        left: 9.09%; /* (1 - 0.8182) / 2 */
+        transform: translateY(-50%);
+    }
+
+    .linha-centro.vertical {
+        position: absolute;
+        width: 2px; /* 2 / 5500 */
+        height: 75%;
+        background-color: white;
+        left: 50%;
+        top: 12.5%;
+        transform: translateX(-50%);
+    }
+    .ret-ext {
+        position: absolute;
+        border: 2px solid white; 
+        background-color: transparent;
+        width: 81.82%; 
+        height: 75%; 
+        top: 12.5%; 
+        left: 9.09%;
+        box-sizing: border-box;
+    }
+
+    .gol-esquerdo, .gol-direito {
+        position: absolute;
+        width: 5.82%;
+        height: 20.00%;
+        background-color: transparent;
+        border: 3px solid rgb(73, 38, 24);
+        top: 50%;
+        transform: translateY(-50%);
+        box-sizing: border-box;
+    }
+
+    .gol-esquerdo {
+        left: 3.55%;
+        border-right: 2px solid white;
+    }
+
+    .gol-direito {
+        right: 3.55%;
+        border-left: 2px solid white;
+    }
+
+    .circulo-central {
+        position: absolute;
+        width: 15%;
+        height: 25%;
+        border: 2px solid white;
+        background-color: transparent;
+        border-radius: 50%;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        box-sizing: border-box;
+    }
+
+    .area-esquerda, .area-direita {
+        position: absolute;
+        width: 8.4375%;
+        height: 36.36%;
+        border: 2px solid white;
+        top: 50%;
+        transform: translateY(-50%);
+        box-sizing: border-box;
+    }
+
+    .area-esquerda {
+        left: 9.10%;
+    }
+
+    .area-direita {
+        right: 9.10%;
+    }
+
+    .field.SSL .linha-centro.horizontal {
+        width: 86.53%;
+        left: 7%;
+    }
+    .field.SSL .linha-centro.vertical {
+        height: 81.081%;
+        top: 9.5%;
+    }
+    .field.SSL .ret-ext {
+        width: 86.53%;
+        height: 81.081%;
+        border: 2px solid white;
+        top: 9.5%;
+        left: 7%;
+    }
+    .field.SSL .gol-esquerdo, .field.SSL .gol-direito {
+        width: 5%;
+        height: 13.51%;
+    }
+    .field.SSL .gol-esquerdo {
+        left: 2.15%;
+    }
+    .field.SSL .gol-direito {
+        right: 1.75%;
+    }
+    .field.SSL .circulo-central {
+        width: 12%;
+        height: 20%;
+    }
+    .field.SSL .area-esquerda, .field.SSL .area-direita {
+        width: 9.61%;
+        height: 27.027%;
+    }
+    .field.SSL .area-esquerda {
+        left: 7%;
+    }
+    .field.SSL .area-direita {
+        right: 6.5%;
+    }
+    .field.treino .linha-centro.horizontal {
+        width: 70%;
+        left: 15%;
+    }
+    .field.treino .linha-centro.vertical {
+        height: 60%;
+        top: 20%;
+    }
+    .field.treino .ret-ext {
+        width: 70%;
+        height: 60%;
+        top: 20%;
+        left: 15%;
+    }
+    .field.treino .gol-direito {
+        width: 6%;
+        height: 15%;
+        right: 9.20%;
+    }
+    .field.treino .gol-esquerdo {
+        width: 6%;
+        height: 15%;
+        left: 9.20%;
+    }
+    .field.treino .circulo-central {
+        width: 10%;
+        height: 15%;
+    }
+    .field.treino .area-esquerda, .field.treino .area-direita {
+        width: 6.5%;
+        height: 25%;
+    }
+    .field.treino .area-esquerda {
+        left: 15%;
+    }
+    .field.treino .area-direita {
+        right: 15%;
     }
 
     .texto {
@@ -290,6 +761,52 @@
         color: #D2D1CB;
         margin-top: 15%;
         font-weight: bold;
+    }
+
+    .select-field {
+        position: relative;
+        top: 20%;
+        background-color: #353C6B;
+        color: white;
+        border-color: transparent;
+        height: 80%;
+        border-radius: 5px;
+        padding: 4px 10px;
+        font-size: 14px;
+    }
+
+    .trajectory-button {
+        padding: 8px 16px;
+        border: 2px solid #000000;
+        border-radius: 6px;
+        background-color: transparent;
+        color: #ffffff;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.3s ease;
+        margin-top: 5px;
+    }
+
+    .trajectory-button:hover {
+        background-color: #ff0000;
+        color: white;
+    }
+
+    .trajectory-button.active {
+        background-color: #34ff01;
+        color: white;
+        box-shadow: 0 2px 4px rgba(78, 205, 196, 0.3);
+    }
+
+    .trajectory-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        z-index: 10;
     }
 
 </style>
