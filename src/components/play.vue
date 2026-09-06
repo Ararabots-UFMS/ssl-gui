@@ -27,8 +27,8 @@
             playButton() {
                 this.clicked = !this.clicked; // Alterna o estado do botão
                 this.buttonText = this.clicked ? 'PARAR' : 'JOGAR'; // Alterna o texto
-                socket.emit('playButton',this.buttonText);
-                console.log('playButton',this.buttonText);
+                socket.emit('playButton', this.clicked);
+                console.log('playButton value:', this.buttonText);
             },
             /*showTab (tabName) {
                 this.selectedTab = tabName;
