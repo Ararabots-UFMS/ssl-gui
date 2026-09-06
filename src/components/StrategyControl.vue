@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useRobotData } from '@/robotData/robotData';
 import { liveFieldGeometry } from '@/robotData/fieldGeometry';
+import { useRobotControl, type ControlMode } from '@/composables/useRobotControl';
 
 const { socket, yellowIds, blueIds } = useRobotData();
+
 // --- ESTADO REATIVO ---
-const selectedTeam = ref<'yellow' | 'blue'>('yellow');
-const selectedRobotId = ref<number | null>(null);
+// Selection lives in the composable so clicking a robot on the field and picking one
+// here are the same act.
+const {
+  controlMode, isManual, selectedTeam, selectedRobotId, lastTarget,
+  setControlMode, selectRobot: selectRobotShared, stopSelectedRobot,
+} = useRobotControl();
 
 // Campos do formulário
 const positionX = ref(0.0);
@@ -144,9 +150,32 @@ socket.on('services_status', (status) => {
 });
 
 // --- FUNÇÕES DE AÇÃO ---
-function selectRobot(id: number) {
-  selectedRobotId.value = id;
+function pickRobot(id: number) {
+  selectRobotShared(selectedTeam.value, id);
 }
+
+function changeControlMode(mode: ControlMode) {
+  if (mode === controlMode.value) return;
+  setControlMode(mode);
+  const time = new Date().toLocaleTimeString();
+  responses.value.unshift(
+    `[${time}] Modo de controle: ${mode === 'manual' ? 'MANUAL (debug)' : 'ESTRATÉGIA'}.`
+  );
+}
+
+function stopRobot() {
+  if (!stopSelectedRobot()) {
+    alert('Selecione um robô em modo MANUAL para pará-lo.');
+  }
+}
+
+// A field right-click is also a target: mirror it into the form so the numbers and the
+// canvas never disagree.
+watch(lastTarget, (t) => {
+  if (!t) return;
+  positionX.value = t.x;
+  positionY.value = t.y;
+});
 
 // Presets de posição (mm) — derivados da geometria publicada pelo nó
 // de visão. Quando a geometria ainda não chegou, caímos num campo de
@@ -336,6 +365,28 @@ checkServicesStatus();
 
 <template>
   <div class="control-container">
+    <!-- Modo de Controle -->
+    <div class="form-section">
+      <span class="section-label">Modo de Controle</span>
+      <div class="mode-switcher">
+        <button :class="{ active: !isManual }" @click="changeControlMode('strategy')">
+          Estratégia
+        </button>
+        <button :class="{ active: isManual }" @click="changeControlMode('manual')">
+          Manual (debug)
+        </button>
+      </div>
+      <p class="mode-hint">
+        <template v-if="isManual">
+          No campo: <strong>clique esquerdo</strong> seleciona o robô,
+          <strong>clique direito</strong> define o destino. O robô vira para a bola ao chegar.
+        </template>
+        <template v-else>
+          O nó de estratégia está no comando. Troque para Manual para comandar robôs pelo campo.
+        </template>
+      </p>
+    </div>
+
     <!-- Status dos Serviços -->
     <div class="form-section">
       <span class="section-label">Status dos Serviços</span>
@@ -375,7 +426,7 @@ checkServicesStatus();
       </div>
       <div class="robot-selector">
         <div v-for="robot in activeTeamRobots" :key="robot.id" class="robot-card"
-          :class="{ active: selectedRobotId === robot.id }" @click="selectRobot(robot.id)">
+          :class="{ active: selectedRobotId === robot.id }" @click="pickRobot(robot.id)">
           {{ robot.id }}
         </div>
         <p v-if="activeTeamRobots.length === 0" class="no-robots-msg">Aguardando dados dos robôs...</p>
@@ -419,9 +470,20 @@ checkServicesStatus();
         </div>
       </div>
 
+      <p class="target-readout">
+        <template v-if="lastTarget">
+          Último destino: <strong>{{ lastTarget.x }}, {{ lastTarget.y }}</strong> mm
+        </template>
+        <template v-else>Nenhum destino enviado.</template>
+      </p>
+
       <div class="action-buttons">
-        <button class="action-button primary" @click="sendStrategyCommand" :disabled="!servicesStatus.strategy">
+        <button class="action-button primary" @click="sendStrategyCommand"
+          :disabled="!servicesStatus.strategy || !isManual">
           📍 Enviar Comando
+        </button>
+        <button class="action-button danger" @click="stopRobot" :disabled="!isManual">
+          ⏹ Parar
         </button>
       </div>
     </div>
@@ -850,6 +912,38 @@ input[type="text"]:focus {
 }
 
 /* Botões de Ação */
+.mode-switcher {
+  display: flex;
+  background-color: var(--fundo-secundario);
+  border-radius: var(--border-radius-sm);
+  border: var(--border-width) solid var(--cor-borda);
+  overflow: hidden;
+}
+.mode-switcher button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: var(--spacing-2) var(--spacing-3);
+  cursor: pointer;
+  color: var(--texto-secundario);
+  font-weight: var(--font-weight-bold);
+}
+.mode-switcher button.active {
+  background-color: var(--cor-destaque);
+  color: #fff;
+}
+.mode-hint {
+  margin: var(--spacing-2) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--texto-secundario);
+  line-height: 1.4;
+}
+.target-readout {
+  margin: var(--spacing-2) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--texto-secundario);
+}
+
 .action-buttons {
   display: flex;
   gap: var(--spacing-2);

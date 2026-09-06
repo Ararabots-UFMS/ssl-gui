@@ -58,6 +58,21 @@ export const ROBOT_LABEL_FONT_MM = 180
 export const ROBOT_LABEL_STROKE_MM = 12
 export const BALL_RADIUS_MM = 55
 
+// Selection ring sits just outside the team ring so both stay readable.
+export const SELECTION_RING_RADIUS_MM = 150
+export const SELECTION_RING_WIDTH_MM = 24
+
+// Target marker: a crosshair at the commanded point, plus a dashed lead line
+// from the robot that owns it.
+export const TARGET_MARKER_RADIUS_MM = 110
+export const TARGET_MARKER_WIDTH_MM = 24
+export const TARGET_LEAD_STYLE = {
+  widthMm: 30,
+  dashMm: 150,
+  gapMm: 120,
+  opacity: 0.65,
+}
+
 export const TRAJECTORY_STYLE = {
   widthMm: 60,
   dashMm: 180,
@@ -100,6 +115,8 @@ export interface FieldPalette {
   robotHighlight: number
   textColor: number
   textStroke: number
+  selectionRing: number
+  targetMarker: number
 }
 
 function cssVar(name: string, fallback: string): string {
@@ -149,5 +166,7 @@ export function loadPalette(fieldType: FieldType): FieldPalette {
     robotHighlight: 0xffffff,
     textColor: 0xffffff,
     textStroke: 0x000000,
+    selectionRing: parseColor(cssVar('--cor-destaque', '#4f9cf9')),
+    targetMarker: parseColor(cssVar('--cor-destaque', '#4f9cf9')),
   }
 }

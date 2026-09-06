@@ -1,21 +1,30 @@
-import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
+import { Application, Container, Graphics, Point, Text, TextStyle } from 'pixi.js'
 import { robotBuffers, ballBuffer, trajectoryBuffer, versions } from '@/robotData/fieldBuffers'
 import {
   FIELD_GEOMETRIES, loadPalette, ROBOT_RADIUS_MM, ROBOT_RING_WIDTH_MM,
   ROBOT_LABEL_FONT_MM, ROBOT_LABEL_STROKE_MM, BALL_RADIUS_MM, TRAJECTORY_STYLE,
   SMOOTH_ALPHA_POS, SMOOTH_ALPHA_ROT, TRAJECTORY_REDRAW_INTERVAL_MS,
   TELEPORT_SNAP_DIST_M, TELEPORT_SNAP_ROT_RAD,
+  SELECTION_RING_RADIUS_MM, SELECTION_RING_WIDTH_MM,
+  TARGET_MARKER_RADIUS_MM, TARGET_MARKER_WIDTH_MM, TARGET_LEAD_STYLE,
   type FieldType, type FieldPalette,
 } from './fieldConfig'
 import { drawField, drawFieldFromLive } from './fieldGraphics'
 import { liveFieldGeometry, type LiveFieldGeometry } from '@/robotData/fieldGeometry'
 import { watch, type WatchStopHandle } from 'vue'
 
+export type RobotKey = `${'yellow' | 'blue'}:${number}`
+
+export interface FieldPoint { x: number; y: number }
+
 interface RobotSprite {
   container: Container
   ring: Graphics
   body: Graphics
   highlight: Graphics
+  // Kept separate from `highlight` so the specular ellipse and the selection ring
+  // don't have to be repainted together.
+  selection: Graphics
   label: Text
   team: 'yellow' | 'blue'
   // Smoothed render state (lerps toward buffer values)
@@ -53,8 +62,13 @@ export class FieldRenderer {
   private trajectoryLayer = new Container()
   private ballLayer = new Container()
   private robotLayer = new Container()
+  private markerLayer = new Container()
 
   private robotSprites = new Map<string, RobotSprite>()
+  private selectedKey: RobotKey | null = null
+  private targetPoint: FieldPoint | null = null
+  private targetGraphics = new Graphics()
+  private lastLeadFrom: FieldPoint = { x: 0, y: 0 }
   private ballSprites: BallSprite[] = []
   private trajectoryGraphics = new Map<number, Graphics>()
 
@@ -88,6 +102,8 @@ export class FieldRenderer {
     this.root.addChild(this.trajectoryLayer)
     this.root.addChild(this.ballLayer)
     this.root.addChild(this.robotLayer)
+    this.root.addChild(this.markerLayer)
+    this.markerLayer.addChild(this.targetGraphics)
     this.trajectoryLayer.visible = this.showTrajectories
 
     this.liveGeo = liveFieldGeometry.value
@@ -123,12 +139,71 @@ export class FieldRenderer {
     this.trajectoryLayer.visible = v
   }
 
+  /**
+   * Viewport pixel → field millimetres. `root` already carries the scale, the y flip
+   * and the centre offset, so toLocal is the exact inverse of how sprites are placed.
+   */
+  screenToField(clientX: number, clientY: number): FieldPoint | null {
+    if (!this.ready) return null
+    const rect = this.host.getBoundingClientRect()
+    if (!rect.width || !rect.height) return null
+    // resize() feeds the renderer host.clientWidth/Height, so the stage is in those
+    // units. Normally identical to the bounding rect; the ratio keeps this correct if
+    // the element is ever CSS-scaled.
+    const sx = (clientX - rect.left) * (this.host.clientWidth / rect.width)
+    const sy = (clientY - rect.top) * (this.host.clientHeight / rect.height)
+    const p = this.root.toLocal(new Point(sx, sy))
+    return { x: p.x, y: p.y }
+  }
+
+  /** Nearest robot within a forgiving radius of a field point, or null. */
+  hitTestRobot(x: number, y: number, teams?: ReadonlyArray<'yellow' | 'blue'>): RobotKey | null {
+    // Generous compared to the 90mm body: the sprite is small on screen and a click
+    // that visually lands on a robot should select it.
+    const maxDist = ROBOT_RADIUS_MM * 1.6
+    let best: RobotKey | null = null
+    let bestDist = maxDist
+
+    for (const [key, s] of this.robotSprites) {
+      if (!s.hasPose) continue
+      if (teams && !teams.includes(s.team)) continue
+      const d = Math.hypot(s.curX - x, s.curY - y)
+      if (d < bestDist) {
+        bestDist = d
+        best = key as RobotKey
+      }
+    }
+    return best
+  }
+
+  setSelectedRobot(key: RobotKey | null): void {
+    if (key === this.selectedKey) return
+    this.selectedKey = key
+    for (const [k, s] of this.robotSprites) this.paintSelection(s, k === key)
+    this.redrawTargetMarker()
+  }
+
+  setTargetMarker(point: FieldPoint | null): void {
+    this.targetPoint = point
+    this.redrawTargetMarker()
+  }
+
+  /** Field position of a robot as currently rendered, in mm. */
+  robotPosition(key: RobotKey): FieldPoint | null {
+    const s = this.robotSprites.get(key)
+    return s && s.hasPose ? { x: s.curX, y: s.curY } : null
+  }
+
   reloadTheme(): void {
     this.palette = loadPalette(this.fieldType)
     if (!this.ready) return
     this.app.renderer.background.color = this.palette.fieldBg
     this.redrawField()
-    for (const s of this.robotSprites.values()) this.paintRobot(s)
+    for (const [k, s] of this.robotSprites) {
+      this.paintRobot(s)
+      this.paintSelection(s, k === this.selectedKey)
+    }
+    this.redrawTargetMarker()
     this.lastTrajectoryVersion = -1
   }
 
@@ -179,6 +254,14 @@ export class FieldRenderer {
   private tick = (): void => {
     this.syncRobots()
     this.syncBalls()
+    // The lead line starts at a robot that keeps moving, so it has to follow. Gated on
+    // real movement to avoid rebuilding the Graphics every frame while a robot is idle.
+    if (this.targetPoint && this.selectedKey) {
+      const pos = this.robotPosition(this.selectedKey)
+      if (pos && Math.hypot(pos.x - this.lastLeadFrom.x, pos.y - this.lastLeadFrom.y) > 20) {
+        this.redrawTargetMarker()
+      }
+    }
     if (versions.trajectory !== this.lastTrajectoryVersion) {
       const now = performance.now()
       if (now - this.lastTrajectoryDrawTs >= TRAJECTORY_REDRAW_INTERVAL_MS) {
@@ -246,6 +329,7 @@ export class FieldRenderer {
     const ring = new Graphics()
     const body = new Graphics()
     const highlight = new Graphics()
+    const selection = new Graphics()
 
     const labelStyle = new TextStyle({
       fontFamily: 'system-ui, sans-serif',
@@ -259,11 +343,12 @@ export class FieldRenderer {
     label.scale.y = -1
 
     const s: RobotSprite = {
-      container, ring, body, highlight, label, team,
+      container, ring, body, highlight, selection, label, team,
       curX: 0, curY: 0, curRot: 0, hasPose: false,
     }
-    container.addChild(body, ring, highlight, label)
+    container.addChild(selection, body, ring, highlight, label)
     this.paintRobot(s)
+    this.paintSelection(s, `${team}:${id}` === this.selectedKey)
     return s
   }
 
@@ -280,6 +365,14 @@ export class FieldRenderer {
     s.highlight.clear()
     s.highlight.ellipse(r * 0.3, -r * 0.4, r * 0.18, r * 0.28)
      .fill({ color: this.palette.robotHighlight, alpha: 0.4 })
+  }
+
+  private paintSelection(s: RobotSprite, selected: boolean): void {
+    s.selection.clear()
+    if (!selected) return
+    s.selection
+      .circle(0, 0, SELECTION_RING_RADIUS_MM)
+      .stroke({ color: this.palette.selectionRing, width: SELECTION_RING_WIDTH_MM })
   }
 
   private syncBalls(): void {
@@ -313,6 +406,38 @@ export class FieldRenderer {
     }
   }
 
+  private redrawTargetMarker(): void {
+    const g = this.targetGraphics
+    g.clear()
+    const target = this.targetPoint
+    if (!target) return
+
+    const r = TARGET_MARKER_RADIUS_MM
+    const color = this.palette.targetMarker
+
+    const from = this.selectedKey ? this.robotPosition(this.selectedKey) : null
+    if (from) {
+      this.lastLeadFrom = from
+      // Stops at the marker's edge so the crosshair stays legible.
+      const d = Math.hypot(target.x - from.x, target.y - from.y)
+      if (d > r) {
+        const t = (d - r) / d
+        this.drawDashedPolyline(
+          g,
+          [from, { x: from.x + (target.x - from.x) * t, y: from.y + (target.y - from.y) * t }],
+          color,
+          TARGET_LEAD_STYLE,
+        )
+      }
+    }
+
+    g.circle(target.x, target.y, r)
+     .stroke({ color, width: TARGET_MARKER_WIDTH_MM })
+    g.moveTo(target.x - r * 1.6, target.y).lineTo(target.x + r * 1.6, target.y)
+    g.moveTo(target.x, target.y - r * 1.6).lineTo(target.x, target.y + r * 1.6)
+    g.stroke({ color, width: TARGET_MARKER_WIDTH_MM, cap: 'round' })
+  }
+
   private redrawTrajectories(): void {
     for (const [id, g] of Array.from(this.trajectoryGraphics)) {
       if (!trajectoryBuffer.has(id)) {
@@ -337,14 +462,21 @@ export class FieldRenderer {
         : team === 'blue' ? this.palette.blueTrail
         : this.palette.unknownTrail
 
-      this.drawDashedPolyline(g, points, color)
+      // Trajectory points arrive in metres; everything else here is millimetres.
+      this.drawDashedPolyline(g, points, color, TRAJECTORY_STYLE, 1000)
     }
   }
 
   // Builds all dashes as subpaths (moveTo/lineTo) on a single Graphics then
-  // issues exactly one .stroke() call. Points are in meters (as received).
-  private drawDashedPolyline(g: Graphics, pts: { x: number; y: number }[], color: number): void {
-    const { dashMm, gapMm, widthMm, opacity } = TRAJECTORY_STYLE
+  // issues exactly one .stroke() call. `scale` converts the incoming points to mm.
+  private drawDashedPolyline(
+    g: Graphics,
+    pts: FieldPoint[],
+    color: number,
+    style: { dashMm: number; gapMm: number; widthMm: number; opacity: number },
+    scale = 1,
+  ): void {
+    const { dashMm, gapMm, widthMm, opacity } = style
     let carry = 0
     let penDown = true
     let started = false
@@ -352,8 +484,8 @@ export class FieldRenderer {
     for (let i = 0; i < pts.length - 1; i++) {
       const a = pts[i], b = pts[i + 1]
       if (!Number.isFinite(a.x) || !Number.isFinite(a.y) || !Number.isFinite(b.x) || !Number.isFinite(b.y)) continue
-      const ax = a.x * 1000, ay = a.y * 1000
-      const bx = b.x * 1000, by = b.y * 1000
+      const ax = a.x * scale, ay = a.y * scale
+      const bx = b.x * scale, by = b.y * scale
       const dx = bx - ax, dy = by - ay
       const segLen = Math.hypot(dx, dy)
       if (segLen === 0) continue
