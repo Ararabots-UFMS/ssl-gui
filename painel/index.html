@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ararabots · ferramenta</title>
+<style>
+/* ==========================================================================
+   Painel do ararabots.sh.  ssl-gui/painel/index.html
+   Servido pela ponte (ararabots_web.py) e exibido tambem dentro da GUI Vue,
+   na aba Tool, atraves do proxy /ponte. UMA interface, nao duas - duas copias
+   da mesma tela e como elas divergem, e este projeto ja pagou por isso.
+
+   LAYOUT, e por que e assim
+   -------------------------
+   A primeira versao usava 'height: calc(100% - 61px)' no main. Quebrava: o
+   cabecalho muda de altura quando as luzes quebram linha, a conta mentia, e o
+   conteudo passava da tela sem rolagem - dentro do iframe da GUI, pior ainda.
+   Agora e flex: o cabecalho tem altura propria, o corpo ocupa o resto, e CADA
+   coluna rola sozinha (min-height:0 e o que faz o flex permitir isso).
+   Abaixo de 1080 px as colunas empilham e a PAGINA rola - e como fica dentro
+   do iframe da GUI numa tela comum.
+   ========================================================================== */
+:root{
+  --fundo:#1b1e2b; --carta:#242837; --carta-alta:#2d3243; --borda:#3a4057;
+  --texto:#e9e8e3; --fraco:#9aa0b5; --tenue:#747a90;
+  --ok:#49b265; --mau:#e05252; --atencao:#e2a33c; --acao:#3d7ce8;
+  --raio:10px; --col-passos:420px;
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0; height:100%; display:flex; flex-direction:column; overflow:hidden;
+  background:var(--fundo); color:var(--texto);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Ubuntu,sans-serif;
+}
+code,kbd,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#3a4057;border-radius:6px;border:2px solid var(--fundo)}
+::-webkit-scrollbar-thumb:hover{background:#4a5170}
+
+/* ---------------------------------------------------------------- cabecalho */
+header{
+  flex:none; display:flex; align-items:center; gap:10px 26px; flex-wrap:wrap;
+  padding:12px 22px; background:var(--carta); border-bottom:1px solid var(--borda);
+}
+.marca{font-size:16px; font-weight:600; letter-spacing:.3px; white-space:nowrap}
+.marca span{color:var(--tenue); font-weight:400}
+.luzes{display:flex; gap:20px; flex-wrap:wrap}
+.luz{display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--fraco)}
+.bolinha{width:11px; height:11px; border-radius:50%; background:#5a6075; flex:none}
+.bolinha.on{background:var(--ok); box-shadow:0 0 0 3px rgba(73,178,101,.18)}
+.bolinha.off{background:var(--mau); box-shadow:0 0 0 3px rgba(224,82,82,.16)}
+.bolinha.meio{background:var(--atencao); box-shadow:0 0 0 3px rgba(226,163,60,.16)}
+.veredito{
+  margin-left:auto; font-size:13.5px; padding:7px 15px; border-radius:999px;
+  background:var(--carta-alta); border:1px solid var(--borda); white-space:nowrap;
+}
+.veredito.pronto{border-color:rgba(73,178,101,.5); color:#bfe8cb}
+.veredito.falta{border-color:rgba(226,163,60,.5); color:#f0d9ad}
+.veredito.ruim{border-color:rgba(224,82,82,.5); color:#f3c2c2}
+
+/* ------------------------------------------------------------------- fita */
+.fita{
+  flex:none; display:flex; align-items:center; gap:14px; padding:11px 22px;
+  font-size:13.5px; background:rgba(61,124,232,.14);
+  border-bottom:1px solid rgba(61,124,232,.4);
+}
+.fita .mono{color:#c3c9de}
+.fita button{margin-left:auto; padding:8px 14px; border:0; border-radius:7px;
+  background:#7f2c2c; color:#fff; font:inherit; font-size:13px; cursor:pointer}
+.girando{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.25);
+  border-top-color:#fff;animation:gira .8s linear infinite;flex:none}
+@keyframes gira{to{transform:rotate(360deg)}}
+
+/* -------------------------------------------------------------------- corpo */
+main{flex:1; min-height:0; display:flex}
+.passos{
+  flex:0 0 var(--col-passos); min-width:0; overflow-y:auto; overflow-x:hidden;
+  padding:18px; display:flex; flex-direction:column; gap:14px;
+}
+/* OS CARTOES NAO ENCOLHEM.
+   Era o defeito da primeira versao e nao era obvio: num flex em coluna, o
+   padrao e flex-shrink:1, entao os filhos eram COMPRIMIDOS para caber na
+   altura disponivel em vez de transbordar. MEDIDO em 1280x720: o cartao do
+   passo 1 com 108 px de altura, o 'Avancado' com 14 px, e
+   scrollHeight == clientHeight - ou seja, nada transbordava e por isso nao
+   havia rolagem nenhuma. Com flex:0 0 auto eles ficam na altura natural, a
+   soma passa da coluna, e o overflow-y:auto acima finalmente rola. */
+.passos>*{flex:0 0 auto}
+.direita{
+  flex:1; min-width:0; min-height:0; display:flex; flex-direction:column;
+  border-left:1px solid var(--borda);
+}
+
+/* EMPILHA e deixa a PAGINA rolar quando a tela e estreita - é também o caso
+   do iframe da GUI numa tela de notebook. */
+@media (max-width:1080px){
+  body{overflow:auto}
+  main{flex-direction:column}
+  .passos{flex:none; overflow:visible}
+  .direita{flex:none; border-left:0; border-top:1px solid var(--borda); min-height:70vh}
+  .veredito{margin-left:0}
+}
+
+/* ------------------------------------------------------------------- cartas */
+.carta{background:var(--carta); border:1px solid var(--borda);
+       border-radius:var(--raio); overflow:hidden}
+.carta>h2{
+  margin:0; padding:12px 16px; font-size:14px; font-weight:600;
+  display:flex; align-items:center; gap:11px; background:var(--carta-alta);
+  border-bottom:1px solid var(--borda);
+}
+.numero{
+  width:23px; height:23px; border-radius:50%; background:var(--acao); color:#fff;
+  display:grid; place-items:center; font-size:12.5px; font-weight:700; flex:none;
+}
+.conteudo{padding:16px}
+.ajuda{margin:0 0 13px; font-size:13.5px; color:var(--fraco)}
+.ajuda:last-child{margin-bottom:0}
+.ajuda b{color:var(--texto); font-weight:600}
+
+/* ------------------------------------------------------- controles e botoes */
+label.campo{display:block; margin-bottom:13px; font-size:13px; color:var(--fraco)}
+label.campo>span{display:block; margin-bottom:6px}
+select,input[type=number]{
+  width:100%; padding:10px 12px; font-size:14.5px; color:var(--texto);
+  background:var(--fundo); border:1px solid var(--borda); border-radius:8px;
+  font-family:inherit;
+}
+select:focus-visible,input:focus-visible{outline:2px solid rgba(61,124,232,.6); outline-offset:1px}
+.segmentado{display:flex; border:1px solid var(--borda); border-radius:8px; overflow:hidden}
+.segmentado button{
+  flex:1; border:0; padding:11px 8px; font-size:13px; cursor:pointer;
+  background:var(--fundo); color:var(--fraco); font-family:inherit;
+}
+.segmentado button.sel{background:var(--acao); color:#fff; font-weight:600}
+.btn{
+  display:block; width:100%; padding:12px 15px; border:0; border-radius:8px;
+  background:var(--carta-alta); color:var(--texto); font:inherit;
+  font-size:14.5px; font-weight:600; cursor:pointer; text-align:left;
+}
+.btn small{display:block; font-size:12.5px; font-weight:400; color:var(--fraco);
+  margin-top:3px; line-height:1.4}
+.btn:hover:not(:disabled){background:#353b51}
+.btn:disabled{opacity:.4; cursor:not-allowed}
+.btn:focus-visible{outline:2px solid rgba(61,124,232,.7); outline-offset:2px}
+.btn.principal{background:var(--acao); color:#fff}
+.btn.principal small{color:rgba(255,255,255,.8)}
+.btn.principal:hover:not(:disabled){background:#4e8bf2}
+.btn.perigo{background:#7a2c2c; color:#fff}
+.btn.perigo small{color:rgba(255,255,255,.72)}
+.btn.perigo:hover:not(:disabled){background:#953838}
+.btn+.btn{margin-top:9px}
+.dupla{display:grid; grid-template-columns:1fr 1fr; gap:9px}
+.dupla .btn+.btn{margin-top:0}
+.par{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+
+/* -------------------------------------------------------------------- chips */
+.chips{display:flex; flex-wrap:wrap; gap:7px}
+.chip{
+  font:inherit; font-size:13px; padding:7px 12px; border:1px solid var(--borda);
+  border-radius:999px; cursor:pointer; color:var(--fraco); background:transparent;
+}
+.chip:hover{border-color:#515872}
+.chip:focus-visible{outline:2px solid rgba(61,124,232,.7); outline-offset:2px}
+.chip.on{background:rgba(73,178,101,.16); border-color:var(--ok); color:#bfe8cb}
+
+/* ------------------------------------------------------------------ comando */
+.comando{
+  margin-top:13px; padding:11px 13px; border-radius:8px; background:var(--fundo);
+  border:1px dashed var(--borda); font-size:13px; color:#bcc3d8; word-break:break-all;
+}
+.comando em{color:var(--tenue); font-style:normal; display:block; font-size:11.5px;
+  margin-bottom:5px; letter-spacing:.4px; text-transform:uppercase}
+
+/* ----------------------------------------------------------------- detalhes */
+details.carta>summary{
+  padding:12px 16px; font-size:14px; font-weight:600; cursor:pointer;
+  background:var(--carta-alta); list-style:none; display:flex; align-items:center; gap:10px;
+}
+details.carta>summary::-webkit-details-marker{display:none}
+details.carta>summary::before{content:"▸"; color:var(--tenue)}
+details.carta[open]>summary::before{content:"▾"}
+details.carta[open]>summary{border-bottom:1px solid var(--borda)}
+details.carta>summary:focus-visible{outline:2px solid rgba(61,124,232,.7); outline-offset:-2px}
+
+/* ---------------------------------------------------------------- comecando */
+.comecando{border-color:rgba(61,124,232,.45)}
+.comecando ol{margin:0; padding-left:21px; font-size:13.5px; color:var(--fraco)}
+.comecando li{margin-bottom:9px}
+.comecando li b{color:var(--texto)}
+.comecando li:last-child{margin-bottom:0}
+
+/* --------------------------------------------------------------------- abas */
+.abas{flex:none; display:flex; gap:4px; padding:9px 16px 0; background:var(--carta);
+      border-bottom:1px solid var(--borda); overflow-x:auto}
+.aba{
+  padding:10px 16px; font:inherit; font-size:14px; cursor:pointer; color:var(--fraco);
+  border:1px solid transparent; border-bottom:0; border-radius:8px 8px 0 0;
+  background:transparent; white-space:nowrap;
+}
+.aba:hover{color:var(--texto)}
+.aba:focus-visible{outline:2px solid rgba(61,124,232,.7); outline-offset:-2px}
+.aba.sel{background:var(--fundo); color:var(--texto); border-color:var(--borda);
+         font-weight:600; margin-bottom:-1px; padding-bottom:11px}
+.selo{display:inline-block; margin-left:7px; padding:1px 7px; border-radius:999px;
+      background:var(--carta-alta); font-size:11.5px; color:var(--fraco)}
+.painel-aba{flex:1; min-height:0; overflow:auto}
+.painel-aba[hidden]{display:none}
+
+/* ----------------------------------------------------------------- terminal */
+pre#log{margin:0; padding:16px 20px; font-size:13px; line-height:1.6;
+  white-space:pre-wrap; word-break:break-word; color:#d2d7e6}
+pre#log .eco{color:#8ab4f8}
+
+/* ------------------------------------------------------------------ tabelas */
+.area{padding:16px 20px}
+table{width:100%; border-collapse:collapse; font-size:13.5px}
+th,td{text-align:left; padding:9px 11px; border-bottom:1px solid var(--borda)}
+th{color:var(--fraco); font-weight:500; font-size:12px; text-transform:uppercase;
+   letter-spacing:.4px; position:sticky; top:0; background:var(--fundo)}
+tbody tr:hover{background:var(--carta)}
+.pastilha{display:inline-block; padding:3px 9px; border-radius:999px;
+  font-size:12.5px; white-space:nowrap}
+.pastilha.boa{background:rgba(73,178,101,.18); color:#bfe8cb}
+.pastilha.ma{background:rgba(224,82,82,.18); color:#f3c2c2}
+.pastilha.neutra{background:var(--carta-alta); color:var(--fraco)}
+.vazio{padding:26px 20px; color:var(--tenue); font-size:14px}
+.aviso{
+  margin:0 0 14px; padding:11px 13px; border-radius:8px; font-size:13px;
+  background:rgba(226,163,60,.12); border:1px solid rgba(226,163,60,.4); color:#f0d9ad;
+}
+
+/* ----------------------------------------------------------------- replays */
+.filtro-replays{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px;
+}
+.filtro-replays select{width:auto; min-width:190px; padding:8px 11px; font-size:13.5px}
+.filtro-replays .conta{font-size:13px; color:var(--tenue); margin-left:auto}
+.dia{margin:18px 0 9px; font-size:12px; text-transform:uppercase; letter-spacing:.6px;
+  color:var(--tenue)}
+.dia:first-child{margin-top:0}
+.replay{
+  display:flex; align-items:center; gap:12px; padding:11px 13px; margin-bottom:7px;
+  background:var(--carta); border:1px solid var(--borda); border-radius:9px;
+  border-left:4px solid var(--cor-cen, var(--borda));
+}
+.replay:hover{background:var(--carta-alta)}
+.cen{
+  font-size:12.5px; font-weight:600; padding:3px 10px; border-radius:6px;
+  background:var(--cor-cen, var(--carta-alta)); color:#fff; white-space:nowrap;
+}
+.replay .rotulo{font-size:13px; color:var(--fraco); font-family:ui-monospace,Menlo,monospace}
+.replay .hora{font-size:13px; color:var(--tenue); white-space:nowrap}
+.replay .fim{margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.replay .kb{font-size:12px; color:var(--tenue)}
+.replay a.abrir{
+  font-size:13px; padding:6px 12px; border-radius:7px; text-decoration:none;
+  background:var(--carta-alta); color:#8ab4f8; border:1px solid var(--borda);
+}
+.replay a.abrir:hover{background:#353b51}
+@media (max-width:620px){
+  .replay{flex-wrap:wrap}
+  .replay .fim{margin-left:0; width:100%}
+}
+
+/* --------------------------------------------------------------------- erro */
+.erro{
+  margin:0 0 13px; padding:12px 14px; border-radius:8px; font-size:13.5px;
+  background:rgba(224,82,82,.14); border:1px solid rgba(224,82,82,.45); color:#f3c2c2;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marca">ARARABOTS <span>· ferramenta</span></div>
+  <div class="luzes">
+    <span class="luz"><i class="bolinha" id="l-docker"></i>Docker</span>
+    <span class="luz"><i class="bolinha" id="l-vice"></i>Container</span>
+    <span class="luz"><i class="bolinha" id="l-arbitro"></i>Árbitro</span>
+    <span class="luz"><i class="bolinha" id="l-grsim"></i>grSim <small id="modo-grsim" style="color:var(--tenue)"></small></span>
+  </div>
+  <div class="veredito" id="veredito">verificando…</div>
+</header>
+
+<div class="fita" id="fita" hidden>
+  <span class="girando"></span>
+  <span>rodando <span class="mono" id="fita-cmd"></span></span>
+  <span class="mono" id="fita-tempo"></span>
+  <button type="button" id="btn-interromper">interromper</button>
+</div>
+
+<main>
+  <!-- ======================================================= coluna de passos -->
+  <div class="passos">
+    <div class="erro" id="erro" hidden></div>
+
+    <details class="carta comecando" open>
+      <summary>Primeira vez aqui? Leia estes 30 segundos</summary>
+      <div class="conteudo">
+        <ol>
+          <li><b>Preparar</b> (passo 1) sobe tudo: container, simulador, árbitro e
+              os nós do ROS. Leva alguns minutos e termina mostrando quatro taxas.
+              Sem isso, nada mais funciona.</li>
+          <li><b>Rodar</b> (passo 2) escolhe um cenário e repete N vezes. Use
+              <b>6 repetições</b>: diferença de 1 ou 2 em 6 é ruído, não resultado.</li>
+          <li><b>Ler</b> (passo 3) explica o que aconteceu. À direita, a aba
+              <b>Lotes</b> traz o placar e a aba <b>Replays</b> abre cada execução.</li>
+        </ol>
+        <p class="ajuda" style="margin-top:13px">
+          Cada botão mostra, antes de executar, a <b>linha de comando equivalente</b>.
+          É o mesmo <code>ararabots.sh</code> do terminal — o painel não é um
+          caminho diferente.
+        </p>
+      </div>
+    </details>
+
+    <section class="carta">
+      <h2><i class="numero">1</i> Preparar o ambiente</h2>
+      <div class="conteudo">
+        <p class="ajuda">Sobe container, grSim, árbitro e nós do ROS, e confere as
+          taxas no fim. Rode uma vez por sessão.</p>
+        <label class="campo">
+          <span>Modo do simulador</span>
+          <div class="segmentado" id="modo">
+            <button type="button" data-modo="headless" class="sel">sem janela — medir</button>
+            <button type="button" data-modo="janela">com janela — assistir</button>
+          </div>
+        </label>
+        <p class="ajuda">Janela coberta ou minimizada <b>congela a física</b> do
+          grSim: o resultado não vale. Para medir, use sem janela.</p>
+        <button class="btn principal" data-acao="preparar">
+          Preparar ambiente
+          <small>./ararabots.sh preparar — alguns minutos</small>
+        </button>
+        <div class="dupla" style="margin-top:9px">
+          <button class="btn" data-acao="limpar">Limpar<small>mata nós órfãos</small></button>
+          <button class="btn perigo" data-acao="parar">Parar tudo<small>derruba o ambiente</small></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="carta">
+      <h2><i class="numero">2</i> Escolher e rodar</h2>
+      <div class="conteudo">
+        <label class="campo">
+          <span>Cenário</span>
+          <select id="cenario"></select>
+        </label>
+        <p class="ajuda" id="desc-cenario"></p>
+        <div class="par">
+          <label class="campo">
+            <span>Repetições</span>
+            <input type="number" id="n" min="1" max="20" value="6">
+          </label>
+          <label class="campo">
+            <span>Segundos (sondas)</span>
+            <input type="number" id="seg" min="5" max="120" value="20">
+          </label>
+        </div>
+        <label class="campo">
+          <span>Diagnóstico e variações <small style="color:var(--tenue)">(opcional)</small></span>
+          <div class="chips" id="chips"></div>
+        </label>
+        <label class="campo">
+          <span>Robôs por time <small style="color:var(--tenue)">(vazio = o do cenário)</small></span>
+          <input type="number" id="robos" min="1" max="6" placeholder="padrão do cenário">
+        </label>
+        <div class="comando" id="previa"><em>vai executar</em><span class="mono">—</span></div>
+        <button class="btn principal" data-acao="validar" style="margin-top:13px">
+          Rodar lote
+          <small>grava no validacao.csv e gera um replay por execução</small>
+        </button>
+        <button class="btn" data-acao="cenario">
+          Montar 1 cenário
+          <small>posiciona e deixa pronto, sem gravar lote</small>
+        </button>
+      </div>
+    </section>
+
+    <section class="carta">
+      <h2><i class="numero">3</i> Ler o que aconteceu</h2>
+      <div class="conteudo">
+        <p class="ajuda">Leem os replays mais recentes. O número de repetições
+          acima diz quantos eles consideram.</p>
+        <button class="btn" data-acao="jogo-analise">
+          Análise do jogo
+          <small>as cinco perguntas: alguém vai à bola, amontoam, a bola avança,
+            o time ataca, alguém chuta</small>
+        </button>
+        <button class="btn" data-acao="narrar">
+          Narrar
+          <small>o que aconteceu, toque a toque</small>
+        </button>
+        <div class="dupla" style="margin-top:9px">
+          <button class="btn" data-acao="posse">Posse<small>tempo por situação</small></button>
+          <button class="btn" data-acao="painel">Painel HTML<small>agrega os replays</small></button>
+        </div>
+      </div>
+    </section>
+
+    <details class="carta">
+      <summary>Avançado — sondas e ajustes</summary>
+      <div class="conteudo">
+        <p class="ajuda">Use quando um número não fechar e for preciso descobrir
+          <b>onde</b> a cadeia quebrou.</p>
+        <div class="dupla">
+          <button class="btn" data-acao="sonda">Sonda [FK]<small>bola parada</small></button>
+          <button class="btn" data-acao="sonda-chute">Sonda do chute<small>cadeia até o grSim</small></button>
+        </div>
+        <div class="dupla" style="margin-top:9px">
+          <button class="btn" data-acao="mov-bruto">Movimento puro<small>sem estratégia</small></button>
+          <button class="btn" data-acao="grsim">Só o grSim<small>abre o simulador</small></button>
+        </div>
+        <label class="campo" style="margin-top:15px">
+          <span>Ajustes fora de <code>src/strategy</code></span>
+          <select id="ajuste-op"></select>
+        </label>
+        <button class="btn" data-acao="ajustes">Aplicar ajuste</button>
+        <p class="ajuda" style="margin-top:11px">O <b>preparar</b> liga
+          <code>on controle</code> sozinho. Abortar com Ctrl-C deixa o arquivo
+          alterado.</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- ============================================================ lado direito -->
+  <div class="direita">
+    <div class="abas" role="tablist">
+      <button type="button" class="aba sel" data-aba="log" aria-selected="true">Saída ao vivo</button>
+      <button type="button" class="aba" data-aba="csv" aria-selected="false">Lotes <span class="selo" id="selo-csv">0</span></button>
+      <button type="button" class="aba" data-aba="replays" aria-selected="false">Replays <span class="selo" id="selo-replays">0</span></button>
+    </div>
+
+    <div class="painel-aba" id="aba-log"><pre id="log"></pre></div>
+
+    <div class="painel-aba" id="aba-csv" hidden>
+      <div class="area">
+        <p class="aviso">Linha com <code>ERRO</code> ou <code>BLOQUEADO</code>
+          significa que <b>o lote não rodou</b> — nesse caso os replays são de
+          execuções anteriores, e não valem como resultado.</p>
+        <div id="csv"></div>
+      </div>
+    </div>
+
+    <div class="painel-aba" id="aba-replays" hidden>
+      <div class="area">
+        <div class="filtro-replays">
+          <label for="filtro-cen" style="font-size:13px;color:var(--fraco)">cenário</label>
+          <select id="filtro-cen"><option value="">todos</option></select>
+          <span class="conta" id="conta-replays"></span>
+        </div>
+        <div id="replays"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* A ponte responde na MESMA origem de onde o painel foi servido: funciona em
+   127.0.0.1:8099 e tambem atras do proxy /ponte do Vite, sem CORS. */
+const BASE = location.pathname.replace(/\/[^/]*$/, '').replace(/\/$/, '');
+const api = (rota) => BASE + rota;
+
+const $ = (s) => document.querySelector(s);
+const log = $('#log');
+let ACOES = {}, CENARIOS = [], REPLAYS = [], rodando = false, modo = 'headless';
+const bandeirasAtivas = new Set();
+
+/* ------------------------------------------------------------------- saida */
+function escreve(txt, classe) {
+  const n = document.createElement('span');
+  if (classe) n.className = classe;
+  n.textContent = (log.childNodes.length ? '\n' : '') + txt;
+  log.appendChild(n);
+  const caixa = $('#aba-log');
+  caixa.scrollTop = caixa.scrollHeight;
+}
+escreve('Pronto. A saída de cada comando aparece aqui, ao vivo.');
+escreve('Comece pelo passo 1 — Preparar ambiente.');
+
+/* ------------------------------------------------------------------- luzes */
+const luz = (id, v) =>
+  ($(id).className = 'bolinha ' + (v === null || v === undefined ? 'meio' : v ? 'on' : 'off'));
+
+function atualizaVeredito(a) {
+  const el = $('#veredito');
+  if (a.docker === null || a.docker === undefined) {
+    el.className = 'veredito ruim';
+    el.textContent = 'Docker não respondeu — a ponte precisa dele no host';
+  } else if (!a.vice || !a.arbitro || !a.grsim) {
+    el.className = 'veredito falta';
+    el.textContent = 'Ambiente incompleto — rode o passo 1';
+  } else if (a.modo_grsim === 'janela') {
+    el.className = 'veredito falta';
+    el.textContent = 'Pronto, mas em modo janela — não vale para medir';
+  } else {
+    el.className = 'veredito pronto';
+    el.textContent = 'Ambiente pronto para medir';
+  }
+}
+
+/* ------------------------------------------------------------------ previa */
+function previa() {
+  const amb = [...bandeirasAtivas].map((b) => b + '=1');
+  if ($('#robos').value) amb.push('ARARABOTS_ROBOS=' + $('#robos').value);
+  const cen = $('#cenario').value;
+  $('#previa').lastElementChild.textContent =
+    (amb.length ? amb.join(' ') + ' ' : '') +
+    './ararabots.sh validar ' + ($('#n').value || 6) + (cen ? ' ' + cen : '');
+}
+
+/* ------------------------------------------- identidade visual dos cenarios */
+function matizDoCenario(nome) {
+  let h = 0;
+  for (const c of nome || '') h = (h * 31 + c.charCodeAt(0)) % 360;
+  return h;
+}
+const corDoCenario = (nome) => `hsl(${matizDoCenario(nome)} 42% 38%)`;
+
+/* ------------------------------------------------------------------ opcoes */
+async function carregaOpcoes() {
+  const d = await (await fetch(api('/api/cenarios'))).json();
+  ACOES = d.acoes; CENARIOS = d.cenarios;
+  $('#cenario').innerHTML = '<option value="">Todos os cenários</option>' +
+    CENARIOS.map((c) => `<option value="${c.nome}">${c.nome}</option>`).join('');
+  $('#cenario').value = CENARIOS.some((c) => c.nome === 'jogo') ? 'jogo' : '';
+  descreveCenario();
+  $('#chips').innerHTML = d.bandeiras.map((b) =>
+    `<button type="button" class="chip" data-b="${b}" aria-pressed="false"
+      title="${b}">${rotuloBandeira(b)}</button>`).join('');
+  $('#chips').querySelectorAll('.chip').forEach((c) => {
+    c.onclick = () => {
+      c.classList.toggle('on');
+      const ligado = c.classList.contains('on');
+      c.setAttribute('aria-pressed', String(ligado));
+      ligado ? bandeirasAtivas.add(c.dataset.b) : bandeirasAtivas.delete(c.dataset.b);
+      previa();
+    };
+  });
+  $('#ajuste-op').innerHTML = d.opcoes_ajuste
+    .map((o) => `<option value="${o}">${o}</option>`).join('');
+  document.querySelectorAll('button[data-acao]').forEach((b) => {
+    b.title = (ACOES[b.dataset.acao] || {}).desc || '';
+  });
+  previa();
+}
+
+const rotuloBandeira = (b) => ({
+  DIAG_JOGO: 'diagnóstico do jogo',
+  DIAG_FK: 'diagnóstico da bola parada',
+  ARARABOTS_SO_NOSSOS: 'sem adversário',
+  ARARABOTS_INIMIGO_PARADO: 'adversário parado',
+}[b] || b);
+
+function descreveCenario() {
+  const c = CENARIOS.find((x) => x.nome === $('#cenario').value);
+  $('#desc-cenario').innerHTML = c
+    ? `<b>${c.nome}</b> — ${c.titulo || ''}${c.robos ? ` · ${c.robos} robôs nossos` : ''}`
+    : 'Roda todos os cenários, um depois do outro.';
+}
+
+/* ------------------------------------------------------------------ estado */
+async function atualizaEstado() {
+  let d;
+  try { d = await (await fetch(api('/api/estado'))).json(); } catch (e) { return; }
+  const a = d.ambiente, t = d.trabalho;
+  luz('#l-docker', a.docker); luz('#l-vice', a.vice);
+  luz('#l-arbitro', a.arbitro); luz('#l-grsim', a.grsim);
+  $('#modo-grsim').textContent = a.modo_grsim ? '(' + a.modo_grsim + ')' : '';
+  atualizaVeredito(a);
+  const estava = rodando;
+  rodando = !!t.ativo;
+  $('#fita').hidden = !rodando;
+  $('#fita-cmd').textContent = t.comando || '';
+  $('#fita-tempo').textContent = t.segundos ? t.segundos + ' s' : '';
+  document.querySelectorAll('button[data-acao]').forEach((b) => (b.disabled = rodando));
+  if (estava && !rodando) { carregaCsv(); carregaReplays(); }
+}
+
+/* --------------------------------------------------------------------- csv */
+const COLUNAS = [
+  ['cenario', 'cenário'], ['rep', 'rep'], ['gol', 'resultado'],
+  ['disparou', 'chutou'], ['v_saida_mms', 'saída mm/s'], ['motivo', 'motivo'],
+];
+async function carregaCsv() {
+  let d;
+  try { d = await (await fetch(api('/api/csv'))).json(); } catch (e) { return; }
+  $('#selo-csv').textContent = d.total || 0;
+  if (!d.linhas || !d.linhas.length) {
+    $('#csv').innerHTML = '<div class="vazio">Nenhum lote gravado ainda. Rode o passo 2.</div>';
+    return;
+  }
+  const idx = COLUNAS.map(([c]) => d.cabecalho.indexOf(c));
+  const corpo = d.linhas.slice(0, 40).map((l) => '<tr>' + idx.map((i, k) => {
+    const v = i >= 0 && l[i] !== undefined ? l[i] : '';
+    if (COLUNAS[k][0] === 'gol') {
+      const cls = /A FAVOR/i.test(v) ? 'boa' : /ERRO|BLOQUEADO|CAIU|CONTRA/i.test(v) ? 'ma' : 'neutra';
+      return `<td><span class="pastilha ${cls}">${v || '—'}</span></td>`;
+    }
+    return `<td>${v}</td>`;
+  }).join('') + '</tr>').join('');
+  $('#csv').innerHTML = '<table><thead><tr>' +
+    COLUNAS.map(([, r]) => `<th>${r}</th>`).join('') +
+    '</tr></thead><tbody>' + corpo + '</tbody></table>';
+}
+
+/* ----------------------------------------------------------------- replays */
+async function carregaReplays() {
+  let d;
+  try { d = await (await fetch(api('/api/replays'))).json(); } catch (e) { return; }
+  REPLAYS = d.replays || [];
+  $('#selo-replays').textContent = REPLAYS.length;
+  const cenarios = [...new Set(REPLAYS.map((r) => r.cenario).filter(Boolean))].sort();
+  const atual = $('#filtro-cen').value;
+  $('#filtro-cen').innerHTML = '<option value="">todos</option>' +
+    cenarios.map((c) => `<option value="${c}">${c}</option>`).join('');
+  if (cenarios.includes(atual)) $('#filtro-cen').value = atual;
+  desenhaReplays();
+}
+
+function desenhaReplays() {
+  const filtro = $('#filtro-cen').value;
+  const lista = REPLAYS.filter((r) => !filtro || r.cenario === filtro);
+  $('#conta-replays').textContent =
+    lista.length + ' de ' + REPLAYS.length + (filtro ? ' · filtrando' : '');
+  if (!lista.length) {
+    $('#replays').innerHTML =
+      '<div class="vazio">Nenhum replay aqui. Eles aparecem depois de um lote.</div>';
+    return;
+  }
+  let html = '', diaAtual = null;
+  for (const r of lista) {
+    if (r.dia !== diaAtual) { diaAtual = r.dia; html += `<div class="dia">${r.dia}</div>`; }
+    const cls = /favor/i.test(r.resultado || '') ? 'boa'
+              : /sofrid|contra/i.test(r.resultado || '') ? 'ma' : 'neutra';
+    const chutou = r.disparou === true ? '<span class="pastilha neutra">chutou</span>'
+                 : r.disparou === false ? '<span class="pastilha neutra">sem chute</span>' : '';
+    // SEM ADVERSARIO E OUTRO TESTE, e precisa estar visivel: um numero de campo
+    // livre nao se compara com um de jogo disputado. Ver o LEIAME, secao 7.
+    const adv = r.com_adversario === null || r.com_adversario === undefined ? ''
+              : r.com_adversario < 1 ? '<span class="pastilha ma">sem adversário</span>'
+              : r.com_adversario < 95 ? `<span class="pastilha neutra">adversário ${r.com_adversario}%</span>`
+              : '';
+    const pid = r.ajuste_pid === true ? '<span class="pastilha neutra">sem feedforward</span>'
+              : r.ajuste_pid === false ? '<span class="pastilha neutra">com feedforward</span>' : '';
+    html += `<div class="replay" style="--cor-cen:${corDoCenario(r.cenario)}">
+      <span class="cen">${r.cenario || '?'}</span>
+      <span class="rotulo">${r.rotulo || ''}</span>
+      <span class="hora">${r.hora || r.quando}</span>
+      <span class="fim">
+        <span class="pastilha ${cls}">${r.resultado || '—'}</span>
+        ${adv}${chutou}${pid}
+        <span class="kb">${r.kb} kB</span>
+        <a class="abrir" href="${api('/replay/' + encodeURIComponent(r.nome))}"
+           target="_blank" rel="noopener">abrir</a>
+      </span>
+    </div>`;
+  }
+  $('#replays').innerHTML = html;
+}
+
+/* ------------------------------------------------------------------- rodar */
+async function rodar(acao) {
+  $('#erro').hidden = true;
+  const bandeiras = {};
+  bandeirasAtivas.forEach((b) => (bandeiras[b] = true));
+  if ($('#robos').value) bandeiras.ARARABOTS_ROBOS = $('#robos').value;
+  let d;
+  try {
+    d = await (await fetch(api('/api/rodar'), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        acao, modo, cenario: $('#cenario').value, n: $('#n').value,
+        seg: $('#seg').value, ajuste_op: $('#ajuste-op').value, bandeiras,
+      }),
+    })).json();
+  } catch (e) {
+    $('#erro').textContent = 'a ponte não respondeu'; $('#erro').hidden = false; return;
+  }
+  if (d.erro) { $('#erro').textContent = d.erro; $('#erro').hidden = false; }
+  else mostraAba('log');
+  atualizaEstado();
+}
+
+/* -------------------------------------------------------------------- abas */
+function mostraAba(qual) {
+  document.querySelectorAll('.aba').forEach((a) => {
+    const sel = a.dataset.aba === qual;
+    a.classList.toggle('sel', sel);
+    a.setAttribute('aria-selected', String(sel));
+  });
+  ['log', 'csv', 'replays'].forEach((k) => ($('#aba-' + k).hidden = k !== qual));
+}
+
+/* ---------------------------------------------------------------- ligacoes */
+document.querySelectorAll('.aba').forEach((a) => (a.onclick = () => mostraAba(a.dataset.aba)));
+document.querySelectorAll('button[data-acao]').forEach((b) => (b.onclick = () => rodar(b.dataset.acao)));
+$('#modo').querySelectorAll('button').forEach((b) => (b.onclick = () => {
+  modo = b.dataset.modo;
+  $('#modo').querySelectorAll('button').forEach((o) => o.classList.toggle('sel', o === b));
+}));
+$('#cenario').onchange = () => { descreveCenario(); previa(); };
+$('#n').oninput = previa;
+$('#robos').oninput = previa;
+$('#filtro-cen').onchange = desenhaReplays;
+$('#btn-interromper').onclick = async () => {
+  try { await fetch(api('/api/parar-trabalho'), { method: 'POST' }); } catch (e) {}
+  atualizaEstado();
+};
+
+const fonte = new EventSource(api('/api/stream'));
+fonte.onmessage = (e) => {
+  const linha = JSON.parse(e.data).linha;
+  escreve(linha, linha.startsWith('$ ') ? 'eco' : null);
+};
+
+carregaOpcoes();
+atualizaEstado(); carregaCsv(); carregaReplays();
+setInterval(atualizaEstado, 2500);
+</script>
+</body>
+</html>
