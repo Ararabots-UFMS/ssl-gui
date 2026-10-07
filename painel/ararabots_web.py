@@ -105,9 +105,35 @@ BANDEIRAS = {
     "DIAG_FK": "1",
     "ARARABOTS_SO_NOSSOS": "1",
     "ARARABOTS_INIMIGO_PARADO": "1",
+    # CHAVES DE EXPERIMENTO: desligam UMA modificacao de 03/10/2026 por vez, para
+    # medir o antes e o depois com o mesmo binario. O default e o comportamento
+    # novo; a chave devolve o antigo. Ver skills/experimento.py.
+    "ARARABOTS_SEM_ORIENTACAO_LADO": "1",
+    "ARARABOTS_SEM_ORBITA": "1",
+    "ARARABOTS_SEM_PROTECAO": "1",
+    "ARARABOTS_SEM_PRESSAO_BOLA": "1",
+    # as duas de 07/10/2026, nascidas da leitura dos replays do lote de 03/10
+    "ARARABOTS_SEM_MIRA_FIRME": "1",
+    "ARARABOTS_SEM_EMPURRAO": "1",
 }
 # Bandeiras com valor livre (numerico), com teto.
 BANDEIRAS_NUM = {"ARARABOTS_ROBOS": (1, 6), "ARARABOTS_VEL_INIMIGO": (0, 3)}
+
+# Rotulo legivel de cada tipo de cenario. A ordem aqui e a ordem do seletor:
+# primeiro o que se usa todo dia, depois os testes das modificacoes, por ultimo
+# os casos limite.
+TIPOS_ROTULO = [
+    ["jogo", "Jogo corrido"],
+    ["bola_parada", "Bola parada (falta)"],
+    ["kickoff", "Kickoff"],
+    ["orientacao", "Teste · orientação do corpo"],
+    ["orbita", "Teste · contorno (bola atrás)"],
+    ["pressao", "Teste · pressão na bola"],
+    ["protecao", "Teste · proteção de posse"],
+    ["mira", "Teste · mira firme (não gira)"],
+    ["empurrao", "Teste · empurrão (bola anda)"],
+    ["robustez", "Robustez (contagem de robôs)"],
+]
 
 MAX_N = 20
 MAX_SEG = 120
@@ -135,17 +161,24 @@ def ler_cenarios():
                 for chave, valor in zip(no.value.keys, no.value.values):
                     if not isinstance(chave, ast.Constant):
                         continue
-                    titulo, robos = "", 0
+                    titulo, robos, tipo, desc = "", 0, "outros", ""
                     if isinstance(valor, ast.Dict):
                         for k2, v2 in zip(valor.keys, valor.values):
                             if not isinstance(k2, ast.Constant):
                                 continue
                             if k2.value == "titulo" and isinstance(v2, ast.Constant):
                                 titulo = v2.value
+                            if k2.value == "tipo" and isinstance(v2, ast.Constant):
+                                tipo = v2.value
+                            if k2.value == "descricao":
+                                try:
+                                    desc = ast.literal_eval(v2)
+                                except Exception:
+                                    desc = ""
                             if k2.value == "azuis" and isinstance(v2, ast.List):
                                 robos = len(v2.elts)
                     saida.append({"nome": chave.value, "titulo": titulo,
-                                  "robos": robos})
+                                  "tipo": tipo, "descricao": desc, "robos": robos})
                 return saida
     return []
 
@@ -576,6 +609,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._texto(ler_painel())
         if rota == "/api/cenarios":
             return self._json({"cenarios": ler_cenarios(), "acoes": ACOES,
+                               "tipos": TIPOS_ROTULO,
                                "bandeiras": sorted(BANDEIRAS),
                                "bandeiras_num": BANDEIRAS_NUM,
                                "opcoes_ajuste": OPCOES_AJUSTE})

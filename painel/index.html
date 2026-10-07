@@ -347,6 +347,10 @@ tbody tr:hover{background:var(--carta)}
       <h2><i class="numero">2</i> Escolher e rodar</h2>
       <div class="conteudo">
         <label class="campo">
+          <span>Tipo</span>
+          <select id="tipo"></select>
+        </label>
+        <label class="campo">
           <span>Cenário</span>
           <select id="cenario"></select>
         </label>
@@ -467,7 +471,7 @@ const api = (rota) => BASE + rota;
 
 const $ = (s) => document.querySelector(s);
 const log = $('#log');
-let ACOES = {}, CENARIOS = [], REPLAYS = [], rodando = false, modo = 'headless';
+let ACOES = {}, CENARIOS = [], TIPOS = [], REPLAYS = [], rodando = false, modo = 'headless';
 const bandeirasAtivas = new Set();
 
 /* ------------------------------------------------------------------- saida */
@@ -524,11 +528,14 @@ const corDoCenario = (nome) => `hsl(${matizDoCenario(nome)} 42% 38%)`;
 /* ------------------------------------------------------------------ opcoes */
 async function carregaOpcoes() {
   const d = await (await fetch(api('/api/cenarios'))).json();
-  ACOES = d.acoes; CENARIOS = d.cenarios;
-  $('#cenario').innerHTML = '<option value="">Todos os cenários</option>' +
-    CENARIOS.map((c) => `<option value="${c.nome}">${c.nome}</option>`).join('');
-  $('#cenario').value = CENARIOS.some((c) => c.nome === 'jogo') ? 'jogo' : '';
-  descreveCenario();
+  ACOES = d.acoes; CENARIOS = d.cenarios; TIPOS = d.tipos || [];
+  // PRIMEIRO O TIPO, DEPOIS O CENARIO. Com 30 cenarios numa lista so, cobranca
+  // de falta e teste de orientacao ficavam misturados e ninguem achava nada.
+  $('#tipo').innerHTML = '<option value="">Todos os tipos</option>' +
+    TIPOS.filter(([t]) => CENARIOS.some((c) => c.tipo === t))
+         .map(([t, rotulo]) => `<option value="${t}">${rotulo}</option>`).join('');
+  $('#tipo').value = CENARIOS.some((c) => c.tipo === 'jogo') ? 'jogo' : '';
+  preencheCenarios('jogo');
   $('#chips').innerHTML = d.bandeiras.map((b) =>
     `<button type="button" class="chip" data-b="${b}" aria-pressed="false"
       title="${b}">${rotuloBandeira(b)}</button>`).join('');
@@ -549,18 +556,46 @@ async function carregaOpcoes() {
   previa();
 }
 
+function preencheCenarios(escolher) {
+  const t = $('#tipo').value;
+  const lista = CENARIOS.filter((c) => !t || c.tipo === t);
+  $('#cenario').innerHTML =
+    `<option value="">Todos${t ? ' deste tipo' : ' os cenários'}</option>` +
+    lista.map((c) => `<option value="${c.nome}">${c.nome}</option>`).join('');
+  if (escolher && lista.some((c) => c.nome === escolher)) $('#cenario').value = escolher;
+  descreveCenario();
+  previa();
+}
+
 const rotuloBandeira = (b) => ({
   DIAG_JOGO: 'diagnóstico do jogo',
   DIAG_FK: 'diagnóstico da bola parada',
   ARARABOTS_SO_NOSSOS: 'sem adversário',
   ARARABOTS_INIMIGO_PARADO: 'adversário parado',
+  // chaves de experimento: DESLIGAM uma modificacao, para medir o antes
+  ARARABOTS_SEM_ORIENTACAO_LADO: '⏻ sem: orientação por lado',
+  ARARABOTS_SEM_ORBITA: '⏻ sem: contorno em órbita',
+  ARARABOTS_SEM_PROTECAO: '⏻ sem: proteção de posse',
+  ARARABOTS_SEM_PRESSAO_BOLA: '⏻ sem: pressão medida na bola',
+  ARARABOTS_SEM_MIRA_FIRME: '⏻ sem: mira firme por 2 s',
+  ARARABOTS_SEM_EMPURRAO: '⏻ sem: empurrão além da bola',
 }[b] || b);
 
 function descreveCenario() {
   const c = CENARIOS.find((x) => x.nome === $('#cenario').value);
-  $('#desc-cenario').innerHTML = c
-    ? `<b>${c.nome}</b> — ${c.titulo || ''}${c.robos ? ` · ${c.robos} robôs nossos` : ''}`
-    : 'Roda todos os cenários, um depois do outro.';
+  if (!c) {
+    const t = $('#tipo').value;
+    const n = CENARIOS.filter((x) => !t || x.tipo === t).length;
+    $('#desc-cenario').textContent =
+      `Roda os ${n} cenários${t ? ' deste tipo' : ''}, um depois do outro.`;
+    return;
+  }
+  // a descricao longa do cenario explica o que ele mede - e o que faltava para
+  // alguem escolher sem abrir o ararabots.py
+  const desc = (c.descricao || '').trim().replace(/\s+/g, ' ');
+  $('#desc-cenario').innerHTML =
+    `<b>${c.titulo || c.nome}</b>${c.robos ? ` · ${c.robos} robôs nossos` : ''}` +
+    (desc ? `<br><span style="color:var(--tenue)">${desc}</span>` : '');
 }
 
 /* ------------------------------------------------------------------ estado */
@@ -703,6 +738,7 @@ $('#modo').querySelectorAll('button').forEach((b) => (b.onclick = () => {
   modo = b.dataset.modo;
   $('#modo').querySelectorAll('button').forEach((o) => o.classList.toggle('sel', o === b));
 }));
+$('#tipo').onchange = () => preencheCenarios();
 $('#cenario').onchange = () => { descreveCenario(); previa(); };
 $('#n').oninput = previa;
 $('#robos').oninput = previa;
