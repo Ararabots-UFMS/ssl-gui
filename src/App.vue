@@ -34,6 +34,12 @@
         <configterminal></configterminal>
       </div>
     </div>
+    <!-- Tela 2: painel do ararabots.sh. Fala com a ponte no host (porta 8099),
+         nao com o apiNode - o script precisa de docker e grSim, que nao existem
+         dentro do container. Ver src/components/ferramenta.vue. -->
+    <div v-if="selectedButton === 2" class="tool-screen">
+      <ferramenta></ferramenta>
+    </div>
   </div>
 </template>
 
@@ -45,6 +51,7 @@
   import play from './components/play.vue';
   import robotcard from './components/robotcard.vue';
   import configterminal from './components/configterminal.vue';
+  import ferramenta from './components/ferramenta.vue';
 
   export default {
     name: 'FullScreen',
@@ -56,10 +63,11 @@
       play,
       robotcard,
       configterminal,
+      ferramenta,
     },
     data() {
       return {
-        buttons: ['Main', 'Config'], // Índices dos botões
+        buttons: ['Main', 'Config', 'Tool'], // Índices dos botões
         selectedButton: null // Índice do botão selecionado
       };
     },
@@ -158,6 +166,13 @@
   flex: 1;
   height: 96%;
   width: 100%;
+}
+
+/* Tela da ferramenta: ocupa o espaco todo, como a Main */
+.tool-screen {
+  display: flex;
+  width: 96%;
+  height: 100%;
 }
 
 .config-left-side {
