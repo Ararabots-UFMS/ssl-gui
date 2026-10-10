@@ -115,6 +115,17 @@ BANDEIRAS = {
     # as duas de 07/10/2026, nascidas da leitura dos replays do lote de 03/10
     "ARARABOTS_SEM_MIRA_FIRME": "1",
     "ARARABOTS_SEM_EMPURRAO": "1",
+    # as quatro de 09/10/2026, do contorno do portador. O painel estava
+    # DEFASADO: as chaves existiam na estrategia e nao davam para desligar
+    # daqui, o que quebra o "uma interface so" - quem usa o painel nao
+    # conseguia reproduzir o antes/depois que o relatorio cita.
+    "ARARABOTS_SEM_PLANEJADOR": "1",
+    "ARARABOTS_SEM_DISPARO_ALINHADO": "1",
+    "ARARABOTS_SEM_CHEGADA_ALINHADA": "1",
+    "ARARABOTS_SEM_PARAR_E_MIRAR": "1",
+    # modo de diagnostico: prende o portador na fase de contorno, para medir
+    # posicionamento sem o contato por cima
+    "ARARABOTS_SO_POSICIONAR": "1",
 }
 # Bandeiras com valor livre (numerico), com teto.
 BANDEIRAS_NUM = {"ARARABOTS_ROBOS": (1, 6), "ARARABOTS_VEL_INIMIGO": (0, 3)}
@@ -126,6 +137,7 @@ TIPOS_ROTULO = [
     ["jogo", "Jogo corrido"],
     ["bola_parada", "Bola parada (falta)"],
     ["kickoff", "Kickoff"],
+    ["portador", "Teste · o portador sozinho (contorno)"],
     ["orientacao", "Teste · orientação do corpo"],
     ["orbita", "Teste · contorno (bola atrás)"],
     ["pressao", "Teste · pressão na bola"],
@@ -133,6 +145,9 @@ TIPOS_ROTULO = [
     ["mira", "Teste · mira firme (não gira)"],
     ["empurrao", "Teste · empurrão (bola anda)"],
     ["robustez", "Robustez (contagem de robôs)"],
+    # Os desenhados no editor do painel. Vem por ultimo porque sao os que mais
+    # mudam - e o playground, nao a bateria de regressao.
+    ["local", "Meus cenários (playground)"],
 ]
 
 MAX_N = 20
@@ -179,8 +194,138 @@ def ler_cenarios():
                                 robos = len(v2.elts)
                     saida.append({"nome": chave.value, "titulo": titulo,
                                   "tipo": tipo, "descricao": desc, "robos": robos})
-                return saida
-    return []
+                return saida + _cenarios_locais_para_lista()
+    return _cenarios_locais_para_lista()
+
+
+# -------------------------------------------------------- cenarios do painel
+#
+# Os cenarios desenhados no editor moram num JSON ao lado do ararabots.py, e
+# nao dentro dele: um editor grafico que reescreve um .py de 5000 linhas e um
+# defeito esperando acontecer. O ararabots.py junta esse JSON ao CENARIOS no
+# import (ver _carregar_cenarios_locais), entao daquele ponto em diante eles sao
+# cenarios como qualquer outro - 'listar', 'rodar', 'robos' e o subcomando
+# 'lotes' nao sabem a diferenca.
+#
+# A ponte le e escreve o MESMO arquivo. As duas pontas juntam a mesma fonte, em
+# vez de uma copiar da outra.
+ARQ_LOCAIS = PY_FERRAMENTA.parent / "cenarios-locais.json"
+
+# Limites do campo da Division B, em mm, para validar o que o editor manda. Sao
+# os mesmos do desenho do campo no painel.
+CAMPO_X, CAMPO_Y = 4500, 3000
+FORA_DO_CAMPO = 600          # margem atras da linha de fundo que ainda aceitamos
+
+
+def ler_locais():
+    """O dicionario de cenarios locais. Nunca levanta - devolve {} se quebrar."""
+    try:
+        with ARQ_LOCAIS.open(encoding="utf-8") as fp:
+            dados = json.load(fp)
+        return dados if isinstance(dados, dict) else {}
+    except FileNotFoundError:
+        return {}
+    except Exception:
+        return {}
+
+
+def _cenarios_locais_para_lista():
+    saida = []
+    for nome, cen in sorted(ler_locais().items()):
+        if not isinstance(cen, dict):
+            continue
+        saida.append({"nome": nome, "titulo": cen.get("titulo", nome),
+                      "tipo": cen.get("tipo", "local"),
+                      "descricao": cen.get("descricao", ""),
+                      "robos": len(cen.get("azuis", [])), "local": True})
+    return saida
+
+
+def _valida_cenario(nome, cen):
+    """Devolve (ok, motivo). Valida o que o editor manda ANTES de gravar.
+
+    Gravar um cenario invalido e pior que recusar: ele entra na lista, alguem
+    roda um lote inteiro com ele e o resultado nao quer dizer nada.
+    """
+    if not re.fullmatch(r"[a-z0-9_]{3,40}", nome or ""):
+        return False, ("o nome vale como identificador: so minusculas, numeros "
+                       "e _, de 3 a 40 caracteres")
+    if nome in {c["nome"] for c in ler_cenarios()} - set(ler_locais()):
+        return False, "já existe um cenário do repositório com esse nome"
+    try:
+        bx, by = float(cen["bola"][0]), float(cen["bola"][1])
+    except Exception:
+        return False, "cenário sem bola"
+    if abs(bx) > CAMPO_X or abs(by) > CAMPO_Y:
+        return False, "a bola está fora do campo"
+    vistos = {"azuis": set(), "amarelos": set()}
+    for lado in ("azuis", "amarelos"):
+        for robo in cen.get(lado, []):
+            try:
+                rid, rx, ry = int(robo[0]), float(robo[1]), float(robo[2])
+            except Exception:
+                return False, "robô com coordenada inválida em %s" % lado
+            if not 0 <= rid <= 5:
+                return False, "id de robô fora de 0..5 em %s" % lado
+            if rid in vistos[lado]:
+                return False, "dois robôs com o id %d em %s" % (rid, lado)
+            vistos[lado].add(rid)
+            if abs(rx) > CAMPO_X + FORA_DO_CAMPO or abs(ry) > CAMPO_Y:
+                return False, "robô fora do campo em %s" % lado
+    if not cen.get("azuis"):
+        return False, "o cenário precisa de pelo menos um robô nosso"
+    return True, ""
+
+
+def gravar_local(nome, cen):
+    """Grava um cenario local. Devolve (ok, motivo)."""
+    ok, motivo = _valida_cenario(nome, cen)
+    if not ok:
+        return False, motivo
+    dados = ler_locais()
+    limpo = {
+        "titulo": str(cen.get("titulo") or nome)[:120],
+        "descricao": str(cen.get("descricao") or "")[:800],
+        "tipo": str(cen.get("tipo") or "local")[:40],
+        "bola": [round(float(cen["bola"][0])), round(float(cen["bola"][1]))],
+        "azuis": [[int(r[0]), round(float(r[1])), round(float(r[2])),
+                   round(float(r[3] if len(r) > 3 else 0))]
+                  for r in cen.get("azuis", [])],
+        "amarelos": [[int(r[0]), round(float(r[1])), round(float(r[2])),
+                      round(float(r[3] if len(r) > 3 else 0))]
+                     for r in cen.get("amarelos", [])],
+        "comando": [str(cen.get("comando", ["FORCE_START", "BLUE"])[0]),
+                    str(cen.get("comando", ["FORCE_START", "BLUE"])[1])],
+    }
+    # PAPEIS FIXOS: a chave do editor. Com ela, 'ararabots.py papeis' devolve o
+    # mapa e o 'cenario' exporta ARARABOTS_PAPEIS antes de subir o strategyNode -
+    # a estrategia passa a obedecer o desenho em vez de distribuir por geometria.
+    limpo["papeis_fixos"] = bool(cen.get("papeis_fixos"))
+    if isinstance(cen.get("papeis"), dict):
+        validos = {"portador", "apoio", "cobertura", "goleiro", "zagueiro"}
+        limpo["papeis"] = {str(k): str(v)[:20] for k, v in cen["papeis"].items()
+                           if str(v) in validos}
+    dados[nome] = limpo
+    # ESCRITA ATOMICA: um arquivo temporario e um rename. Se a maquina cair no
+    # meio, o que sobra e a versao anterior inteira - nao um JSON truncado, que
+    # levaria TODOS os cenarios locais junto.
+    tmp = ARQ_LOCAIS.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(dados, ensure_ascii=False, indent=1),
+                   encoding="utf-8")
+    tmp.replace(ARQ_LOCAIS)
+    return True, ""
+
+
+def remover_local(nome):
+    dados = ler_locais()
+    if nome not in dados:
+        return False, "esse cenário não existe"
+    dados.pop(nome)
+    tmp = ARQ_LOCAIS.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(dados, ensure_ascii=False, indent=1),
+                   encoding="utf-8")
+    tmp.replace(ARQ_LOCAIS)
+    return True, ""
 
 
 # -------------------------------------------------------------------- estado
@@ -613,6 +758,8 @@ class Handler(BaseHTTPRequestHandler):
                                "bandeiras": sorted(BANDEIRAS),
                                "bandeiras_num": BANDEIRAS_NUM,
                                "opcoes_ajuste": OPCOES_AJUSTE})
+        if rota == "/api/cenarios-locais":
+            return self._json({"cenarios": ler_locais()})
         if rota == "/api/estado":
             return self._json({"ambiente": estado_do_ambiente(),
                                "trabalho": TRABALHO.resumo()})
@@ -671,6 +818,17 @@ class Handler(BaseHTTPRequestHandler):
 
         if rota == "/api/parar-trabalho":
             return self._json({"interrompido": TRABALHO.parar()})
+        if rota == "/api/cenario-local":
+            ok, motivo = gravar_local(str(pedido.get("nome", "")),
+                                      pedido.get("cenario") or {})
+            if not ok:
+                return self._json({"erro": motivo}, 400)
+            return self._json({"ok": True})
+        if rota == "/api/cenario-local-remover":
+            ok, motivo = remover_local(str(pedido.get("nome", "")))
+            if not ok:
+                return self._json({"erro": motivo}, 400)
+            return self._json({"ok": True})
         if rota == "/api/rodar":
             try:
                 argv, env, descricao = montar_argv(pedido)

@@ -30,4 +30,4 @@ coverage
 *.tsbuildinfo
 
 # Personal
-.vscode
+.vscodepainel/__pycache__/

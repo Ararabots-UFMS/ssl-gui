@@ -28,6 +28,14 @@
   --raio:10px; --col-passos:420px;
 }
 *{box-sizing:border-box}
+/* O ATRIBUTO hidden TEM DE GANHAR DE QUALQUER display DO AUTOR.
+   'hidden' esconde porque a folha do navegador aplica display:none nele - e
+   QUALQUER regra do autor com display vence essa. 'main' e '#editor' tem
+   display:flex, entao os dois ficavam visiveis ao mesmo tempo, empilhados no
+   meio da tela, com o hidden posto. Vale para o painel inteiro: ha dezenas de
+   elementos controlados por hidden aqui (a fita, os avisos de erro, as abas), e
+   o primeiro que ganhar um display no futuro quebraria do mesmo jeito. */
+[hidden]{display:none !important}
 html{height:100%}
 body{
   margin:0; height:100%; display:flex; flex-direction:column; overflow:hidden;
@@ -271,6 +279,160 @@ tbody tr:hover{background:var(--carta)}
   margin:0 0 13px; padding:12px 14px; border-radius:8px; font-size:13.5px;
   background:rgba(224,82,82,.14); border:1px solid rgba(224,82,82,.45); color:#f3c2c2;
 }
+
+/* ========================================================== editor de cenario
+   O playground: desenha-se o cenario no campo e ele passa a existir como
+   qualquer outro - o ararabots.py junta o JSON ao CENARIOS no import, entao
+   'rodar', 'robos' e o subcomando 'lotes' nao sabem que a origem foi aqui.
+   ========================================================================== */
+#editor{flex:1; min-height:0; display:flex; flex-direction:column}
+#editor .lado{
+  width:330px; flex:none; display:flex; flex-direction:column; gap:14px;
+  /* A COLUNA ROLA SOZINHA, E OS CARTOES NAO ENCOLHEM.
+     Mesmo defeito que a coluna de passos da ferramenta ja teve (ver o
+     cabecalho deste arquivo): num container flex os filhos encolhem para
+     caber, e '.carta' tem overflow:hidden - entao o conteudo era CORTADO em
+     vez de rolar. Sao quatro cartoes em 552 px de altura; eles nao cabem, e
+     nao devem ter de caber. */
+  overflow-y:auto; overflow-x:hidden; min-height:0;
+}
+#editor .lado>*{flex:0 0 auto}
+#editor .mesa{flex:1; min-width:0; min-height:0; display:flex;
+              flex-direction:column; gap:12px}
+.paleta{display:flex; flex-wrap:wrap; gap:8px}
+.peca{
+  display:flex; align-items:center; gap:8px; padding:9px 12px; cursor:pointer;
+  background:var(--fundo); border:1px solid var(--borda); border-radius:8px;
+  color:var(--texto); font:inherit; font-size:13px;
+}
+.peca.sel{border-color:var(--acao); background:rgba(61,124,232,.14)}
+.peca i{width:14px; height:14px; border-radius:50%; flex:none}
+.campo-svg{
+  flex:1; min-height:320px; background:#12331d; border:1px solid var(--borda);
+  border-radius:var(--raio); touch-action:none;
+}
+.campo-svg.armado{cursor:crosshair}
+.dica-editor{font-size:13px; color:var(--fraco); margin:0}
+.lista-locais{display:flex; flex-direction:column; gap:7px; margin:0; padding:0; list-style:none}
+.lista-locais li{
+  display:flex; align-items:center; gap:8px; padding:8px 10px; font-size:13px;
+  background:var(--fundo); border:1px solid var(--borda); border-radius:8px;
+}
+.lista-locais li span{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.lista-locais button{
+  border:0; background:var(--carta-alta); color:var(--texto); cursor:pointer;
+  padding:5px 9px; border-radius:6px; font:inherit; font-size:12px;
+}
+.lista-locais button.perigo{background:#4a2630; color:#f1b1b1}
+input[type=text],textarea{
+  width:100%; padding:10px 12px; font-size:14.5px; color:var(--texto);
+  background:var(--fundo); border:1px solid var(--borda); border-radius:8px;
+  font-family:inherit;
+}
+textarea{resize:vertical; min-height:62px}
+.linha-botoes{display:flex; gap:8px}
+.linha-botoes .btn{text-align:center}
+.btn.primario{background:var(--acao); color:#fff}
+
+/* -------------------------------------------- botao que abre o playground
+   Era um .btn dentro de um <label>. Duas coisas erradas: label envolvendo
+   button ativa o clique duas vezes, e o .btn tem fundo preenchido - num bloco
+   de formulario ele parecia LIGADO o tempo todo. Agora e acao secundaria:
+   contorno, nao preenchimento, e so acende ao passar o mouse ou focar. */
+.btn-linha{
+  display:flex; align-items:center; gap:11px; width:100%; margin-top:2px;
+  padding:11px 13px; cursor:pointer; text-align:left; font:inherit;
+  color:var(--texto); background:transparent;
+  border:1px dashed var(--borda); border-radius:9px;
+}
+.btn-linha:hover{border-color:var(--acao); border-style:solid; background:rgba(61,124,232,.10)}
+.btn-linha:focus-visible{outline:2px solid rgba(61,124,232,.6); outline-offset:1px}
+/* SEMPRE CAPITALIZADO - mas so o ROTULO.
+   O capitalize no botao inteiro pegava a linha de ajuda tambem, e frase
+   capitalizada palavra por palavra ("Abre O Playground: Desenhe No Campo")
+   fica ilegivel. O rotulo e um nome de tela; a ajuda e uma frase. */
+.btn-linha .txt{text-transform:capitalize}
+.btn-linha .txt small{text-transform:none}
+.btn-linha .txt{flex:1; font-size:14px; font-weight:600}
+.btn-linha .txt small{display:block; font-size:12.5px; font-weight:400;
+  color:var(--fraco); margin-top:2px; line-height:1.4}
+.btn-linha .seta{color:var(--tenue)}
+.btn-linha:hover .seta{color:var(--acao)}
+
+/* ------------------------------------------------- cabecalho do playground
+   O editor e uma SECAO, nao uma coluna a mais da ferramenta: tem cabecalho
+   proprio, titulo e saida. Antes ele abria dividindo a mesma tela e parecia
+   que a ferramenta tinha ganhado um painel do lado. */
+.cabeca-editor{
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  padding:13px 18px; background:var(--carta-alta);
+  border-bottom:1px solid var(--borda);
+}
+.titulo-editor{flex:1; min-width:200px; font-size:15px; font-weight:600}
+.titulo-editor small{display:block; font-size:12.5px; font-weight:400; color:var(--fraco)}
+.btn-voltar{
+  border:1px solid var(--borda); background:var(--fundo); color:var(--texto);
+  padding:9px 13px; border-radius:8px; cursor:pointer; font:inherit; font-size:13.5px;
+}
+.btn-voltar:hover{border-color:var(--acao)}
+.corpo-editor{flex:1; min-height:0; display:flex; gap:18px; padding:18px; overflow:auto}
+@media (max-width:1080px){ .corpo-editor{flex-direction:column} }
+
+/* ------------------------------------------------------------ toggle switch */
+.chave{display:flex; align-items:center; gap:9px; cursor:pointer; font-size:13.5px;
+       color:var(--fraco); user-select:none}
+.chave input{position:absolute; opacity:0; width:0; height:0}
+.chave .trilho{
+  width:42px; height:23px; border-radius:999px; background:var(--fundo);
+  border:1px solid var(--borda); position:relative; transition:background .15s, border-color .15s;
+}
+.chave .bolinha-chave{
+  position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:50%;
+  background:var(--tenue); transition:transform .15s, background .15s;
+}
+.chave input:checked + .trilho{background:rgba(61,124,232,.30); border-color:var(--acao)}
+.chave input:checked + .trilho .bolinha-chave{transform:translateX(19px); background:var(--acao)}
+.chave input:focus-visible + .trilho{outline:2px solid rgba(61,124,232,.6); outline-offset:2px}
+.chave.ligada{color:var(--texto)}
+
+/* ============================================ primeira letra sempre maiuscula
+   O painel foi escrito com os rotulos em minuscula ("salvar", "remover peca",
+   "papeis fixos"). Pedido do Felipe: primeira letra maiuscula em todo texto de
+   interface.
+
+   FEITO COM ::first-letter, E NAO text-transform:capitalize, de proposito:
+   capitalize maiusculiza CADA PALAVRA, e frase assim fica ilegivel
+   ("Abre O Playground: Desenhe No Campo E Rode Um Lote Com Ele"). Com
+   ::first-letter so a inicial muda, que e o que foi pedido.
+
+   O QUE FICA DE FORA, e por que:
+     - o log e o <pre>: e saida de comando, nao texto nosso. Maiusculizar a
+       primeira letra de uma linha de log e falsear o que a ferramenta imprimiu;
+     - o seletor de cenarios e qualquer <option>: nome de cenario e
+       IDENTIFICADOR (minusculas, numeros e _). Mostrar "Jogo" para quem tem de
+       digitar "jogo" num comando e convite a erro;
+     - .mono: mesma razao do log - caminho de arquivo e comando.
+   ========================================================================== */
+.carta>h2::first-letter,
+.ajuda::first-letter,
+.btn::first-letter,
+.btn-linha .txt::first-letter,
+.btn-voltar::first-letter,
+.peca::first-letter,
+.aba::first-letter,
+.segmentado button::first-letter,
+.lista-locais button::first-letter,
+.fita button::first-letter,
+.fita span::first-letter,
+label.campo>span::first-letter,
+.dica-editor::first-letter,
+.titulo-editor::first-letter,
+.chave::first-letter,
+.erro::first-letter,
+.veredito::first-letter,
+.luz::first-letter,
+.filtro-replays label::first-letter,
+#editor .conteudo p::first-letter{ text-transform:uppercase }
 </style>
 </head>
 <body>
@@ -290,7 +452,7 @@ tbody tr:hover{background:var(--carta)}
   <span class="girando"></span>
   <span>rodando <span class="mono" id="fita-cmd"></span></span>
   <span class="mono" id="fita-tempo"></span>
-  <button type="button" id="btn-interromper">interromper</button>
+  <button type="button" id="btn-interromper">Interromper</button>
 </div>
 
 <main>
@@ -311,7 +473,7 @@ tbody tr:hover{background:var(--carta)}
               <b>Lotes</b> traz o placar e a aba <b>Replays</b> abre cada execução.</li>
         </ol>
         <p class="ajuda" style="margin-top:13px">
-          Cada botão mostra, antes de executar, a <b>linha de comando equivalente</b>.
+          Cada botão mostra, antes de executar, a <b>Linha de comando equivalente</b>.
           É o mesmo <code>ararabots.sh</code> do terminal — o painel não é um
           caminho diferente.
         </p>
@@ -326,19 +488,19 @@ tbody tr:hover{background:var(--carta)}
         <label class="campo">
           <span>Modo do simulador</span>
           <div class="segmentado" id="modo">
-            <button type="button" data-modo="headless" class="sel">sem janela — medir</button>
-            <button type="button" data-modo="janela">com janela — assistir</button>
+            <button type="button" data-modo="headless" class="sel">Sem janela — medir</button>
+            <button type="button" data-modo="janela">Com janela — assistir</button>
           </div>
         </label>
-        <p class="ajuda">Janela coberta ou minimizada <b>congela a física</b> do
+        <p class="ajuda">Janela coberta ou minimizada <b>Congela a física</b> do
           grSim: o resultado não vale. Para medir, use sem janela.</p>
         <button class="btn principal" data-acao="preparar">
           Preparar ambiente
           <small>./ararabots.sh preparar — alguns minutos</small>
         </button>
         <div class="dupla" style="margin-top:9px">
-          <button class="btn" data-acao="limpar">Limpar<small>mata nós órfãos</small></button>
-          <button class="btn perigo" data-acao="parar">Parar tudo<small>derruba o ambiente</small></button>
+          <button class="btn" data-acao="limpar">Limpar<small>Mata nós órfãos</small></button>
+          <button class="btn perigo" data-acao="parar">Parar tudo<small>Derruba o ambiente</small></button>
         </div>
       </div>
     </section>
@@ -354,6 +516,12 @@ tbody tr:hover{background:var(--carta)}
           <span>Cenário</span>
           <select id="cenario"></select>
         </label>
+        <button type="button" class="btn-linha" id="btn-editor">
+          <span class="txt">Criar Ou Editar Cenários
+            <small>Abre o playground: desenhe no campo e rode um lote com ele</small>
+          </span>
+          <span class="seta">→</span>
+        </button>
         <p class="ajuda" id="desc-cenario"></p>
         <div class="par">
           <label class="campo">
@@ -376,11 +544,11 @@ tbody tr:hover{background:var(--carta)}
         <div class="comando" id="previa"><em>vai executar</em><span class="mono">—</span></div>
         <button class="btn principal" data-acao="validar" style="margin-top:13px">
           Rodar lote
-          <small>grava no validacao.csv e gera um replay por execução</small>
+          <small>Grava no validacao.csv e gera um replay por execução</small>
         </button>
         <button class="btn" data-acao="cenario">
           Montar 1 cenário
-          <small>posiciona e deixa pronto, sem gravar lote</small>
+          <small>Posiciona e deixa pronto, sem gravar lote</small>
         </button>
       </div>
     </section>
@@ -392,16 +560,16 @@ tbody tr:hover{background:var(--carta)}
           acima diz quantos eles consideram.</p>
         <button class="btn" data-acao="jogo-analise">
           Análise do jogo
-          <small>as cinco perguntas: alguém vai à bola, amontoam, a bola avança,
+          <small>As cinco perguntas: alguém vai à bola, amontoam, a bola avança,
             o time ataca, alguém chuta</small>
         </button>
         <button class="btn" data-acao="narrar">
           Narrar
-          <small>o que aconteceu, toque a toque</small>
+          <small>O que aconteceu, toque a toque</small>
         </button>
         <div class="dupla" style="margin-top:9px">
-          <button class="btn" data-acao="posse">Posse<small>tempo por situação</small></button>
-          <button class="btn" data-acao="painel">Painel HTML<small>agrega os replays</small></button>
+          <button class="btn" data-acao="posse">Posse<small>Tempo por situação</small></button>
+          <button class="btn" data-acao="painel">Painel HTML<small>Agrega os replays</small></button>
         </div>
       </div>
     </section>
@@ -412,19 +580,19 @@ tbody tr:hover{background:var(--carta)}
         <p class="ajuda">Use quando um número não fechar e for preciso descobrir
           <b>onde</b> a cadeia quebrou.</p>
         <div class="dupla">
-          <button class="btn" data-acao="sonda">Sonda [FK]<small>bola parada</small></button>
-          <button class="btn" data-acao="sonda-chute">Sonda do chute<small>cadeia até o grSim</small></button>
+          <button class="btn" data-acao="sonda">Sonda [FK]<small>Bola parada</small></button>
+          <button class="btn" data-acao="sonda-chute">Sonda do chute<small>Cadeia até o grSim</small></button>
         </div>
         <div class="dupla" style="margin-top:9px">
-          <button class="btn" data-acao="mov-bruto">Movimento puro<small>sem estratégia</small></button>
-          <button class="btn" data-acao="grsim">Só o grSim<small>abre o simulador</small></button>
+          <button class="btn" data-acao="mov-bruto">Movimento puro<small>Sem estratégia</small></button>
+          <button class="btn" data-acao="grsim">Só o grSim<small>Abre o simulador</small></button>
         </div>
         <label class="campo" style="margin-top:15px">
           <span>Ajustes fora de <code>src/strategy</code></span>
           <select id="ajuste-op"></select>
         </label>
         <button class="btn" data-acao="ajustes">Aplicar ajuste</button>
-        <p class="ajuda" style="margin-top:11px">O <b>preparar</b> liga
+        <p class="ajuda" style="margin-top:11px">O <b>Preparar</b> liga
           <code>on controle</code> sozinho. Abortar com Ctrl-C deixa o arquivo
           alterado.</p>
       </div>
@@ -444,7 +612,7 @@ tbody tr:hover{background:var(--carta)}
     <div class="painel-aba" id="aba-csv" hidden>
       <div class="area">
         <p class="aviso">Linha com <code>ERRO</code> ou <code>BLOQUEADO</code>
-          significa que <b>o lote não rodou</b> — nesse caso os replays são de
+          significa que <b>O lote não rodou</b> — nesse caso os replays são de
           execuções anteriores, e não valem como resultado.</p>
         <div id="csv"></div>
       </div>
@@ -453,7 +621,7 @@ tbody tr:hover{background:var(--carta)}
     <div class="painel-aba" id="aba-replays" hidden>
       <div class="area">
         <div class="filtro-replays">
-          <label for="filtro-cen" style="font-size:13px;color:var(--fraco)">cenário</label>
+          <label for="filtro-cen" style="font-size:13px;color:var(--fraco)">Cenário</label>
           <select id="filtro-cen"><option value="">todos</option></select>
           <span class="conta" id="conta-replays"></span>
         </div>
@@ -462,6 +630,91 @@ tbody tr:hover{background:var(--carta)}
     </div>
   </div>
 </main>
+
+<!-- ===================================================== editor de cenarios -->
+<div id="editor" hidden>
+  <header class="cabeca-editor">
+    <button type="button" class="btn-voltar" id="btn-voltar">← Ferramenta</button>
+    <div class="titulo-editor">Playground de cenários
+      <small>O que você salvar aqui roda como qualquer cenário do repositório</small>
+    </div>
+    <label class="chave" title="Com papéis fixos, a estratégia obedece o papel que você marcar em cada robô em vez de distribuir por geometria">
+      <input type="checkbox" id="papeis-fixos">
+      <span class="trilho"><span class="bolinha-chave"></span></span>
+      <span>Papéis fixos</span>
+    </label>
+  </header>
+  <div class="corpo-editor">
+  <div class="lado">
+    <section class="carta">
+      <h2><span class="numero">1</span>Peças</h2>
+      <div class="conteudo">
+        <p class="ajuda">Clique numa peça e depois no campo para colocar. Arraste
+          para mover, clique para selecionar, <b>Delete</b> remove.</p>
+        <div class="paleta" id="paleta"></div>
+      </div>
+    </section>
+
+    <section class="carta" id="carta-sel" hidden>
+      <h2><span class="numero">2</span>Peça selecionada</h2>
+      <div class="conteudo">
+        <p class="ajuda" id="sel-descr"></p>
+        <label class="campo" id="campo-id"><span>Id do robô</span>
+          <select id="sel-id"></select></label>
+        <label class="campo" id="campo-ang"><span>Orientação (graus)</span>
+          <input type="number" id="sel-ang" step="15" min="-180" max="180"></label>
+        <label class="campo" id="campo-papel"><span>Papel</span>
+          <select id="sel-papel"></select></label>
+        <p class="ajuda" id="ajuda-papel"></p>
+        <button type="button" class="btn" id="btn-apagar-peca">Remover peça</button>
+      </div>
+    </section>
+
+    <section class="carta">
+      <h2><span class="numero">3</span>Salvar</h2>
+      <div class="conteudo">
+        <label class="campo"><span>Nome (identificador)</span>
+          <input type="text" id="cen-nome" placeholder="meu_cenario"
+                 autocomplete="off" spellcheck="false"></label>
+        <label class="campo"><span>Título</span>
+          <input type="text" id="cen-titulo" placeholder="o que este cenário mede"
+                 autocomplete="off"></label>
+        <label class="campo"><span>Descrição</span>
+          <textarea id="cen-descr" placeholder="por que ele existe, e o que se espera ver"></textarea></label>
+        <label class="campo"><span>Comando do árbitro</span>
+          <select id="cen-comando">
+            <option value="FORCE_START|BLUE">FORCE_START (jogo corrido)</option>
+            <option value="DIRECT|BLUE">DIRECT BLUE (nossa falta)</option>
+            <option value="DIRECT|YELLOW">DIRECT YELLOW (falta deles)</option>
+            <option value="PREPARE_KICKOFF|BLUE">KICKOFF nosso</option>
+            <option value="PREPARE_KICKOFF|YELLOW">KICKOFF deles</option>
+          </select></label>
+        <div class="linha-botoes">
+          <button type="button" class="btn primario" id="btn-salvar-cen">Salvar</button>
+          <button type="button" class="btn" id="btn-limpar-cen">Limpar campo</button>
+        </div>
+        <div class="erro" id="erro-editor" hidden style="margin-top:12px"></div>
+      </div>
+    </section>
+
+    <section class="carta">
+      <h2>Meus cenários</h2>
+      <div class="conteudo">
+        <p class="ajuda" id="sem-locais">Nenhum ainda. O que você salvar aparece
+          aqui e também no seletor de cenários da tela principal.</p>
+        <ul class="lista-locais" id="lista-locais"></ul>
+      </div>
+    </section>
+  </div>
+
+  <div class="mesa">
+    <svg class="campo-svg" id="campo" viewBox="-5000 -3300 10000 6600"
+         preserveAspectRatio="xMidYMid meet"></svg>
+    <p class="dica-editor" id="dica-editor">—</p>
+  </div>
+  </div>
+</div>
+
 
 <script>
 /* A ponte responde na MESMA origem de onde o painel foi servido: funciona em
@@ -579,6 +832,11 @@ const rotuloBandeira = (b) => ({
   ARARABOTS_SEM_PRESSAO_BOLA: '⏻ sem: pressão medida na bola',
   ARARABOTS_SEM_MIRA_FIRME: '⏻ sem: mira firme por 2 s',
   ARARABOTS_SEM_EMPURRAO: '⏻ sem: empurrão além da bola',
+  ARARABOTS_SEM_PLANEJADOR: '⏻ Sem: contorno pelo planejador',
+  ARARABOTS_SEM_DISPARO_ALINHADO: '⏻ Sem: exigir corpo na linha de tiro',
+  ARARABOTS_SEM_CHEGADA_ALINHADA: '⏻ Sem: chegar apontado para a bola',
+  ARARABOTS_SEM_PARAR_E_MIRAR: '⏻ Sem: parar e mirar antes de empurrar',
+  ARARABOTS_SO_POSICIONAR: '🔍 Só posicionar (não empurra, não chuta)',
 }[b] || b);
 
 function descreveCenario() {
@@ -691,7 +949,7 @@ function desenhaReplays() {
         ${adv}${chutou}${pid}
         <span class="kb">${r.kb} kB</span>
         <a class="abrir" href="${api('/replay/' + encodeURIComponent(r.nome))}"
-           target="_blank" rel="noopener">abrir</a>
+           target="_blank" rel="noopener">Abrir</a>
       </span>
     </div>`;
   }
@@ -757,6 +1015,401 @@ fonte.onmessage = (e) => {
 carregaOpcoes();
 atualizaEstado(); carregaCsv(); carregaReplays();
 setInterval(atualizaEstado, 2500);
+
+/* ==========================================================================
+   EDITOR DE CENARIOS - o playground
+   ==========================================================================
+   O cenario desenhado aqui vai para um JSON ao lado do ararabots.py, e o
+   ararabots.py o junta ao CENARIOS no import. Dali em diante ele e um cenario
+   como qualquer outro: aparece no seletor, roda em lote, entra no replay.
+   Nada aqui conhece o ambiente - o editor so escreve dado.
+
+   POR QUE PECAS E NAO FORMULARIO: o que decide um cenario e geometria
+   (angulo de chegada, distancia, de que lado esta o adversario), e geometria
+   se enxerga desenhando. Os doze cenarios do portador foram escritos a mao em
+   Python e cada um custou uma leitura de replay para descobrir que a largada
+   nao era a que se pensava.
+   ========================================================================== */
+const CAMPO = {x: 4500, y: 3000, area: {prof: 1000, meia: 1000}, gol: {meia: 500, prof: 180}};
+const PECAS = [
+  {id:'bola',  rotulo:'Bola',              cor:'#ff8c1a', lado:null},
+  {id:'nosso', rotulo:'Nosso robô',        cor:'#4f8ff7', lado:'azuis'},
+  {id:'gk',    rotulo:'Nosso goleiro',     cor:'#2f6fd0', lado:'azuis',    papel:'goleiro', idFixo:0},
+  {id:'deles', rotulo:'Adversário',        cor:'#e8c33c', lado:'amarelos'},
+  {id:'gkd',   rotulo:'Goleiro deles',     cor:'#c9a21f', lado:'amarelos', papel:'goleiro', idFixo:0},
+  {id:'zag',   rotulo:'Zagueiro deles',    cor:'#d9b02c', lado:'amarelos', papel:'zagueiro'},
+];
+let cenAtual = {bola:null, pecas:[]};   // pecas: {lado,id,x,y,ang,papel}
+let pecaArmada = null, selecionada = null, editando = null, arrastando = null;
+
+const svgCampo = () => $('#campo');
+
+function desenhaCampo() {
+  const svg = svgCampo();
+  const ns = 'http://www.w3.org/2000/svg';
+  const el = (t, a) => { const n = document.createElementNS(ns, t);
+    for (const k in a) n.setAttribute(k, a[k]); return n; };
+  svg.textContent = '';
+  // --- o campo
+  svg.appendChild(el('rect', {x:-CAMPO.x, y:-CAMPO.y, width:CAMPO.x*2, height:CAMPO.y*2,
+    fill:'none', stroke:'#ffffff55', 'stroke-width':20}));
+  svg.appendChild(el('line', {x1:0, y1:-CAMPO.y, x2:0, y2:CAMPO.y, stroke:'#ffffff33','stroke-width':16}));
+  svg.appendChild(el('circle', {cx:0, cy:0, r:500, fill:'none', stroke:'#ffffff33','stroke-width':16}));
+  for (const s of [-1, 1]) {
+    svg.appendChild(el('rect', {x: s>0 ? CAMPO.x-CAMPO.area.prof : -CAMPO.x,
+      y:-CAMPO.area.meia, width:CAMPO.area.prof, height:CAMPO.area.meia*2,
+      fill:'none', stroke:'#ffffff33','stroke-width':16}));
+    svg.appendChild(el('rect', {x: s>0 ? CAMPO.x : -CAMPO.x-CAMPO.gol.prof,
+      y:-CAMPO.gol.meia, width:CAMPO.gol.prof, height:CAMPO.gol.meia*2,
+      fill:'#ffffff14', stroke:'#ffffff44','stroke-width':12}));
+  }
+  // o gol de ataque, para nao haver duvida de para onde a bola deve ir
+  const t = el('text', {x:CAMPO.x-520, y:-CAMPO.y+230, fill:'#ffffff55',
+    'font-size':210, 'font-family':'sans-serif'});
+  t.textContent = 'ataque →';
+  svg.appendChild(t);
+  // --- as pecas
+  if (cenAtual.bola) svg.appendChild(pecaSvg(el, cenAtual.bola, 'bola'));
+  cenAtual.pecas.forEach((p, i) => svg.appendChild(pecaSvg(el, p, i)));
+}
+
+function pecaSvg(el, p, chave) {
+  const def = PECAS.find((d) => d.id === p.tipo) || PECAS[0];
+  const g = el('g', {transform:`translate(${p.x},${p.y})`, style:'cursor:grab'});
+  g.dataset.chave = String(chave);
+  if (p.tipo === 'bola') {
+    g.appendChild(el('circle', {r:75, fill:def.cor, stroke:'#00000066','stroke-width':10}));
+  } else {
+    g.appendChild(el('circle', {r:90, fill:def.cor, stroke:'#00000066','stroke-width':10}));
+    // a placa do chutador: diz para onde o robo esta virado, que e o que
+    // decide para onde a bola sai (ela sai no eixo do corpo)
+    const a = (p.ang || 0) * Math.PI / 180;
+    g.appendChild(el('line', {x1:0, y1:0, x2:Math.cos(a)*165, y2:Math.sin(a)*165,
+      stroke:'#ffffffcc', 'stroke-width':22, 'stroke-linecap':'round'}));
+    const n = el('text', {x:0, y:48, fill:'#10131c', 'font-size':120,
+      'font-weight':'700', 'text-anchor':'middle', 'font-family':'sans-serif',
+      style:'pointer-events:none'});
+    n.textContent = String(p.id);
+    g.appendChild(n);
+  }
+  if (selecionada !== null && String(selecionada) === String(chave)) {
+    g.appendChild(el('circle', {r: p.tipo === 'bola' ? 130 : 150, fill:'none',
+      stroke:'#ffffff', 'stroke-width':14, 'stroke-dasharray':'50 40'}));
+  }
+  return g;
+}
+
+function paraCampo(ev) {
+  const svg = svgCampo();
+  const pt = svg.createSVGPoint();
+  pt.x = ev.clientX; pt.y = ev.clientY;
+  const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+  return presoAoCampo({x: Math.round(p.x), y: Math.round(p.y)});
+}
+
+function presoAoCampo(p) {
+  // A MARGEM DO DESENHO NAO E CAMPO. O viewBox e maior que o campo (para caber
+  // o gol e sobrar respiro), e sem isto um clique na margem gravava um robo em
+  // x = -8082 - fora do mundo. A ponte recusava na gravacao, o que e certo, mas
+  // recusar DEPOIS de desenhar e pior que nao deixar soltar ali: 600 mm atras da
+  // linha de fundo e o quanto o 'posicionar' aceita para estacionar quem nao
+  // joga.
+  return {x: Math.max(-CAMPO.x - 600, Math.min(CAMPO.x + 600, p.x)),
+          y: Math.max(-CAMPO.y, Math.min(CAMPO.y, p.y))};
+}
+
+function proximoId(lado) {
+  // COMECA NO 1, NAO NO 0. O id 0 e o GOLEIRO em toda a estrategia
+  // (distribuir_papeis tira o robo 0 da distribuicao de papeis de linha). Um
+  // robo de linha colocado como 0 viraria goleiro em silencio, e o cenario
+  // passaria a medir outra coisa - a mesma familia de armadilha que fez metade
+  // dos lotes de 'jogo' rodarem com dois robos de linha sem ninguem notar.
+  // Quem quer o goleiro usa a peca de goleiro, que tem idFixo 0.
+  const usados = new Set(cenAtual.pecas.filter((p) => p.lado === lado).map((p) => p.id));
+  for (let i = 1; i <= 5; i += 1) if (!usados.has(i)) return i;
+  return null;
+}
+
+function desenhaPaleta() {
+  const alvo = $('#paleta');
+  alvo.textContent = '';
+  PECAS.forEach((d) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'peca' + (pecaArmada === d.id ? ' sel' : '');
+    b.innerHTML = `<i style="background:${d.cor}"></i>${d.rotulo}`;
+    b.onclick = () => { pecaArmada = pecaArmada === d.id ? null : d.id;
+      svgCampo().classList.toggle('armado', !!pecaArmada); desenhaPaleta(); dica(); };
+    alvo.appendChild(b);
+  });
+}
+
+function dica(txt) {
+  $('#dica-editor').textContent = txt || (pecaArmada
+    ? 'Clique no campo para colocar: ' + (PECAS.find((d) => d.id === pecaArmada) || {}).rotulo
+    : (cenAtual.pecas.length || cenAtual.bola
+        ? `${cenAtual.pecas.filter((p) => p.lado === 'azuis').length} nosso(s), `
+          + `${cenAtual.pecas.filter((p) => p.lado === 'amarelos').length} adversário(s)`
+          + (cenAtual.bola ? ', bola posta' : ', SEM BOLA')
+        : 'Escolha uma peça e clique no campo'));
+}
+
+function mostraSelecionada() {
+  const temSel = selecionada !== null;
+  $('#carta-sel').hidden = !temSel;
+  if (!temSel) return;
+  const p = selecionada === 'bola' ? cenAtual.bola : cenAtual.pecas[selecionada];
+  if (!p) { selecionada = null; $('#carta-sel').hidden = true; return; }
+  const ehBola = p.tipo === 'bola';
+  $('#campo-id').hidden = ehBola;
+  $('#campo-ang').hidden = ehBola;
+  $('#campo-papel').hidden = ehBola;
+  $('#sel-descr').textContent = ehBola
+    ? `Bola em (${p.x}, ${p.y})`
+    : `${p.lado === 'azuis' ? 'Nosso robô' : 'Adversário'} em (${p.x}, ${p.y})`;
+  if (ehBola) return;
+  const sel = $('#sel-id');
+  sel.textContent = '';
+  for (let i = 0; i <= 5; i += 1) {
+    const o = document.createElement('option');
+    o.value = String(i); o.textContent = String(i);
+    o.selected = i === p.id;
+    sel.appendChild(o);
+  }
+  $('#sel-ang').value = String(p.ang || 0);
+  // AS OPCOES DEPENDEM DA PECA.
+  //
+  // Oferecer 'goleiro' para o robo 2 ou 'portador' para um amarelo e o mesmo
+  // defeito que o papel sem a chave: controle que nao controla. O goleiro e o
+  // robo 0 por construcao (distribuir_papeis tira o 0 da distribuicao), e o
+  // mapa ARARABOTS_PAPEIS so aceita portador, apoio e cobertura.
+  const opcoes = p.lado === 'amarelos'
+    ? [['', '(Nenhum)'], ['zagueiro', 'Zagueiro (anotação)'],
+       ['goleiro', 'Goleiro (anotação)']]
+    : (p.id === 0
+        ? [['goleiro', 'Goleiro (é o robô 0)']]
+        : [['', '(Nenhum — cobertura)'], ['portador', 'Portador'],
+           ['apoio', 'Apoio'], ['cobertura', 'Cobertura']]);
+  const sp = $('#sel-papel');
+  sp.textContent = '';
+  opcoes.forEach(([v, r]) => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = r; o.selected = (p.papel || '') === v;
+    sp.appendChild(o);
+  });
+  if (!opcoes.some(([v]) => v === (p.papel || ''))) { p.papel = opcoes[0][0]; sp.value = p.papel; }
+  atualizaPapel();
+}
+
+function papeisFixos() { return $('#papeis-fixos').checked; }
+
+function atualizaPapel() {
+  // SEM A CHAVE, O PAPEL NAO DECIDE NADA - e dizer isso na tela e o ponto.
+  //
+  // A tatica distribui papeis por geometria (portador = o mais proximo da
+  // bola). Marcar 'portador' numa peca sem ligar a chave e um controle que nao
+  // controla, e controle que nao controla e pior que nenhum: faz acreditar que
+  // o cenario testa uma coisa quando testa outra.
+  const fixo = papeisFixos();
+  const sel = $('#sel-papel');
+  const p = typeof selecionada === 'number' ? cenAtual.pecas[selecionada] : null;
+  const nosso = !!p && p.lado === 'azuis';
+  sel.disabled = !fixo || !nosso || (!!p && p.id === 0);
+  const ajuda = $('#ajuda-papel');
+  if (ajuda) {
+    ajuda.textContent = !nosso
+      ? 'O papel vale para os nossos robôs; o adversário é movido pelo perfil do teste.'
+      : (p.id === 0
+          ? 'O robô 0 é o goleiro em toda a estratégia — isto não se escolhe.'
+          : (fixo
+              ? 'A estratégia vai obedecer este papel (ARARABOTS_PAPEIS). Quem ficar sem escolha entra como cobertura.'
+              : 'Papéis estão por geometria: o mais próximo da bola é o portador. Ligue a chave acima para mandar.'));
+  }
+  $('.chave').classList.toggle('ligada', fixo);
+}
+
+function montaCenario() {
+  const [tipo, cor] = $('#cen-comando').value.split('|');
+  const papeis = {};
+  cenAtual.pecas.forEach((p) => { if (p.lado === 'azuis' && p.papel) papeis[p.id] = p.papel; });
+  return {
+    papeis_fixos: papeisFixos(),
+    titulo: $('#cen-titulo').value.trim() || $('#cen-nome').value.trim(),
+    descricao: $('#cen-descr').value.trim(),
+    tipo: 'local',
+    bola: cenAtual.bola ? [cenAtual.bola.x, cenAtual.bola.y] : null,
+    azuis: cenAtual.pecas.filter((p) => p.lado === 'azuis').map((p) => [p.id, p.x, p.y, p.ang || 0]),
+    amarelos: cenAtual.pecas.filter((p) => p.lado === 'amarelos').map((p) => [p.id, p.x, p.y, p.ang || 0]),
+    comando: [tipo, cor],
+    papeis,
+  };
+}
+
+async function salvaCenario() {
+  const nome = $('#cen-nome').value.trim();
+  const cen = montaCenario();
+  const erro = $('#erro-editor');
+  erro.hidden = true;
+  if (!cen.bola) { erro.textContent = 'Ponha a bola no campo.'; erro.hidden = false; return; }
+  try {
+    const r = await fetch(api('/api/cenario-local'), {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({nome, cenario: cen})});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'falhou');
+    editando = nome;
+    await carregaLocais();
+    await carregaOpcoes();                      // o seletor principal ja o enxerga
+    dica('Salvo: ' + nome + ' — já aparece no seletor da tela principal');
+  } catch (e) { erro.textContent = String(e.message || e); erro.hidden = false; }
+}
+
+async function carregaLocais() {
+  let dados = {};
+  try {
+    const r = await fetch(api('/api/cenarios-locais'));
+    dados = (await r.json()).cenarios || {};
+  } catch (e) { /* painel aberto sem ponte */ }
+  const ul = $('#lista-locais');
+  ul.textContent = '';
+  const nomes = Object.keys(dados).sort();
+  $('#sem-locais').hidden = nomes.length > 0;
+  nomes.forEach((n) => {
+    const li = document.createElement('li');
+    const s = document.createElement('span');
+    s.textContent = n;
+    s.title = dados[n].titulo || '';
+    const be = document.createElement('button');
+    be.type = 'button'; be.textContent = 'Editar';
+    be.onclick = () => abreNoEditor(n, dados[n]);
+    const br = document.createElement('button');
+    br.type = 'button'; br.textContent = 'Remover'; br.className = 'perigo';
+    br.onclick = async () => {
+      if (!confirm('Remover o cenário ' + n + '?')) return;
+      await fetch(api('/api/cenario-local-remover'), {method:'POST',
+        headers:{'Content-Type':'application/json'}, body: JSON.stringify({nome:n})});
+      await carregaLocais(); await carregaOpcoes();
+    };
+    li.append(s, be, br);
+    ul.appendChild(li);
+  });
+}
+
+function abreNoEditor(nome, cen) {
+  editando = nome;
+  $('#cen-nome').value = nome;
+  $('#cen-titulo').value = cen.titulo || '';
+  $('#cen-descr').value = cen.descricao || '';
+  $('#cen-comando').value = (cen.comando || ['FORCE_START', 'BLUE']).join('|');
+  $('#papeis-fixos').checked = !!cen.papeis_fixos;
+  cenAtual = {bola: cen.bola ? {tipo:'bola', x:cen.bola[0], y:cen.bola[1]} : null, pecas: []};
+  const papeis = cen.papeis || {};
+  (cen.azuis || []).forEach((r) => cenAtual.pecas.push({tipo: r[0] === 0 ? 'gk' : 'nosso',
+    lado:'azuis', id:r[0], x:r[1], y:r[2], ang:r[3] || 0, papel: papeis[String(r[0])] || ''}));
+  (cen.amarelos || []).forEach((r) => cenAtual.pecas.push({tipo: r[0] === 0 ? 'gkd' : 'deles',
+    lado:'amarelos', id:r[0], x:r[1], y:r[2], ang:r[3] || 0,
+    papel: (cen.papeis_deles || {})[String(r[0])] || ''}));
+  selecionada = null;
+  mostraSelecionada(); desenhaCampo(); dica();
+}
+
+function limpaCampo() {
+  cenAtual = {bola:null, pecas:[]};
+  selecionada = null; editando = null;
+  mostraSelecionada(); desenhaCampo(); dica();
+}
+
+function mostraEditor(sim) {
+  $('main').hidden = sim;
+  $('#editor').hidden = !sim;
+  if (sim) { desenhaPaleta(); desenhaCampo(); carregaLocais(); dica(); }
+}
+
+/* ------------------------------------------------------------- liga o editor */
+(function ligaEditor() {
+  const svg = svgCampo();
+
+  svg.addEventListener('pointerdown', (ev) => {
+    const g = ev.target.closest('g[data-chave]');
+    if (pecaArmada && !g) {
+      const d = PECAS.find((x) => x.id === pecaArmada);
+      const pos = paraCampo(ev);
+      if (d.id === 'bola') {
+        cenAtual.bola = {tipo:'bola', x:pos.x, y:pos.y};
+        selecionada = 'bola';
+      } else {
+        const id = d.idFixo !== undefined ? d.idFixo : proximoId(d.lado);
+        if (id === null) { dica('Não há id livre nesse time (0 a 5)'); return; }
+        if (cenAtual.pecas.some((p) => p.lado === d.lado && p.id === id)) {
+          dica('O id ' + id + ' já está em uso nesse time'); return;
+        }
+        cenAtual.pecas.push({tipo:d.id, lado:d.lado, id, x:pos.x, y:pos.y,
+          ang: d.lado === 'amarelos' ? 180 : 0, papel: d.papel || ''});
+        selecionada = cenAtual.pecas.length - 1;
+      }
+      pecaArmada = null; svg.classList.remove('armado');
+      desenhaPaleta(); mostraSelecionada(); desenhaCampo(); dica();
+      return;
+    }
+    if (!g) { selecionada = null; mostraSelecionada(); desenhaCampo(); return; }
+    selecionada = g.dataset.chave === 'bola' ? 'bola' : Number(g.dataset.chave);
+    arrastando = selecionada;
+    svg.setPointerCapture(ev.pointerId);
+    mostraSelecionada(); desenhaCampo();
+  });
+
+  svg.addEventListener('pointermove', (ev) => {
+    if (arrastando === null) return;
+    const pos = paraCampo(ev);          // ja vem preso ao campo
+    const p = arrastando === 'bola' ? cenAtual.bola : cenAtual.pecas[arrastando];
+    if (!p) return;
+    p.x = pos.x; p.y = pos.y;
+    desenhaCampo(); mostraSelecionada();
+  });
+
+  const solta = () => { arrastando = null; };
+  svg.addEventListener('pointerup', solta);
+  svg.addEventListener('pointercancel', solta);
+
+  $('#sel-id').onchange = (e) => {
+    const p = cenAtual.pecas[selecionada]; if (!p) return;
+    const novo = Number(e.target.value);
+    if (cenAtual.pecas.some((o) => o !== p && o.lado === p.lado && o.id === novo)) {
+      dica('O id ' + novo + ' já está em uso nesse time'); mostraSelecionada(); return;
+    }
+    p.id = novo; desenhaCampo(); mostraSelecionada();
+  };
+  $('#sel-ang').oninput = (e) => {
+    const p = cenAtual.pecas[selecionada]; if (!p) return;
+    p.ang = Number(e.target.value) || 0; desenhaCampo();
+  };
+  $('#sel-papel').onchange = (e) => {
+    const p = cenAtual.pecas[selecionada]; if (!p) return;
+    p.papel = e.target.value; dica(p.papel
+      ? 'Papel anotado. A tática distribui papéis por geometria — isto só vale de '
+        + 'verdade com a bandeira ARARABOTS_PAPEIS_FIXOS'
+      : undefined);
+  };
+  $('#btn-apagar-peca').onclick = () => {
+    if (selecionada === 'bola') cenAtual.bola = null;
+    else if (typeof selecionada === 'number') cenAtual.pecas.splice(selecionada, 1);
+    selecionada = null; mostraSelecionada(); desenhaCampo(); dica();
+  };
+  document.addEventListener('keydown', (ev) => {
+    if ($('#editor').hidden) return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+    if (ev.key === 'Delete' || ev.key === 'Backspace') { $('#btn-apagar-peca').click(); ev.preventDefault(); }
+    if (ev.key === 'Escape') { pecaArmada = null; svg.classList.remove('armado'); desenhaPaleta(); dica(); }
+  });
+  $('#papeis-fixos').onchange = () => { atualizaPapel(); dica(papeisFixos()
+    ? 'Papéis fixos: a estratégia vai obedecer o que você marcar em cada robô'
+    : 'Papéis por geometria: o mais próximo da bola é o portador'); };
+  $('#btn-salvar-cen').onclick = salvaCenario;
+  $('#btn-limpar-cen').onclick = limpaCampo;
+  $('#btn-editor').onclick = () => mostraEditor(true);
+  $('#btn-voltar').onclick = () => mostraEditor(false);
+})();
+
 </script>
 </body>
 </html>
